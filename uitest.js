@@ -312,6 +312,21 @@ const num = label => {
   check('the reward draft follows', all('#summary .card.boon').length >= 3,
     all('#summary .card.boon').length + ' options');
   const boonText = q('#summary').textContent;
+  /* Every offer must be cashable, so a round where nothing is useful still buys something.
+     Bank the first one and confirm the credits actually arrive. */
+  const bankBtns = all('#summary .btn.bank');
+  check('every reward can be banked for credits instead', bankBtns.length === all('#summary .card.boon').length,
+    bankBtns.length + ' bank buttons for ' + all('#summary .card.boon').length + ' rewards');
+  const bankLabel = bankBtns.length ? bankBtns[0].textContent : '';
+  check('the bank button says what it pays', /bank for \d+ credits/i.test(bankLabel), bankLabel);
+  if (bankBtns.length) {
+    const creditsBefore = w.__st ? w.__st.credits : null;
+    click(bankBtns[0]);
+    check('banking a reward starts the next round', /deployment/i.test(txt('#mainTitle')), txt('#mainTitle'));
+    if (creditsBefore != null)
+      check('and the credits landed', w.__st.credits > creditsBefore,
+        creditsBefore + ' -> ' + w.__st.credits);
+  }
   click(all('#summary .card.boon')[0]);
   check('taking a reward starts the next round', /deployment/i.test(txt('#mainTitle')), txt('#mainTitle'));
   check('the reward was recorded', boonText.length > 30);

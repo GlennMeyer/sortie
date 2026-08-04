@@ -428,6 +428,28 @@ function offerBoons(state, rng, lostLast) {
   return out;
 }
 
+/* Cash out an offer you cannot use.
+   Some rounds every reward is dead — tech for a unit you do not own, a free squad when you have
+   no slots left, SALVAGE CREW when nothing was scrapped. Being forced to take a nothing is worse
+   than being given nothing. Banking always pays, so the choice is never empty.
+
+   Deliberately below what a pure-cash boon of the same rarity hands you (210 x mult): banking is
+   the floor under a bad offer, never the best line. Taking the upgrade should still win whenever
+   the upgrade is any good. */
+function bankValue(boon) {
+  if (!boon) return 0;
+  const mult = (RAR[boon.rarity] || RAR.common).mult;
+  return Math.max(100, Math.round(140 * mult / 10) * 10);
+}
+
+function bankBoon(state, boon) {
+  const v = bankValue(boon);
+  if (!v) return false;
+  state.credits += v;
+  state.banked = (state.banked || 0) + v;
+  return true;
+}
+
 function takeBoon(state, boon) {
   if (!boon) return false;
   switch (boon.kind) {
@@ -534,5 +556,5 @@ function intel(enemy) {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { UNITS, U, TECH, T, BOONS, RARITY, RAR, ROUNDS, ARMY_CAP, SLOT_CAP, slotsUsed, rollRarity, luckOf, newGame, income, slotCap, priceOf, buy, sell, buyTech, setStance, spec, squadSpec, RANKS, MAX_RANK, MERGE_COUNT,
     upgradeCost, upgrade, mergeable, merge, startingRoster, offerUnlocks, takeUnlock, START_UNLOCKED, ERAS, currentEra,
-    enemyArmy, enemySpec, resolveRound, intel, offerBoons, takeBoon };
+    enemyArmy, enemySpec, resolveRound, intel, offerBoons, takeBoon, bankValue, bankBoon };
 }

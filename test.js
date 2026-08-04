@@ -181,6 +181,31 @@ console.log('\n--- rounds and attrition ---');
   ok(st3.over && st3.won, 'breaking the regime wins it');
 }
 
+console.log('\n--- banking a reward ---');
+{
+  const st = A.newGame(1);
+  const offers = A.offerBoons(st, B.mulberry32(7), null);
+  ok(offers.length > 0 && offers.every(b => A.bankValue(b) >= 100),
+    'every reward on offer can be cashed instead of taken');
+
+  const before = st.credits;
+  const b = offers[0];
+  A.bankBoon(st, b);
+  ok(st.credits === before + A.bankValue(b), 'banking pays the credits straight away',
+    before + ' -> ' + st.credits);
+
+  // it must never be the strongest line, or it stops being a fallback and becomes the answer
+  const cashBoon = A.offerBoons(A.newGame(2), B.mulberry32(11), null).find(x => x.kind === 'credits');
+  if (cashBoon) ok(A.bankValue(cashBoon) < cashBoon.amount,
+    'and pays less than simply taking the money would',
+    A.bankValue(cashBoon) + ' banked vs ' + cashBoon.amount + ' taken');
+
+  // rarity has to carry through, or a legendary would cash for the same as a common
+  ok(A.bankValue({ rarity: 'legendary' }) > A.bankValue({ rarity: 'common' }) * 5,
+    'a legendary is worth far more banked than a common',
+    A.bankValue({ rarity: 'common' }) + ' -> ' + A.bankValue({ rarity: 'legendary' }));
+}
+
 console.log('\n--- charging ---');
 {
   const st = A.newGame(1);

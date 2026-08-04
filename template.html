@@ -153,7 +153,10 @@ h1{font-family:var(--grot);font-weight:800;font-size:clamp(32px,6.5vw,58px);lett
 .ministat th{padding:4px 6px;letter-spacing:.1em}
 .ministat td{padding:3px 6px}
 .ministat td.bad{color:var(--crit)}
-.boons{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px}
+.boons{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px;align-items:stretch}
+.boonslot{display:flex;flex-direction:column;gap:5px}
+.boonslot>.card{flex:1 1 auto}
+.btn.bank{width:100%;padding:6px 8px;font-size:9px;letter-spacing:.1em}
 .card.boon{border-color:var(--coolant)}
 .card.boon:hover{border-color:#8fe6f5;background:#13252b}
 .card.boon{border-width:1px}
@@ -1092,10 +1095,11 @@ html,body{height:100%;overflow:hidden}
 
   function renderBoons() {
     const s = $('#summary'); s.hidden = false; s.className = ''; s.textContent = '';
-    s.appendChild(el('div', 'sumhead', 'Take one, lose the rest'));
+    s.appendChild(el('div', 'sumhead', 'Take one, or bank one for credits'));
     s.appendChild(el('div', 'cnote',
       'Field upgrades live here rather than competing with squads for credits. Rarer cards are ' +
-      'exponentially stronger, and rarer cards show up more the deeper the war runs — or when you are losing.'));
+      'exponentially stronger, and rarer cards show up more the deeper the war runs — or when you are losing. ' +
+      'Nothing here worth having? Bank one instead and spend the credits in the shop.'));
     const wrap = el('div', 'boons');
     for (const b of boonOffer) {
       const r = RAR[b.rarity] || RAR.common;
@@ -1110,7 +1114,15 @@ html,body{height:100%;overflow:hidden}
       c.appendChild(r1);
       c.appendChild(el('div', 'cnote', b.note));
       c.onclick = () => { takeBoon(st, b); startRound(); };
-      wrap.appendChild(c);
+      /* Every offer can be cashed instead of taken, so a round of dead rewards still buys you
+         something. Priced under a cash boon of the same rarity — a floor, not a best line. */
+      const slot = el('div', 'boonslot');
+      slot.appendChild(c);
+      const bank = el('button', 'btn ghost sm bank', 'Bank for ' + bankValue(b) + ' credits');
+      bank.title = 'Decline ' + b.name + ' and take the credits instead.';
+      bank.onclick = () => { bankBoon(st, b); startRound(); };
+      slot.appendChild(bank);
+      wrap.appendChild(slot);
     }
     s.appendChild(wrap);
     $('#mainTitle').textContent = 'Round ' + (st.round - 1) + ' reward';
