@@ -1,0 +1,2449 @@
+<title>SORTIE — mobile suit auto-battler</title>
+
+<style>
+:root{
+  --ground:#12161C; --panel:#1A2029; --panel-2:#151B23; --line:#2C353F; --line-soft:#222A33;
+  --ink:#D8DFE6; --ink-dim:#7E8B99; --ink-faint:#55616E;
+  --accent:#FF6A1F; --coolant:#56D2E4; --warn:#FFC24B; --crit:#FF4438; --good:#5FD38A;
+  --mono: ui-monospace,'SF Mono',SFMono-Regular,'Cascadia Mono','Roboto Mono',Menlo,Consolas,'Liberation Mono',monospace;
+  --grot: 'Helvetica Neue',-apple-system,'Segoe UI',system-ui,Arial,sans-serif;
+  --r:2px;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.5;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1340px;margin:0 auto;padding:0 18px 70px}
+h1,h2{margin:0;text-wrap:balance}
+.lbl{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint)}
+
+.hazard{height:8px;background:repeating-linear-gradient(45deg,var(--accent) 0 12px,#0d1116 12px 24px);opacity:.85}
+header{padding:24px 0 16px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);display:flex;gap:14px;flex-wrap:wrap}
+.eyebrow span{color:var(--ink-faint)}
+h1{font-family:var(--grot);font-weight:800;font-size:clamp(32px,6.5vw,58px);letter-spacing:-.045em;line-height:.92;margin:8px 0 0;text-transform:uppercase}
+.deck{color:var(--ink-dim);max-width:66ch;margin-top:9px}
+.deck b{color:var(--ink);font-weight:400}
+
+.warbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);margin-top:14px;border-radius:var(--r);overflow:hidden}
+.warbar div{background:var(--panel-2);padding:8px 11px}
+.warbar span{display:block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+.warbar b{font-family:var(--grot);font-size:19px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.warbar b.hot{color:var(--accent)}.warbar b.bad{color:var(--crit)}.warbar b.cool{color:var(--coolant)}
+.warbar .cnote{font-size:9px;margin-top:2px}
+.warbar b{font-size:15px}
+.contest{display:flex;justify-content:center;gap:2px;margin-top:4px;height:5px}
+.contest i{display:block;height:100%;border-radius:1px}
+.contest i.me{background:var(--accent)} .contest i.foe{background:var(--crit)}
+.slotbar{height:5px;margin-top:4px;background:#0d1116;border-radius:1px;overflow:hidden}
+.slotbar i{display:block;height:100%;background:var(--coolant)}
+.slotbar i.full{background:var(--crit)}
+
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+@media(max-width:1020px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.phead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+.phead h2{font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:400}
+.phead .sub{font-size:10px;letter-spacing:.12em;color:var(--ink-faint);text-transform:uppercase}
+.pbody{padding:11px;display:flex;flex-direction:column;gap:9px}
+
+.card{border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);padding:6px 9px;
+  display:flex;flex-direction:column;gap:3px;cursor:pointer;text-align:left;width:100%;font-family:var(--mono);color:var(--ink-dim)}
+.card:hover{border-color:var(--ink-faint)}
+.card:disabled{opacity:.38;cursor:default}
+.card:disabled:hover{border-color:var(--line)}
+.card.locked{opacity:.32}
+.card.locked .cost{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink-faint)}
+.crow{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.cname{font-size:11px;letter-spacing:.08em;color:var(--ink);flex:1}
+.cost{font-family:var(--grot);font-weight:800;font-size:15px;letter-spacing:-.02em;color:var(--accent);font-variant-numeric:tabular-nums}
+.cstat{font-size:9px;color:var(--ink-faint);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cnote{font-size:10px;color:var(--ink-faint);line-height:1.35}
+.pill{font-size:8px;letter-spacing:.12em;padding:2px 5px;border:1px solid var(--line);border-radius:1px;color:var(--ink-faint);text-transform:uppercase;white-space:nowrap}
+.pill.swarm{color:#9BB0C4;border-color:#33404e}
+.pill.line{color:var(--good);border-color:#245038}
+.pill.fast{color:var(--coolant);border-color:#1e3a40}
+.pill.siege{color:var(--warn);border-color:#4a3a16}
+.pill.heavy{color:var(--crit);border-color:#5a1c17}
+.pill.ace{color:var(--accent);border-color:#5a2d10}
+.pill.owned{color:var(--good);border-color:#245038}
+.pill.era1{color:var(--ink-faint)}
+.pill.era2{color:var(--coolant);border-color:#1e3a40}
+.pill.era3{color:var(--accent);border-color:#5a2d10}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:2px}
+.tabs button{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--panel-2);
+  color:var(--ink-dim);border:1px solid var(--line);border-radius:var(--r);padding:7px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#12161C;font-weight:700}
+
+.sq{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel-2);padding:5px 8px;cursor:pointer}
+.sq[aria-pressed="true"]{border-color:var(--coolant);background:#13252b}
+.sq .n{font-size:11px;color:var(--ink);flex:1}
+.sq .where{font-size:9px;color:var(--ink-faint)}
+.rank{font-family:var(--grot);font-weight:800;font-size:12px;width:16px;text-align:center;letter-spacing:-.02em}
+.rank.r0{color:var(--ink-faint)} .rank.r1{color:var(--good)} .rank.r2{color:var(--coolant)}
+.rank.r3{color:var(--warn)} .rank.r4{color:#FFD24B}
+.btn.merge{color:var(--coolant);border-color:var(--coolant)}
+.btn.merge:hover{background:var(--coolant);color:#12161C}
+.sq.unplaced .where{color:var(--warn)}
+
+#boardWrap{position:relative;background:#0E1319;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+#board{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.legend{display:flex;gap:11px;flex-wrap:wrap;font-size:9px;letter-spacing:.1em;color:var(--ink-faint);
+  text-transform:uppercase;padding:7px 10px;border-top:1px solid var(--line);background:var(--panel-2)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.hint{padding:8px 11px;border:1px solid var(--accent);border-radius:var(--r);background:#241a13;color:var(--ink);font-size:11px}
+.hint b{color:var(--accent);font-weight:400}
+.hint.deny{border-color:var(--crit);background:#2a1412;color:var(--crit)}
+#inspect{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--panel-2);padding:6px 10px;margin:0 8px;font-size:10px}
+#inspect .who{font-size:11px;letter-spacing:.08em;color:var(--ink)}
+#inspect.foe{border-color:#5a1c17}
+#inspect.foe .who{color:var(--crit)}
+#inspect .st{color:var(--ink-faint);font-variant-numeric:tabular-nums}
+#inspect .st b{color:var(--ink-dim);font-weight:400}
+
+.btn{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;border-radius:var(--r);
+  cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#12161C;font-weight:700}
+.btn:hover{background:#ff7d3a}
+.btn.ghost{background:transparent;color:var(--ink-dim);border-color:var(--line)}
+.btn.ghost:hover{color:var(--ink);border-color:var(--ink-faint)}
+.btn.sm{padding:5px 9px;font-size:9px}
+.btn.charging{color:var(--crit);border-color:var(--crit)}
+.btn.charging:hover{background:var(--crit);color:#12161C}
+.btn:disabled{opacity:.3;cursor:default;background:transparent;color:var(--ink-faint);border-color:var(--line)}
+.btn:disabled:hover{background:transparent;color:var(--ink-faint)}
+:focus-visible{outline:2px solid var(--coolant);outline-offset:2px}
+.actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+
+#playbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel-2);padding:7px 9px}
+#scrub{flex:1;min-width:140px;accent-color:var(--accent);height:4px;cursor:pointer}
+#tickTag{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+#log{height:200px;overflow-y:auto;background:#0d1116;border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;
+  font-size:11px;display:flex;flex-direction:column;gap:1px}
+#log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
+#log .detail{color:var(--ink-faint);font-size:10px;padding-left:16px}
+#log .t{color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.e-pfire{color:var(--accent)}.e-efire{color:var(--ink-dim)}.e-wipe{color:var(--crit);font-weight:700}
+.e-boom{color:var(--warn)}
+
+#summary{border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);padding:12px;display:flex;flex-direction:column;gap:9px}
+#summary.win{border-color:var(--accent)}#summary.loss{border-color:var(--crit)}
+.sumhead{font-family:var(--grot);font-size:18px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase}
+#summary.win .sumhead{color:var(--accent)}#summary.loss .sumhead{color:var(--crit)}
+.sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:9px}
+.sumgrid div span{display:block;font-size:9px;letter-spacing:.16em;color:var(--ink-faint);text-transform:uppercase}
+.sumgrid div b{font-family:var(--grot);font-size:18px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.why{display:flex;flex-direction:column;gap:3px}
+.wnote{font-size:11px;color:var(--ink-dim);padding-left:12px;position:relative}
+.wnote::before{content:'·';position:absolute;left:2px;color:var(--ink-faint)}
+.wnote.silent,.wnote.killer{color:var(--crit)}
+.wnote.overkill{color:var(--warn)}
+.wnote.advice{color:var(--coolant)}
+.ministat{min-width:0;font-size:10px}
+.ministat th{padding:4px 6px;letter-spacing:.1em}
+.ministat td{padding:3px 6px}
+.ministat td.bad{color:var(--crit)}
+.boons{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px}
+.card.boon{border-color:var(--coolant)}
+.card.boon:hover{border-color:#8fe6f5;background:#13252b}
+.card.boon{border-width:1px}
+.card.boon:hover{filter:brightness(1.35)}
+.card.boon.r-epic{box-shadow:inset 0 0 22px rgba(255,106,31,.16)}
+.card.boon.r-legendary{box-shadow:inset 0 0 26px rgba(255,210,75,.22)}
+.card.boon.r-legendary .cname{color:#FFD24B}
+
+section{margin-top:28px}
+.shead{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:13px}
+.shead h2{font-family:var(--grot);font-size:15px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase}
+.shead p{margin:0;color:var(--ink-faint);font-size:11px}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:11px;min-width:660px}
+th{text-align:left;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:400;padding:8px 10px;
+  border-bottom:1px solid var(--line);background:var(--panel-2);white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid var(--line-soft);font-variant-numeric:tabular-nums;color:var(--ink-dim);white-space:nowrap}
+tr:last-child td{border-bottom:0}td.n{color:var(--ink)}td .note{color:var(--ink-faint);white-space:normal}
+.note-list{color:var(--ink-dim);font-size:12px;padding-left:16px;margin:0;display:flex;flex-direction:column;gap:6px}
+.note-list b{color:var(--ink);font-weight:400}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+footer{margin-top:34px;padding-top:13px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:10px;letter-spacing:.1em}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- app shell: the page is a screen, not a document ----
+   These rules come last on purpose and govern layout outright; the earlier block still styles
+   the components inside them. */
+html,body{height:100%;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100dvh;min-height:0}
+.strip{display:flex;align-items:center;gap:12px;padding:7px 12px;border-bottom:1px solid var(--line);
+  background:var(--panel-2);flex:0 0 auto}
+.brand{font-family:var(--grot);font-weight:800;font-size:17px;letter-spacing:-.03em;text-transform:uppercase;
+  white-space:nowrap;display:flex;align-items:baseline;gap:8px}
+.brand span{font-family:var(--mono);font-size:8px;letter-spacing:.18em;color:var(--ink-faint);font-weight:400}
+.strip .warbar{margin:0;flex:1;border:0;background:transparent;gap:0;
+  grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+.strip .warbar div{background:transparent;padding:2px 10px;border-left:1px solid var(--line)}
+.strip .warbar b{font-size:15px}
+.strip .pips{margin-top:2px}
+.strip .pips i{height:4px}
+
+.cols3{flex:1;min-height:0;display:grid;grid-template-columns:288px minmax(0,1fr) 300px;gap:1px;background:var(--line)}
+.cols3 > .panel{border:0;border-radius:0;display:flex;flex-direction:column;min-height:0;min-width:0}
+.panel .phead{flex:0 0 auto}
+.panel .tabs{flex:0 0 auto;margin:8px 8px 4px;gap:4px}
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
+.board-col{padding:0}
+.board-col .hint{flex:0 0 auto;margin:8px 8px 0;font-size:10px;padding:6px 9px}
+.boardfit{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px;background:#0E1319}
+#board{display:block;touch-action:none;cursor:crosshair}
+#playbar{flex:0 0 auto;margin:0 8px 6px;border-radius:var(--r)}
+.board-col .actions{flex:0 0 auto;padding:0 8px 8px}
+#log{height:auto}
+
+/* the result and the reward draft take space in the column; nothing floats over anything */
+#summary{flex:0 0 auto;margin:0 8px 8px;max-height:46%;overflow-y:auto}
+
+.tabs3{grid-template-columns:1fr 1fr 1fr}
+.manual-body{gap:12px;font-size:11px}
+.manual-body .cols{grid-template-columns:1fr;gap:12px}
+.manual-body h3{font-family:var(--grot);font-size:12px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;
+  margin:4px 0 2px;color:var(--ink)}
+.manual-body .cols{gap:22px}
+.manual-body table{min-width:0;font-size:10px}
+.manual-body .note-list{font-size:11px;gap:5px}
+
+/* An author rule that sets `display` beats the browser's [hidden]{display:none}, so anything
+   styled display:flex ignored the hidden attribute entirely. This has to win outright. */
+[hidden]{display:none!important}
+
+@media(max-width:1080px){
+  html,body{overflow:auto}
+  .app{height:auto;min-height:100dvh}
+  .cols3{grid-template-columns:1fr;background:transparent;gap:10px;padding:10px}
+  .cols3 > .panel{border:1px solid var(--line);border-radius:var(--r)}
+  .scroll{max-height:290px}
+  .boardfit{min-height:52vh}
+  .strip{flex-wrap:wrap}
+}
+</style>
+
+<div class="app">
+  <header class="strip">
+    <div class="brand">SORTIE<span>mobile suit auto-battler</span></div>
+    <div class="warbar" id="warbar"></div>
+    
+  </header>
+
+  <main class="cols3">
+    <section class="panel">
+      <div class="phead"><h2>Shop</h2><span class="sub" id="creditTag">—</span></div>
+      <div class="tabs">
+        <button id="tabUnits" aria-pressed="true">Units</button>
+        <button id="tabTech" aria-pressed="false">Upgrades</button>
+      </div>
+      <div id="shop" class="scroll"></div>
+    </section>
+
+    <section class="panel board-col">
+      <div class="phead"><h2 id="mainTitle">Deployment</h2><span class="sub" id="viewTag">Place your squads</span></div>
+      <div id="hint" class="hint"></div>
+      <div id="inspect" hidden></div>
+      <div class="boardfit"><canvas id="board" width="900" height="620"></canvas></div>
+      <div id="playbar" hidden>
+        <button class="btn ghost sm" id="pbPlay">Pause</button>
+        <button class="btn ghost sm" id="pbStep">Step</button>
+        <button class="btn ghost sm" id="pbSpeed">Speed ×2</button>
+        <input type="range" id="scrub" min="0" max="0" value="0" step="1" aria-label="Scrub the battle">
+        <span class="lbl" id="tickTag">tick 0 / 0</span>
+      </div>
+      <div class="actions" id="controls"></div>
+      <div id="summary" hidden></div>
+    </section>
+
+    <section class="panel">
+      <div class="tabs tabs3">
+        <button id="tabArmy" aria-pressed="true">Army</button>
+        <button id="tabLog" aria-pressed="false">Log</button>
+        <button id="tabManual" aria-pressed="false">Manual</button>
+      </div>
+      <div id="army" class="scroll"></div>
+      <div id="log" class="scroll" hidden></div>
+      <div id="manual" class="scroll manual-body" hidden>
+<div class="cols">
+        <div>
+          <h3>The loop</h3>
+          <ul class="note-list">
+            <li><b>You see the regime's army before you spend a credit</b> — it is already standing on the board.</li>
+            <li><b>Drag a unit from the shop onto a hex</b> to buy and place in one motion. Drag squads already down to rearrange; dropping one on another swaps them.</li>
+            <li><b>Squads that survive fight again</b> next round, repaired. Squads wiped out are gone for good.</li>
+            <li><b>After each round you draft one reward of three</b> and lose the rest. Rarer cards are exponentially stronger, and show up more the deeper the war runs — or when you are losing.</li>
+          </ul>
+          <h3>The counter web</h3>
+          <ul class="note-list">
+            <li><b>Overkill is wasted.</b> Damage lands on one machine at a time, so a 95-damage Colossus shot into a 63-hull Pod throws most of itself away. That is why cheap bodies work.</li>
+            <li><b>Splash hits several machines at once</b> — devastating against a swarm, nearly pointless against one big target that only offers one body.</li>
+            <li><b>Armour is a save.</b> Armour-piercing worsens that roll; at 7+ there is no save at all.</li>
+            <li><b>Range must be paid for.</b> Siege reaches nine hexes but cannot fire inside three.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>The board</h3>
+          <ul class="note-list">
+            <li><b>Debris blocks line of sight</b> and costs double to cross. Missile Tracks arc over it.</li>
+            <li><b>Ridges are high ground</b>: +1 reach, −1 to hit shooting down, +1 shooting up. Climbing costs 3, moving along costs 2, dropping off costs 1.</li>
+          </ul>
+          <h3>Reward rarity</h3>
+          <div class="tblwrap"><table id="rarTable"></table></div>
+          <h3>Balance runner</h3>
+          <div class="actions" style="margin-bottom:9px">
+            <button class="btn" id="btnSim">Simulate 40 wars</button>
+            <span class="lbl" id="simStatus">idle</span>
+          </div>
+          <div id="simOut" class="tblwrap" hidden><table id="simTable"></table></div>
+        </div>
+      </div>
+      <h3>Army list</h3>
+      <div class="tblwrap"><table id="specTable"></table></div>
+    
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+'use strict';
+/* SORTIE — hex geometry and battlefield generation.
+   Storage is odd-r offset (rows of columns, odd rows nudged right); all real math is done in
+   cube coordinates. Distance and line-of-sight are precomputed per map because terrain never
+   moves during a sortie — that turns the hot path of the combat loop into two array lookups. */
+
+const COLS = 15, ROWS = 11;
+const N_HEX = COLS * ROWS;
+
+/* Two different ideas that were one flag for far too long:
+     opaque — you cannot see or shoot through it
+     blocks — you cannot stand on it
+   A ridge is opaque but standable. Conflating them made hills transparent, because they had to
+   be deployable and `blocks:false` also meant "shoot straight through". */
+/* Three ideas, deliberately separate:
+     opaque     — you cannot see or shoot through it
+     blocks     — you cannot deploy on it
+     impassable — you cannot enter it at all
+   Ridges are opaque but standable. Rock is all three. Trenches are none of them and simply
+   shelter whoever is in the hole. */
+const TERRAIN = {
+  open:   { id: 'open',   cost: 1, opaque: false, blocks: false, impassable: false, cover: 0.00, high: false,
+    note: 'Nothing to hide behind.' },
+  debris: { id: 'debris', cost: 2, opaque: true,  blocks: true,  impassable: false, cover: 0.22, high: false,
+    note: 'Blocks line of sight. You can cross it, slowly, but you cannot hold it.' },
+  ridge:  { id: 'ridge',  cost: 2, opaque: true,  blocks: false, impassable: false, cover: 0.08, high: true,
+    note: 'High ground. Blocks sight from below; standing on it you see over the rubble and your hits can crit.' },
+  rock:   { id: 'rock',   cost: 99, opaque: true, blocks: true,  impassable: true,  cover: 0.00, high: false,
+    note: 'Solid. Nothing crosses it and nothing shoots through it — the only real chokepoints on the board.' },
+  trench: { id: 'trench', cost: 2, opaque: false, blocks: false, impassable: false, cover: 0.26, high: false,
+    note: 'A hole worth being in. Shelters whoever holds it without blocking their own line of fire.' },
+  marsh:  { id: 'marsh',  cost: 3, opaque: false, blocks: false, impassable: false, cover: 0.00, high: false,
+    note: 'Slow going and no cover at all. Crossing it costs you the tempo.' },
+};
+const passable = (map, h) => !TERRAIN[map.tiles[h]].impassable;
+
+const id = (c, r) => r * COLS + c;
+const colOf = i => i % COLS;
+const rowOf = i => (i / COLS) | 0;
+const inBounds = (c, r) => c >= 0 && c < COLS && r >= 0 && r < ROWS;
+
+function toCube(i) {
+  const c = colOf(i), r = rowOf(i);
+  const x = c - ((r - (r & 1)) >> 1);
+  const z = r;
+  return [x, -x - z, z];
+}
+function cubeDist(a, b) {
+  return Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
+}
+
+/* odd-r offset neighbours: even rows lean left, odd rows lean right */
+const NB = [
+  [[+1, 0], [0, -1], [-1, -1], [-1, 0], [-1, +1], [0, +1]],   // even row
+  [[+1, 0], [+1, -1], [0, -1], [-1, 0], [0, +1], [+1, +1]],   // odd row
+];
+function neighbours(i) {
+  const c = colOf(i), r = rowOf(i), out = [];
+  for (const [dc, dr] of NB[r & 1]) {
+    const nc = c + dc, nr = r + dr;
+    if (inBounds(nc, nr)) out.push(id(nc, nr));
+  }
+  return out;
+}
+
+function cubeRound(x, y, z) {
+  let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
+  const dx = Math.abs(rx - x), dy = Math.abs(ry - y), dz = Math.abs(rz - z);
+  if (dx > dy && dx > dz) rx = -ry - rz; else if (dy > dz) ry = -rx - rz; else rz = -rx - ry;
+  return [rx, ry, rz];
+}
+function cubeToIndex(cu) {
+  const r = cu[2], c = cu[0] + ((r - (r & 1)) >> 1);
+  return inBounds(c, r) ? id(c, r) : -1;
+}
+
+/* Every hex the shot passes through, endpoints excluded.
+   A line that runs exactly along a hex edge is ambiguous — rounding picks one of two tied hexes
+   arbitrarily, so a shot could resolve as clear while visibly clipping the rubble next to it.
+   We nudge the endpoints both ways and take the union, so an ambiguous line counts BOTH hexes:
+   if either blocks, the shot is blocked. Strict, and it matches what the player sees. */
+function lineBetween(a, b) {
+  const A = toCube(a), B = toCube(b);
+  const n = cubeDist(A, B);
+  if (n <= 1) return [];
+  const seen = new Set();
+  for (const e of [1e-6, -1e-6]) {
+    for (let s = 1; s < n; s++) {
+      const t = s / n;
+      const hx = cubeToIndex(cubeRound(
+        A[0] + e + (B[0] + e - A[0] - e) * t,
+        A[1] - e + (B[1] - e - A[1] + e) * t,
+        A[2] + (B[2] - A[2]) * t));
+      if (hx >= 0 && hx !== a && hx !== b) seen.add(hx);
+    }
+  }
+  return [...seen];
+}
+
+/* ---------- maps ---------- */
+
+/* Deterministic terrain. Deploy zone is the bottom two rows; the enemy owns the top three. */
+/* The board was 91% open ground, so terrain barely featured. Density matters more than variety:
+   spreading a handful of hexes across six types would just make each of them rare. */
+function makeMap(rng, chapter) {
+  const tiles = new Array(N_HEX).fill('open');
+  const scale = 1 + Math.min(0.4, chapter * 0.05);
+  const bands = [
+    ['debris', 0.055 * scale],
+    ['ridge',  0.045 * scale],
+    ['trench', 0.040 * scale],
+    ['marsh',  0.035 * scale],
+    ['rock',   0.025 * scale],
+  ];
+  for (let i = 0; i < N_HEX; i++) {
+    if (rowOf(i) >= ROWS - 3) continue;        // keep the deploy zone clean
+    let roll = rng(), placed = null;
+    for (const [kind, p] of bands) { if (roll < p) { placed = kind; break; } roll -= p; }
+    if (placed) tiles[i] = placed;
+  }
+  // a broken band across the middle so crossing is a route choice, not a coin flip
+  const midRow = (ROWS / 2) | 0;
+  for (let c = 0; c < COLS; c++) {
+    const r = rng();
+    if (r < 0.14) tiles[id(c, midRow)] = 'rock';
+    else if (r < 0.34) tiles[id(c, midRow)] = 'debris';
+  }
+  // never wall the board off completely
+  let open = 0;
+  for (let c = 0; c < COLS; c++) if (!TERRAIN[tiles[id(c, midRow)]].impassable) open++;
+  if (open < 4) for (let c = 0; c < COLS && open < 4; c += 3) { tiles[id(c, midRow)] = 'open'; open++; }
+
+  return buildMap(tiles);
+}
+
+function buildMap(tiles) {
+  const dist = new Uint8Array(N_HEX * N_HEX);
+  const los = new Uint8Array(N_HEX * N_HEX);
+  /* From high ground you shoot over rubble. No terrain currently blocks a shot from a ridge —
+     debris is the only blocker and height clears it — but the table is computed per-blocker so a
+     genuinely tall obstacle could be added later without reworking anything. */
+  const losHigh = new Uint8Array(N_HEX * N_HEX);
+  const cubes = [];
+  for (let i = 0; i < N_HEX; i++) cubes.push(toCube(i));
+
+  for (let a = 0; a < N_HEX; a++) {
+    for (let b = a; b < N_HEX; b++) {
+      const d = cubeDist(cubes[a], cubes[b]);
+      dist[a * N_HEX + b] = d; dist[b * N_HEX + a] = d;
+      let clear = 1, clearHigh = 1;
+      for (const h of lineBetween(a, b)) {
+        const t = TERRAIN[tiles[h]];
+        if (t.opaque) clear = 0;               // from the ground, rubble and hills both stop it
+        if (t.opaque && t.high) clearHigh = 0; // from a hill you see over rubble, not over another hill
+      }
+      los[a * N_HEX + b] = clear; los[b * N_HEX + a] = clear;
+      losHigh[a * N_HEX + b] = clearHigh; losHigh[b * N_HEX + a] = clearHigh;
+    }
+  }
+  return {
+    tiles, dist, los, losHigh, COLS, ROWS, N_HEX,
+    d: (a, b) => dist[a * N_HEX + b],
+    sees: (a, b) => los[a * N_HEX + b] === 1,
+    /* Line of sight from `a` to `b`, taking the shooter's elevation into account. Standing on a
+       ridge is what lets you shoot over the debris in between. */
+    seesFrom: (a, b) => (TERRAIN[tiles[a]].high ? losHigh[a * N_HEX + b] : los[a * N_HEX + b]) === 1,
+    terrain: i => TERRAIN[tiles[i]],
+    // three rows a side: armies reach twenty-odd squads and two rows could not hold them
+    deployZone: (() => { const z = []; for (let r = ROWS - 3; r < ROWS; r++) for (let c = 0; c < COLS; c++) z.push(id(c, r)); return z; })(),
+    enemyZone: (() => { const z = []; for (let r = 0; r < 3; r++) for (let c = 0; c < COLS; c++) z.push(id(c, r)); return z; })(),
+  };
+}
+
+/* Entering a hex costs its terrain, plus one more for gaining elevation. Moving along a ridge
+   is only the terrain cost, and dropping off one is free of the climb — so high ground is
+   expensive to take and cheap to hold, which is the point of it. */
+function moveCost(map, from, to) {
+  const t = TERRAIN[map.tiles[to]];
+  const climbing = t.high && !TERRAIN[map.tiles[from]].high;
+  return t.cost + (climbing ? 1 : 0);
+}
+
+/* movement cost field out from a set of goals, so a unit can step downhill toward it */
+function costField(map, goals) {
+  const f = new Int16Array(N_HEX).fill(9999);
+  let frontier = [];
+  for (const g of goals) { f[g] = 0; frontier.push(g); }
+  while (frontier.length) {
+    const next = [];
+    for (const cur of frontier) {
+      for (const nb of neighbours(cur)) {
+        if (TERRAIN[map.tiles[nb]].impassable) continue;
+        const c = f[cur] + moveCost(map, cur, nb);
+        if (c < f[nb]) { f[nb] = c; next.push(nb); }
+      }
+    }
+    frontier = next;
+  }
+  return f;
+}
+
+/* Cover applies when the shot's last leg clips terrain beside the target. */
+function coverAt(map, from, to) {
+  let best = 0;
+  for (const nb of neighbours(to)) {
+    const t = TERRAIN[map.tiles[nb]];
+    if (t.cover <= best) continue;
+    if (map.d(from, nb) < map.d(from, to)) best = t.cover;   // the cover sits between us
+  }
+  return Math.max(best, TERRAIN[map.tiles[to]].cover);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { COLS, ROWS, N_HEX, TERRAIN, id, colOf, rowOf, inBounds, toCube, cubeDist,
+    neighbours, lineBetween, makeMap, buildMap, costField, coverAt, moveCost, passable };
+}
+
+'use strict';
+/* SORTIE — what survives a war.
+   Everything else in this project resets: win or lose, newGame() wipes the board. That is the
+   difference between a game and a game you open twice. A profile persists across wars and across
+   sessions, and it pulls in both directions — every war you win hands you a permanent doctrine,
+   and every war you win also raises the tier the regime fights at. */
+
+const TIERS = [
+  { n: 1, name: 'SKIRMISH',   income: 1.00, era2: 4, era3: 7, rank: 0, note: 'The regime fights as it always has.' },
+  { n: 2, name: 'INCURSION',  income: 1.08, era2: 4, era3: 7, rank: 0, note: 'Better funded.' },
+  { n: 3, name: 'OFFENSIVE',  income: 1.08, era2: 3, era3: 7, rank: 0, note: 'Developed machines a round sooner.' },
+  { n: 4, name: 'CAMPAIGN',   income: 1.18, era2: 3, era3: 6, rank: 0, note: 'Advanced machines a round sooner.' },
+  { n: 5, name: 'TOTAL WAR',  income: 1.28, era2: 3, era3: 6, rank: 0, note: 'A war economy behind them.' },
+  { n: 6, name: 'ANNIHILATION', income: 1.28, era2: 2, era3: 5, rank: 1, note: 'Their line starts blooded — every squad a rank up.' },
+  { n: 7, name: 'EXTINCTION', income: 1.40, era2: 2, era3: 5, rank: 1, note: 'Everything, sooner, and better.' },
+];
+
+/* Chosen one at a time after a war you win. They stack, and they are what makes tier seven
+   survivable — the difficulty and the answer to it advance together. */
+const DOCTRINES = [
+  { id: 'logistics', name: 'LOGISTICS CORPS', note: 'Open every war with 180 more credits.' },
+  { id: 'scouts',    name: 'FORWARD SCOUTS',  note: 'Begin with a fourth machine already unlocked.' },
+  { id: 'cadre',     name: 'VETERAN CADRE',   note: 'Your first squad each war is promoted to rank C.' },
+  { id: 'economy',   name: 'WAR ECONOMY',     note: '+45 income every round, for the rest of the war.' },
+  { id: 'engineers', name: 'FIELD ENGINEERS', note: 'Rebuilding destroyed squads costs 40% less.' },
+  { id: 'arsenal',   name: 'ARSENAL ACCESS',  note: 'Start each war with one field upgrade already fitted.' },
+  { id: 'reserves',  name: 'DEEP RESERVES',   note: 'Two extra slots on the field, permanently.' },
+];
+const D = Object.fromEntries(DOCTRINES.map(d => [d.id, d]));
+
+const KEY = 'sortie.profile.v1';
+function blank() { return { warsFought: 0, warsWon: 0, streak: 0, best: 0, doctrines: [], pending: null }; }
+
+/* localStorage is not guaranteed in a sandboxed frame, so never let it take the page down. */
+function load() {
+  try {
+    const raw = typeof localStorage !== 'undefined' && localStorage.getItem(KEY);
+    if (!raw) return blank();
+    return Object.assign(blank(), JSON.parse(raw));
+  } catch (e) { return blank(); }
+}
+function save(p) {
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) { /* memory only */ }
+  return p;
+}
+function reset() { const p = blank(); save(p); return p; }
+
+const tierOf = profile => TIERS[Math.min(TIERS.length - 1, profile.warsWon)];
+const has = (profile, id) => profile.doctrines.includes(id);
+
+/* Three you do not already hold. */
+function offerDoctrines(profile, rng) {
+  const pool = DOCTRINES.filter(d => !has(profile, d.id));
+  const out = [];
+  const take = pool.slice();
+  for (let i = 0; i < 3 && take.length; i++) out.push(take.splice(Math.floor(rng() * take.length), 1)[0]);
+  return out;
+}
+function takeDoctrine(profile, id) {
+  if (!D[id] || has(profile, id)) return false;
+  profile.doctrines.push(id); profile.pending = null; save(profile);
+  return true;
+}
+
+/* Everything the profile changes about a war, as plain data — army.js stays independent of how
+   any of it was earned. */
+function modifiers(profile) {
+  const t = tierOf(profile);
+  return {
+    credits:      has(profile, 'logistics') ? 180 : 0,
+    incomeBonus:  has(profile, 'economy') ? 45 : 0,
+    extraUnlock:  has(profile, 'scouts') ? 1 : 0,
+    startRank:    has(profile, 'cadre') ? 1 : 0,
+    rebuildScale: has(profile, 'engineers') ? 0.6 : 1,
+    freeTech:     has(profile, 'arsenal') ? 1 : 0,
+    extraSlots:   has(profile, 'reserves') ? 2 : 0,
+    enemyIncome:  t.income,
+    era2: t.era2, era3: t.era3, enemyRank: t.rank,
+    tier: t,
+  };
+}
+
+function recordWar(profile, won) {
+  profile.warsFought++;
+  if (won) { profile.warsWon++; profile.streak++; profile.best = Math.max(profile.best, profile.streak); }
+  else profile.streak = 0;
+  save(profile);
+  return profile;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { TIERS, DOCTRINES, D, blank, load, save, reset, tierOf, has, offerDoctrines, takeDoctrine, recordWar, modifiers };
+}
+
+'use strict';
+/* SORTIE — army list, shop and the escalating war of attrition.
+   The game is here: credits, counter-picking, and what you can afford to lose. */
+
+/* Squads, not individuals. Every unit is N identical machines that die one at a time.
+   role decides the counter web:
+     swarm   — many, cheap, melts to splash, wins by bodies
+     line    — the neutral middle
+     fast    — reaches the artillery before it fires twice
+     siege   — enormous reach and splash, helpless up close
+     heavy   — expensive, tanky, needs AP or numbers to crack
+     ace     — a single named machine that beats anything its own price */
+const UNITS = [
+  { id: 'pods',   name: 'SCRAP PODS',   role: 'swarm', era: 1, slots: 1, cost: 140, n: 8, hp: 70,  dmg: 6,  minR: 1, maxR: 3, br: [1,2,3],
+    speed: 1.01, ap: 0, save: 0, splash: 0, acc: 1,
+    note: 'Barely armed and barely armoured. They exist to be in the way.' },
+  { id: 'line',   name: 'LINE SUITS',   role: 'line', era: 1, slots: 1,  cost: 245, n: 6, hp: 105, dmg: 10, minR: 1, maxR: 5, br: [2,4,5],
+    speed: 0.79, ap: 1, save: 6, splash: 0, acc: 0,
+    note: 'The mass-produced answer to everything and the best answer to nothing.' },
+  { id: 'heavy',  name: 'HEAVY SUITS',  role: 'line', era: 2, slots: 2,  cost: 420, n: 4, hp: 273, dmg: 24, minR: 1, maxR: 5, br: [2,3,5],
+    speed: 0.57, ap: 2, save: 5, splash: 0, acc: 0,
+    note: 'Slower, thicker, and it takes real armour-piercing to move them.' },
+  { id: 'lancers',name: 'LANCERS',      role: 'fast', era: 1, slots: 2,  cost: 520, n: 3, hp: 222, dmg: 58, minR: 1, maxR: 1, br: [1,1,1],
+    speed: 2.04, ap: 3, save: 6, splash: 0, acc: -1,
+    note: 'Closes fast and ignores armour. Cannot shoot anything it has not reached.' },
+  { id: 'skirm',  name: 'SKIRMISHERS',  role: 'fast', era: 2, slots: 2,  cost: 400, n: 3, hp: 199, dmg: 44, minR: 1, maxR: 4, br: [2,3,4],
+    speed: 1.39, ap: 1, save: 6, splash: 0, acc: 0,
+    note: 'Fast enough to choose its range. Hits hardest where nobody is looking.' },
+  { id: 'siege',  name: 'SIEGE WALKERS',role: 'siege', era: 2, slots: 3, cost: 670, n: 2, hp: 295, dmg: 71, minR: 3, maxR: 9, br: [5,7,9],
+    speed: 0.32, ap: 1, save: 6, splash: 2, acc: 1, emplaced: true,
+    note: 'Emplaced: it holds the hex you put it on. Reaches the whole field and splashes two, and cannot fire inside three hexes — so where you set it down is the whole decision.' },
+  { id: 'missile',name: 'MISSILE TRACK',role: 'siege', era: 3, slots: 2, cost: 590, n: 3, hp: 144, dmg: 40, minR: 2, maxR: 7, br: [4,6,7],
+    speed: 0.65, ap: 0, save: 0, splash: 3, acc: 1, indirect: true, emplaced: true,
+    note: 'Emplaced, and fires indirect — no line of sight needed, so terrain never blocks it. Splashes three. Swarm food becomes swarm graveyard, if nothing reaches it.' },
+  { id: 'colossus',name:'COLOSSUS',     role: 'heavy', era: 3, slots: 3, cost: 570, n: 1, hp: 1750,dmg: 93, minR: 1, maxR: 6, br: [2,4,6],
+    speed: 0.48, ap: 2, save: 4, splash: 0, acc: 0,
+    note: 'One machine worth a company. Everything small that shoots it dies; anything with AP does not.' },
+  { id: 'ace',    name: 'ACE FRAME',    role: 'ace', era: 3, slots: 3,   cost: 810, n: 1, hp: 905, dmg: 156,minR: 1, maxR: 6, br: [3,5,6],
+    speed: 1.37, ap: 2, save: 4, splash: 0, acc: 0,
+    note: 'A single pilot who is simply better. Beats anything at its price and folds to a crowd.' },
+];
+const U = Object.fromEntries(UNITS.map(u => [u.id, u]));
+
+/* Tech is bought once and upgrades every squad of that type you own, now and later. */
+const TECH = [
+  { id: 'pods_charge',  unit: 'pods',    cost: 140, name: 'SUICIDE CHARGE',  note: 'Pods detonate on death, hurting whatever killed them.', apply: u => { u.deathBlast = 24; } },
+  { id: 'line_coat',    unit: 'line',    cost: 175, name: 'ANTI-BEAM COAT',  note: 'Improves the save by one against armour-piercing fire.', apply: u => { u.save = Math.max(3, (u.save || 7) - 1); } },
+  { id: 'line_more',    unit: 'line',    cost: 210, name: 'EXPANDED SQUAD',  note: 'Two more machines in every Line Suit squad.',            apply: u => { u.n += 2; } },
+  { id: 'heavy_ap',     unit: 'heavy',   cost: 195, name: 'MAGNETIC ROUNDS', note: 'Heavy Suits gain armour-piercing.',                      apply: u => { u.ap += 2; } },
+  { id: 'lance_boost',  unit: 'lancers', cost: 170, name: 'THRUSTER BOOST',  note: 'Lancers cross the field faster.',                        apply: u => { u.speed += 0.9; } },
+  { id: 'lance_more',   unit: 'lancers', cost: 225, name: 'EXPANDED SQUAD',  note: 'A fourth Lancer in every squad.',                        apply: u => { u.n += 1; } },
+  { id: 'skirm_range',  unit: 'skirm',   cost: 155, name: 'LONG BARRELS',    note: 'Skirmishers reach two hexes further.',                   apply: u => { u.maxR += 2; u.br = [u.br[0], u.br[1] + 1, u.br[2] + 2]; } },
+  { id: 'siege_range',  unit: 'siege',   cost: 180, name: 'EXTENDED BARREL', note: 'Siege Walkers reach further and splash wider.',          apply: u => { u.maxR += 2; u.br = [u.br[0], u.br[1] + 1, u.br[2] + 2]; u.splash += 1; } },
+  { id: 'missile_pods', unit: 'missile', cost: 180, name: 'SATURATION PODS', note: 'Missile Tracks splash two more machines.',               apply: u => { u.splash += 2; } },
+  { id: 'colossus_pd',  unit: 'colossus',cost: 225, name: 'POINT DEFENCE',   note: 'The Colossus shrugs off splash damage entirely.',        apply: u => { u.splashImmune = true; } },
+  { id: 'ace_newtype',  unit: 'ace',     cost: 280, name: 'NEWTYPE REFLEXES',note: 'The Ace fires twice as often.',                           apply: u => { u.cycle = 0.5; } },
+];
+const T = Object.fromEntries(TECH.map(t => [t.id, t]));
+
+/* A unit type with your purchased tech folded in. */
+function spec(state, id) {
+  const u = Object.assign({}, U[id]);
+  u.br = u.br.slice();
+  for (const tid of state.tech) if (T[tid] && T[tid].unit === id) T[tid].apply(u);
+  return u;
+}
+
+const ROUNDS = 10;
+
+/* THE LADDER.
+   Every machine has an era, and a war climbs it: you open with blades, massed bodies and the
+   simplest rifles, and you finish with guided fire, superheavy hulls and a single pilot who is
+   better than everyone. Unlocks always come from the earliest era that still has something in it,
+   so progress is a march rather than a lottery — and the regime climbs the same ladder, so it
+   cannot field a Colossus while you are still holding spears.
+
+   Era 1  close combat, numbers, the basic line
+   Era 2  specialised roles: skirmishers, artillery, heavy armour
+   Era 3  guided weapons, superheavies, aces
+
+   The long-term intent is to extend this downward (sticks, stones, massed infantry) and upward,
+   so a run is the whole evolution of warfare rather than one slice of it. */
+const ERAS = { 1: 'EARLY', 2: 'DEVELOPED', 3: 'ADVANCED' };
+const START_UNLOCKED = 3;
+function prng(a) {                       // army.js has no other need for randomness, so keep it local
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/* Everyone starts at the bottom of the ladder with the same three. */
+function startingRoster() { return UNITS.filter(u => u.era === 1).map(u => u.id); }
+
+/* The earliest era you have not finished. */
+function currentEra(state) {
+  for (const e of [1, 2, 3]) if (UNITS.some(u => u.era === e && !state.unlocked.includes(u.id))) return e;
+  return 3;
+}
+
+function newGame(seed, mods) {
+  mods = mods || {};
+  const roster = startingRoster();
+  if (mods.extraUnlock) {                       // FORWARD SCOUTS: a fourth machine off the ladder
+    const next = UNITS.filter(u => !roster.includes(u.id)).sort((a, b) => a.era - b.era)[0];
+    if (next) roster.push(next.id);
+  }
+  return {
+    mods,
+    seed: seed >>> 0, round: 1, credits: 950 + (mods.credits || 0), supply: 15, enemySupply: 15,
+    army: [],            // [{id, uid, hex}] — your squads, they persist between rounds
+    incomeBonus: mods.incomeBonus || 0,   // permanent, from boons and doctrines
+    discounts: {},       // unitId -> price multiplier, permanent
+    lastLost: [],        // unit ids wiped last round, so a catch-up boon can rebuild one
+    boons: [],           // what you have taken, for the record
+    tech: mods.freeTech ? [TECH[0].id] : [],
+    unlocked: roster,
+    efleet: [],          // the regime's standing army — it persists exactly like yours
+    eCredits: Math.round(950 * (mods.enemyIncome || 1)),   // round one is even at tier one
+    enemyTech: [],
+    log: [], over: false, won: false, nextUid: 1,
+  };
+}
+
+/* Income rises so the board escalates whether or not you are winning. */
+function income(state) { return 470 + (state.round - 1) * 150 + (state.incomeBonus || 0); }
+
+function priceOf(state, id) {
+  return Math.round(U[id].cost * ((state.discounts && state.discounts[id]) || 1));
+}
+/* The board holds a limited force, but a slot has to cost what it is worth. With every unit
+   taking one slot the cap made credits irrelevant: eighteen slots of Colossus is three times the
+   army of eighteen slots of Pods, so once you were rich the only question was "what is the biggest
+   thing I can put in a slot" and cheap units became a trap. Big machines now take three. */
+/* RANKS. A squad climbs D -> C -> B -> A -> S, and every rank is roughly a third stronger in both
+   hull and damage, compounding to about 3.3x at S.
+   This exists because the slot cap made the late game unbuyable: by round eight you were capped
+   84% of the time and sitting on four thousand dead credits with nothing to spend them on. Ranks
+   turn money into power when you cannot turn it into bodies — and they keep era-one machines worth
+   fielding in round ten, which is what makes extending the ladder possible at all. */
+const RANKS = [
+  { id: 0, name: 'D', mult: 1.00 },
+  { id: 1, name: 'C', mult: 1.35 },
+  { id: 2, name: 'B', mult: 1.82 },
+  { id: 3, name: 'A', mult: 2.46 },
+  { id: 4, name: 'S', mult: 3.32 },
+];
+const MAX_RANK = RANKS.length - 1;
+const MERGE_COUNT = 3;      // three of a kind become one of the next rank, freeing slots
+
+const SLOT_CAP = 18;
+const slotCap = state => SLOT_CAP + ((state.mods && state.mods.extraSlots) || 0);
+const ARMY_CAP = 18;      // kept for the deploy zone, which holds 45 hexes
+const slotsUsed = state => state.army.reduce((a, s) => a + (U[s.id].slots || 1), 0);
+function buy(state, id) {
+  const u = U[id];
+  const price = priceOf(state, id);
+  if (!u || state.credits < price) return null;
+  if (slotsUsed(state) + (u.slots || 1) > slotCap(state)) return null;
+  if (state.unlocked && !state.unlocked.includes(id)) return null;
+  state.credits -= price;
+  const first = state.army.length === 0 && state.mods && state.mods.startRank;
+  const sq = { id, uid: state.nextUid++, hex: -1, stance: 'hold', rank: first ? state.mods.startRank : 0 };
+  state.army.push(sq);
+  return sq;
+}
+function sell(state, uid) {
+  const i = state.army.findIndex(s => s.uid === uid);
+  if (i < 0) return false;
+  state.credits += Math.floor(priceOf(state, state.army[i].id) * 0.6);
+  state.army.splice(i, 1);
+  return true;
+}
+/* Stance is set before the battle and is the only order you give: hold the line, or commit. */
+function setStance(state, uid, stance) {
+  const sq = state.army.find(s => s.uid === uid);
+  if (!sq) return false;
+  sq.stance = stance === 'charge' ? 'charge' : 'hold';
+  return true;
+}
+
+function buyTech(state, tid) {
+  const t = T[tid];
+  if (!t || state.tech.includes(tid) || state.credits < t.cost) return false;
+  state.credits -= t.cost; state.tech.push(tid);
+  return true;
+}
+
+/* The enemy buys an army that answers yours. This is the arms race: field a swarm and it
+   buys splash; field one giant and it buys armour-piercing. */
+function enemyArmy(state, rng) {
+  /* The regime keeps its army between rounds exactly as you keep yours, and spends an income on
+     top. Rebuilding from scratch each round while your force compounded was why the player ran
+     away with it — persistence has to be symmetric or the arms race is not one. */
+
+
+  const mine = {};
+  for (const sq of state.army) { const u = U[sq.id]; mine[u.role] = (mine[u.role] || 0) + u.n; }
+  const crowded = (mine.swarm || 0) + (mine.line || 0) >= 12;
+  const bigs = (mine.heavy || 0) + (mine.ace || 0);
+
+  const want = [];
+  if (crowded) want.push('missile', 'siege');
+  if (bigs > 0) want.push('lancers', 'heavy');
+  if ((mine.siege || 0) > 0) want.push('skirm', 'lancers');
+  want.push('line', 'pods', 'heavy', 'skirm');
+  // it climbs the same ladder — no Colossus in round one, but it does get there
+  const m = state.mods || {};
+  const eraCap = state.round >= (m.era3 || 7) ? 3 : state.round >= (m.era2 || 4) ? 2 : 1;
+  for (const u of UNITS) if (u.era === eraCap && !want.includes(u.id)) want.push(u.id);
+  for (let i = want.length - 1; i >= 0; i--) if (U[want[i]].era > eraCap) want.splice(i, 1);
+  if (!want.length) want.push(...UNITS.filter(u => u.era <= eraCap).map(u => u.id));
+
+  /* The same eighteen slots you get. It used to be SLOT_CAP + 3, checked *before* adding, so the
+     regime fielded 21.4 slots to your 18 by the last round — a third more squads on the board. */
+  const eSlots = () => state.efleet.reduce((a, o) => a + (U[o.id].slots || 1), 0);
+  let guard = 0;
+  while (guard++ < 40) {
+    const pool = want.filter(id => U[id].cost <= state.eCredits && eSlots() + (U[id].slots || 1) <= SLOT_CAP);
+    if (!pool.length) break;
+    const pick = pool[Math.floor(rng() * pool.length)];
+    state.efleet.push({ id: pick, uid: 10000 + state.nextUid++, hex: -1, rank: (state.mods && state.mods.enemyRank) || 0 });
+    state.eCredits -= U[pick].cost;
+  }
+
+  // slot-capped and still holding credits? spend them on quality, exactly as you can
+  let up = 0;
+  while (up++ < 6 && state.eCredits > 0) {
+    const pool = state.efleet.filter(o => (o.rank || 0) < MAX_RANK);
+    if (!pool.length) break;
+    const target = pool.sort((a, b) => (a.rank || 0) - (b.rank || 0))[0];
+    const cost = Math.round(U[target.id].cost * (1.1 + (target.rank || 0) * 0.55));
+    if (state.eCredits < cost) break;
+    state.eCredits -= cost; target.rank = (target.rank || 0) + 1;
+  }
+
+  const techPool = TECH.filter(t => state.efleet.some(o => o.id === t.unit) && !state.enemyTech.includes(t.id));
+  if (techPool.length && state.round >= 3 && rng() < 0.8)
+    state.enemyTech.push(techPool[Math.floor(rng() * techPool.length)].id);
+
+  return state.efleet;
+}
+
+function enemySpec(state, idOrSquad) {
+  const sq = typeof idOrSquad === 'object' ? idOrSquad : { id: idOrSquad, rank: 0 };
+  const u = Object.assign({}, U[sq.id]);
+  u.br = u.br.slice();
+  for (const tid of state.enemyTech) if (T[tid] && T[tid].unit === sq.id) T[tid].apply(u);
+  const m = RANKS[sq.rank || 0].mult;
+  u.hp = Math.round(u.hp * m);
+  u.dmg = Math.round(u.dmg * m * 10) / 10;
+  u.rank = sq.rank || 0; u.rankName = RANKS[sq.rank || 0].name;
+  return u;
+}
+
+/* A squad's actual numbers: its type, plus your tech, plus its rank. */
+function squadSpec(state, sq) {
+  const u = spec(state, sq.id);
+  const m = RANKS[sq.rank || 0].mult;
+  u.hp = Math.round(u.hp * m);
+  u.dmg = Math.round(u.dmg * m * 10) / 10;
+  u.rank = sq.rank || 0;
+  u.rankName = RANKS[sq.rank || 0].name;
+  return u;
+}
+/* Paying for a rank costs more than the squad did — going tall should be a real commitment. */
+function upgradeCost(state, sq) {
+  if ((sq.rank || 0) >= MAX_RANK) return null;
+  return Math.round(priceOf(state, sq.id) * (1.1 + (sq.rank || 0) * 0.55) / 5) * 5;
+}
+function upgrade(state, uid) {
+  const sq = state.army.find(x => x.uid === uid);
+  if (!sq) return false;
+  const cost = upgradeCost(state, sq);
+  if (cost == null || state.credits < cost) return false;
+  state.credits -= cost; sq.rank = (sq.rank || 0) + 1;
+  return true;
+}
+/* Or merge three of a kind at the same rank. Costs nothing, and hands two slots back. */
+function mergeable(state, sq) {
+  if ((sq.rank || 0) >= MAX_RANK) return null;
+  const same = state.army.filter(x => x.id === sq.id && (x.rank || 0) === (sq.rank || 0));
+  return same.length >= MERGE_COUNT ? same.slice(0, MERGE_COUNT) : null;
+}
+function merge(state, uid) {
+  const sq = state.army.find(x => x.uid === uid);
+  if (!sq) return false;
+  const group = mergeable(state, sq);
+  if (!group) return false;
+  const keep = group[0];
+  for (const g of group.slice(1)) state.army.splice(state.army.findIndex(x => x.uid === g.uid), 1);
+  keep.rank = (keep.rank || 0) + 1;
+  return true;
+}
+
+/* Three of whatever you have not unlocked yet. Taking one is permanent. */
+function offerUnlocks(state, rng) {
+  const locked = UNITS.filter(u => !state.unlocked.includes(u.id));
+  if (!locked.length) return [];
+  const era = currentEra(state);
+  const pool = locked.filter(u => u.era === era).map(u => u.id);
+  const out = [];
+  const take = pool.slice();
+  for (let i = 0; i < 3 && take.length; i++) out.push(take.splice(Math.floor(rng() * take.length), 1)[0]);
+  return out.map(id => Object.assign({}, U[id]));
+}
+function takeUnlock(state, id) {
+  if (!U[id] || state.unlocked.includes(id)) return false;
+  state.unlocked.push(id);
+  return true;
+}
+
+/* ---------- boons ----------
+   A draft, not a gift: three options, you take one and lose the other two. Tech lives in this
+   pool rather than competing with squads for credits, which is why almost nobody bought it.
+   Lose a round and you are offered a fourth, catch-up option — that rubber band is what stops
+   an early snowball deciding the whole war. */
+
+/* Rarity is exponential in both directions: each tier is roughly 2× rarer and ~1.7× stronger
+   than the one below, so a LEGENDARY is ~80× rarer and ~13× the effect of a COMMON.
+   Luck rises with the round and when you are losing, so late wars and desperate ones are where
+   the big cards actually show up. */
+const RARITY = [
+  { id: 'common',    name: 'COMMON',    w: 100, mult: 1.0,  color: '#7E8B99' },
+  { id: 'uncommon',  name: 'UNCOMMON',  w: 52,  mult: 1.7,  color: '#5FD38A' },
+  { id: 'rare',      name: 'RARE',      w: 26,  mult: 2.9,  color: '#56D2E4' },
+  { id: 'elite',     name: 'ELITE',     w: 11,  mult: 4.8,  color: '#FFC24B' },
+  { id: 'epic',      name: 'EPIC',      w: 4,   mult: 8.0,  color: '#FF6A1F' },
+  { id: 'legendary', name: 'LEGENDARY', w: 1.2, mult: 13.0, color: '#FFD24B' },
+];
+const RAR = Object.fromEntries(RARITY.map(r => [r.id, r]));
+
+function rollRarity(rng, luck) {
+  const weights = RARITY.map((r, i) => r.w * Math.pow(luck, i));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let roll = rng() * total;
+  for (let i = 0; i < RARITY.length; i++) { roll -= weights[i]; if (roll <= 0) return RARITY[i]; }
+  return RARITY[0];
+}
+function luckOf(state, behind) {
+  return 1 + (state.round - 1) * 0.10 + (behind ? 0.40 : 0);
+}
+
+const BOONS = [
+  { id: 'bonds',   name: 'WAR BONDS',      kind: 'income',  amount: 220, note: 'Permanent: +220 credits of income every round.' },
+  { id: 'levy',    name: 'EMERGENCY LEVY', kind: 'credits', amount: 600, note: 'One payment of 600 credits, right now.' },
+  { id: 'depot',   name: 'FORWARD DEPOT',  kind: 'discount', amount: 0.75, note: 'One unit type costs 25% less for the rest of the war.' },
+  { id: 'salvage', name: 'SALVAGE CREW',   kind: 'rebuild', note: 'Rebuild one squad that was wiped out last round, free.' },
+  { id: 'quota',   name: 'PRODUCTION QUOTA', kind: 'unit',  note: 'A free squad, delivered now.' },
+];
+
+function offerBoons(state, rng, lostLast) {
+  const out = [];
+  const pick = arr => arr[Math.floor(rng() * arr.length)];
+  const behind = (lostLast && lostLast.length > 0) || state.supply < state.enemySupply;
+  const luck = luckOf(state, behind);
+  const owned = new Set(state.army.map(s => s.id));
+
+  /* field upgrades — rarity buys you more of them at once */
+  const techPool = TECH.filter(t => !state.tech.includes(t.id));
+  if (techPool.length) {
+    const r = rollRarity(rng, luck);
+    const count = Math.min(techPool.length, Math.max(1, Math.round(r.mult / 3.2)));
+    const relevant = techPool.filter(t => owned.has(t.unit));
+    const chosen = [];
+    const pool = (relevant.length >= count ? relevant : techPool).slice();
+    for (let i = 0; i < count && pool.length; i++) chosen.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+    out.push({ id: 'tech:' + chosen.map(t => t.id).join('+'), kind: 'tech', rarity: r.id,
+      tech: chosen.map(t => t.id),
+      name: chosen.length > 1 ? chosen.length + ' FIELD UPGRADES' : chosen[0].name,
+      note: chosen.map(t => t.name + ' — ' + t.note).join('  ') });
+  }
+
+  /* free squads — rarity buys both quantity and access to the expensive end of the roster */
+  {
+    const r = rollRarity(rng, luck);
+    const ceiling = 120 + r.mult * 90;                     // legendary reaches the Colossus
+    const affordable = UNITS.filter(u => u.cost <= ceiling && state.unlocked.includes(u.id));
+    if (!affordable.length) affordable.push(U[state.unlocked[0]]);
+    const prefer = affordable.filter(u => !owned.has(u.id));
+    const u = pick(prefer.length ? prefer : (affordable.length ? affordable : UNITS));
+    const count = Math.max(1, Math.round(r.mult / 2.6));
+    out.push({ id: 'unit:' + u.id, kind: 'unit', unit: u.id, count, rarity: r.id,
+      name: count > 1 ? 'FREE: ' + count + '× ' + u.name : 'FREE: ' + u.name,
+      note: (count * u.n) + ' machines delivered now. Normally ' + (u.cost * count) + ' credits.' });
+  }
+
+  /* economy — the numbers scale straight off the multiplier */
+  {
+    const r = rollRarity(rng, luck);
+    const which = pick(['income', 'credits', 'discount']);
+    if (which === 'income') {
+      const amount = Math.round(60 * r.mult / 10) * 10;
+      out.push({ id: 'bonds', kind: 'income', amount, rarity: r.id, name: 'WAR BONDS',
+        note: 'Permanent: +' + amount + ' credits of income every round for the rest of the war.' });
+    } else if (which === 'credits') {
+      const amount = Math.round(210 * r.mult / 10) * 10;
+      out.push({ id: 'levy', kind: 'credits', amount, rarity: r.id, name: 'EMERGENCY LEVY',
+        note: 'One payment of ' + amount + ' credits, right now.' });
+    } else {
+      const d = pick(UNITS);
+      const off = Math.min(0.6, 0.07 * r.mult);
+      out.push({ id: 'discount:' + d.id, kind: 'discount', unit: d.id, amount: 1 - off, rarity: r.id,
+        name: 'FORWARD DEPOT', note: d.name + ' costs ' + Math.round(off * 100) + '% less for the rest of the war.' });
+    }
+  }
+
+  /* The rubber band, and only when you are actually behind. Destroyed squads are already rebuilt
+     automatically, so "rebuild the squad you lost" would just hand you a duplicate — the catch-up
+     is about the *bill*, or about squads you could not afford to rebuild at all. */
+  const behindNow = state.lastRoundWon === false || state.supply < state.enemySupply;
+  if (behindNow && state.lastScrapped && state.lastScrapped.length) {
+    const ids = state.lastScrapped.slice();
+    out.push({ id: 'reclaim', kind: 'reclaim', rarity: rollRarity(rng, luck + 0.3).id,
+      name: 'SALVAGE CREW', catchUp: true,
+      note: 'Recover ' + ids.join(', ') + ' from the wreck — the squads you could not afford to rebuild.' });
+  } else if (behindNow && state.lastBill > 0) {
+    out.push({ id: 'refund', kind: 'refund', amount: state.lastBill, rarity: rollRarity(rng, luck + 0.3).id,
+      name: 'FIELD WORKSHOPS', catchUp: true,
+      note: 'Refund the ' + state.lastBill + ' credits you just spent rebuilding.' });
+  } else if (state.supply < state.enemySupply) {
+    const r = rollRarity(rng, luck + 0.3);
+    const amount = Math.round(260 * r.mult / 10) * 10;
+    out.push({ id: 'levy2', kind: 'credits', amount, rarity: r.id, name: 'EMERGENCY LEVY',
+      note: 'One payment of ' + amount + ' credits, right now.', catchUp: true });
+  }
+  return out;
+}
+
+function takeBoon(state, boon) {
+  if (!boon) return false;
+  switch (boon.kind) {
+    case 'tech': {
+      for (const t of [].concat(boon.tech)) if (!state.tech.includes(t)) state.tech.push(t);
+      break;
+    }
+    case 'reclaim': {
+      for (const name of (state.lastScrapped || [])) {
+        const u = UNITS.find(x => x.name === name);
+        if (u && slotsUsed(state) + (u.slots || 1) <= slotCap(state))
+          state.army.push({ id: u.id, uid: state.nextUid++, hex: -1, stance: 'hold', rank: 0 });
+      }
+      state.lastScrapped = [];
+      break;
+    }
+    case 'refund': state.credits += boon.amount; break;
+    case 'unit': {
+      for (let i = 0; i < (boon.count || 1); i++) {
+        if (slotsUsed(state) + (U[boon.unit].slots || 1) > slotCap(state)) break;
+        state.army.push({ id: boon.unit, uid: state.nextUid++, hex: -1, stance: 'hold', rank: 0 });
+      }
+      break;
+    }
+    case 'income': state.incomeBonus = (state.incomeBonus || 0) + boon.amount; break;
+    case 'credits': state.credits += boon.amount; break;
+    case 'discount': state.discounts[boon.unit] = (state.discounts[boon.unit] || 1) * boon.amount; break;
+    default: return false;
+  }
+  state.boons.push(boon.name);
+  return true;
+}
+
+/* Your army persists, but not for free. Squads destroyed in a battle are rebuilt between rounds
+   at a fraction of their price, billed against next round's income. Anything you cannot afford to
+   rebuild is disbanded.
+   The two ends of this were both wrong: permanent loss wiped the whole army in half of all rounds
+   (a treadmill), and free rebuilds made watching your force die completely weightless. Paying for
+   it means a bad round costs you the next round's shopping, which is a real consequence you can
+   see coming. */
+const REBUILD_RATE = 0.25;
+function resolveRound(state, result) {
+  const wiped = new Set(result.lostSquads.map(l => l.uid));
+  const lost = state.army.filter(s => wiped.has(s.uid));
+
+  if (result.won) state.enemySupply = Math.max(0, state.enemySupply - result.bite);
+  else state.supply = Math.max(0, state.supply - result.bite);
+
+  state.lastLost = lost.map(l => l.id);
+  state.lastRoundWon = !!result.won;
+  const line = result.won
+    ? `Round ${state.round}: field held. Enemy supply -${result.bite}.`
+    : `Round ${state.round}: pushed off the field. Supply -${result.bite}.`;
+  state.log.push({ round: state.round, won: result.won, bite: result.bite,
+    rebuilt: lost.map(l => U[l.id].name), lost: [], text: line });
+
+  state.round++;
+  if (state.supply <= 0) { state.over = true; state.won = false; }
+  else if (state.enemySupply <= 0) { state.over = true; state.won = true; }
+  else if (state.round > ROUNDS) { state.over = true; state.won = state.enemySupply < state.supply; }
+  else {
+    state.credits += income(state);
+
+    /* The repair bill, charged against what you just earned. Cheapest squads are rebuilt first,
+       so a bad round costs you next round's shopping rather than your whole force. */
+    let bill = 0;
+    const scrapped = [];
+    for (const sq of lost.slice().sort((a, b) => priceOf(state, a.id) - priceOf(state, b.id))) {
+      const price = Math.round(priceOf(state, sq.id) * REBUILD_RATE * ((state.mods && state.mods.rebuildScale) || 1));
+      if (state.credits >= price) { state.credits -= price; bill += price; }
+      else {
+        const i = state.army.findIndex(x => x.uid === sq.uid);
+        if (i >= 0) state.army.splice(i, 1);
+        scrapped.push(U[sq.id].name);
+      }
+    }
+    /* The regime rebuilds on the same terms — it pays for its dead too, or writes them off.
+       Charging only the player made a loss unrecoverable. */
+    state.eCredits += Math.round((420 + (state.round - 1) * 150) * ((state.mods && state.mods.enemyIncome) || 1));   // round has already advanced
+    const eLost = (result.enemyLost || []).map(l => l.id);
+    for (const id of eLost.slice().sort((a, b) => U[a].cost - U[b].cost)) {
+      const price = Math.round(U[id].cost * REBUILD_RATE);
+      if (state.eCredits >= price) state.eCredits -= price;
+      else {
+        const i = state.efleet.findIndex(x => x.id === id);
+        if (i >= 0) state.efleet.splice(i, 1);
+      }
+    }
+
+    state.lastBill = bill; state.lastScrapped = scrapped;
+    return { lost: lost.map(l => U[l.id].name), bite: result.bite, bill, scrapped };
+  }
+  return { lost: lost.map(l => U[l.id].name), bite: result.bite, bill: 0, scrapped: [] };
+}
+
+/* What the enemy is bringing, shown before you commit — the whole point is counter-picking. */
+function intel(enemy) {
+  const by = {};
+  for (const e of enemy) by[e.id] = (by[e.id] || 0) + 1;
+  return Object.entries(by).map(([id, k]) => ({ id, k, name: U[id].name, role: U[id].role }))
+    .sort((a, b) => b.k - a.k);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { UNITS, U, TECH, T, BOONS, RARITY, RAR, ROUNDS, ARMY_CAP, SLOT_CAP, slotsUsed, rollRarity, luckOf, newGame, income, slotCap, priceOf, buy, sell, buyTech, setStance, spec, squadSpec, RANKS, MAX_RANK, MERGE_COUNT,
+    upgradeCost, upgrade, mergeable, merge, startingRoster, offerUnlocks, takeUnlock, START_UNLOCKED, ERAS, currentEra,
+    enemyArmy, enemySpec, resolveRound, intel, offerBoons, takeBoon };
+}
+
+'use strict';
+/* SORTIE — squad battle resolution on the hex board.
+   Deterministic: same armies + same placement + same seed = same battle.
+
+   The counter web lives in one rule: damage is applied to individual machines, and overkill is
+   wasted. A Colossus shooting 55-hull Pods throws away most of every shot. Splash weapons hit
+   several machines at once, so they shred swarms — and waste themselves on a single big target. */
+
+const H = (typeof require !== 'undefined' && typeof module !== 'undefined')
+  ? require('./hex.js') : { COLS, ROWS, N_HEX, TERRAIN, id, colOf, rowOf, neighbours, makeMap, buildMap, costField, coverAt, moveCost, passable };
+const A = (typeof require !== 'undefined' && typeof module !== 'undefined')
+  ? require('./army.js') 
+  /* Browser: army.js is inlined into the same scope. This list must cover everything this
+     file touches — a missing name is invisible to node and fatal in a browser. */
+  : { UNITS, U, TECH, T, spec, enemySpec, newGame, income, buy, sell, buyTech, enemyArmy, resolveRound, intel, ROUNDS };
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+const d6 = rng => 1 + Math.floor(rng() * 6);
+const ODDS = { 2: 1, 3: .972, 4: .917, 5: .833, 6: .722, 7: .583, 8: .417, 9: .278, 10: .167, 11: .083, 12: .028 };
+const oddsOf = n => ODDS[clamp(Math.round(n), 2, 12)];
+
+/* to-hit target number, same readable stack as before but per squad */
+function toHit(att, tgt, map) {
+  const mods = [];
+  let n = 4;
+  mods.push({ why: 'base', v: 4 });
+  const dist = map.d(att.hex, tgt.hex);
+  const br = att.s.br;
+  // high ground extends reach by one, which is what makes a ridge worth the climb
+  const bracket = dist <= br[0] ? 0 : dist <= br[1] ? 1 : 2;
+  const rm = [0, 1, 3][bracket];
+  if (rm) { mods.push({ why: ['short', 'medium', 'long'][bracket] + ' range', v: rm }); n += rm; }
+  if (att.movedThisTick) { mods.push({ why: 'you moved', v: 1 }); n += 1; }
+  if (tgt.movedThisTick) { mods.push({ why: 'target moved', v: 1 }); n += 1; }
+  const hiA = map.terrain(att.hex).high, hiT = map.terrain(tgt.hex).high;
+  const cov = H.coverAt(map, att.hex, tgt.hex);
+  const cm = cov >= 0.2 ? 2 : cov > 0 ? 1 : 0;
+  if (cm && hiA && !hiT) mods.push({ why: 'you see over the cover', v: 0 });   // height negates it
+  else if (cm) { mods.push({ why: cm === 2 ? 'heavy cover' : 'cover', v: cm }); n += cm; }
+  if (hiA && !hiT) { mods.push({ why: 'high ground', v: -1 }); n -= 1; }
+  if (hiT && !hiA) { mods.push({ why: 'uphill', v: 1 }); n += 1; }
+  if (tgt.charging) { mods.push({ why: 'target is charging', v: -CHARGE_EXPOSURE }); n -= CHARGE_EXPOSURE; }
+  if (att.s.acc) { mods.push({ why: att.s.name.toLowerCase(), v: att.s.acc }); n += att.s.acc; }
+  return { need: clamp(n, 2, 12), mods, bracket, dist };
+}
+const modsText = t => t.mods.map(m => m.why + ' ' + (m.v > 0 ? '+' + m.v : m.v)).join(', ');
+
+function makeSquad(s, side, uid) {
+  return {
+    uid, side, s, id: s.id, hex: s.hex == null ? -1 : s.hex,
+    hp: new Array(s.n).fill(s.hp), nMax: s.n,
+    mp: 0, cd: 0, movedThisTick: 0, kills: 0,
+    shots: 0, hits: 0, dealt: 0, wasted: 0, idle: 0, idleWhy: {}, tookFrom: {},
+    stance: s.stance === 'charge' ? 'charge' : 'hold',
+    charging: s.stance === 'charge',      // true until they make contact
+    impact: false,                        // the strike on arrival lands once
+  };
+}
+
+/* CHARGE. Commit to closing and you sprint, but you cannot shoot on the way in and you are far
+   easier to hit while you cross open ground. Arrive and the first strike lands at double damage
+   with the blade through the armour. Worth it for something already built for knife range;
+   suicide for anything that wanted to stay at distance. */
+/* High ground is worth taking: it costs 3 movement to climb, and from up there your hits can
+   crit — beat the target number by 3 or more and the shot lands double and ignores armour.
+   Nothing crits from flat ground, so the ridge is a position, not a bonus. */
+/* A crew inside its own minimum range is not helpless, just badly placed: sidearms only, no
+   splash, a fraction of the damage. Before this, a Siege Walker hugged by something fast simply
+   stood there for forty ticks and died without firing — technically the counter working, but it
+   reads as a broken unit. */
+const POINT_BLANK_DAMAGE = 0.40;
+
+const CRIT_MARGIN = 3;
+const CRIT_DAMAGE = 2.0;
+
+const CHARGE_SPEED = 1.7;
+const CHARGE_EXPOSURE = 2;   // to-hit bonus against a squad mid-charge
+const IMPACT_DAMAGE = 3.2;
+const IMPACT_AP = 2;
+const alive = q => q.hp.length;
+const wantRange = s => clamp(s.br[0], s.minR, s.maxR);
+
+/* Damage lands on individual machines. Overkill is thrown away — that is the whole counter web. */
+function applyDamage(q, dmg, splash, ev) {
+  let killed = 0, wasted = 0;
+  const targets = Math.min(q.hp.length, 1 + (q.s.splashImmune ? 0 : splash));
+  for (let k = 0; k < targets; k++) {
+    if (!q.hp.length) break;
+    let j = 0;                                  // finish the most damaged machine first
+    for (let i = 1; i < q.hp.length; i++) if (q.hp[i] < q.hp[j]) j = i;
+    q.hp[j] -= dmg;
+    if (q.hp[j] <= 0) { wasted += -q.hp[j]; q.hp.splice(j, 1); killed++; }   // overkill, thrown away
+  }
+  return { killed, wasted };
+}
+
+/* Deterministic placement, exposed so the shop screen can show you exactly where the enemy
+   will stand before you spend a credit. Counter-picking is the game; blind counter-picking is not. */
+function deployArmy(map, specs, side) {
+  const zone = (side === 'p' ? map.deployZone : map.enemyZone).filter(h => !map.terrain(h).blocks);
+  const used = new Set(), out = [];
+  specs.forEach((sp, i) => {
+    if (sp.hex != null && sp.hex >= 0 && zone.includes(sp.hex) && !used.has(sp.hex)) { used.add(sp.hex); out.push(sp.hex); return; }
+    let h = zone[Math.floor((i + 1) * zone.length / (specs.length + 1))], guard = 0;
+    while (used.has(h) && guard++ < zone.length) h = zone[(zone.indexOf(h) + 1) % zone.length];
+    used.add(h); out.push(h);
+  });
+  return out;
+}
+
+function simulateBattle(playerSquads, enemySquads, seed, opts = {}) {
+  const rng = mulberry32(seed >>> 0);
+  const map = opts.map || H.makeMap(mulberry32((seed ^ 0x9e3779b9) >>> 0), opts.round || 1);
+  const frames = [];
+  const squads = [];
+  playerSquads.forEach((s, i) => squads.push(makeSquad(s, 'p', 'p' + i)));
+  enemySquads.forEach((s, i) => squads.push(makeSquad(s, 'e', 'e' + i)));
+
+  // deployment: anything unplaced gets spread across its own zone
+  for (const side of ['p', 'e']) {
+    const zone = (side === 'p' ? map.deployZone : map.enemyZone).filter(h => !map.terrain(h).blocks);
+    const mine = squads.filter(q => q.side === side);
+    const used = new Set(mine.filter(q => q.hex >= 0 && zone.includes(q.hex)).map(q => q.hex));
+    mine.forEach((q, i) => {
+      if (q.hex >= 0 && zone.includes(q.hex) && !map.terrain(q.hex).blocks) return;
+      let h = zone[Math.floor((i + 1) * zone.length / (mine.length + 1))];
+      let guard = 0;
+      while (used.has(h) && guard++ < zone.length) h = zone[(zone.indexOf(h) + 1) % zone.length];
+      q.hex = h; used.add(h);
+    });
+  }
+
+  let t = 0, result = null, quiet = 0;
+  const CAP = opts.cap || 140;
+
+  while (t < CAP) {
+    t++;
+    const ev = [];
+    const hpBefore = squads.reduce((a, q) => a + q.hp.reduce((x, y) => x + y, 0), 0);
+    const live = squads.filter(q => alive(q) > 0);
+    const ps = live.filter(q => q.side === 'p'), es = live.filter(q => q.side === 'e');
+    if (!ps.length || !es.length) break;
+
+    const occ = new Set(live.map(q => q.hex));
+
+    for (const q of live) {
+      if (!alive(q)) continue;
+      q.movedThisTick = 0;
+      const foes = (q.side === 'p' ? es : ps).filter(x => alive(x) > 0);
+      if (!foes.length) break;
+
+      // pick a target: the one this squad kills most efficiently
+      let tgt = foes[0], best = -Infinity;
+      for (const f of foes) {
+        const d = map.d(q.hex, f.hex);
+        const reach = d >= q.s.minR && d <= q.s.maxR + (map.terrain(q.hex).high ? 1 : 0) &&
+          (q.s.indirect || map.seesFrom(q.hex, f.hex));
+        const eff = Math.min(f.hp.length, 1 + q.s.splash) * Math.min(q.s.dmg, f.s.hp);
+        const sc = eff / (1 + d * 0.6) + (reach ? 40 : 0);
+        if (sc > best) { best = sc; tgt = f; }
+      }
+
+      // move toward the range we actually want
+      const want = q.charging ? Math.max(1, q.s.minR) : wantRange(q.s);
+      const d0 = map.d(q.hex, tgt.hex);
+      if (q.charging && d0 <= Math.max(1, q.s.minR)) { q.charging = false; q.impact = true; }
+
+      const holdingHeight = map.terrain(q.hex).high && !q.charging &&
+        d0 >= q.s.minR && d0 <= q.s.maxR + 1 && (q.s.indirect || map.seesFrom(q.hex, tgt.hex));
+      /* Artillery is emplaced: it fights from the hex you put it on and never repositions.
+         Siege pieces that stroll toward the enemy read as slow brawlers rather than artillery,
+         and they walked themselves out of the cover they were placed in. Holding still makes
+         the placement the decision, and makes flanking them the answer. */
+      const needMove = !q.s.emplaced && !holdingHeight &&
+        (d0 > want || d0 < q.s.minR || (!q.s.indirect && !map.seesFrom(q.hex, tgt.hex)));
+
+      if (needMove) {
+        /* Pick the best ground within reach, then path to it with a cost field.
+           Stepping greedily to the best neighbour looks equivalent and is not: a unit can sit in a
+           basin where every adjacent hex scores worse and simply stop forever. Adding impassable
+           rock made those basins common — a Lancer squad was found frozen on a ridge four hexes
+           from the enemy for an entire battle, never firing a shot. */
+        const score = h => {
+          const d = map.d(h, tgt.hex);
+          const miss = d < q.s.minR ? (q.s.minR - d) * 3 : d > want ? (d - want) : 0;
+          const blind = (q.s.indirect || map.seesFrom(h, tgt.hex)) ? 0 : 2;
+          const canFire = d >= q.s.minR && d <= q.s.maxR + 1 && (q.s.indirect || map.seesFrom(h, tgt.hex));
+          const height = canFire && map.terrain(h).high && !q.charging ? -1.4 : 0;
+          return miss + blind + height;
+        };
+        let dest = q.hex, bestScore = score(q.hex);
+        for (let h = 0; h < H.N_HEX; h++) {
+          if (!H.passable(map, h) || (occ.has(h) && h !== q.hex)) continue;
+          if (map.d(q.hex, h) > 7) continue;
+          const v = score(h) + map.d(q.hex, h) * 0.12;   // prefer near ground, all else equal
+          if (v < bestScore) { bestScore = v; dest = h; }
+        }
+
+        if (dest !== q.hex) {
+          const field = H.costField(map, [dest]);
+          q.mp += q.s.speed * (q.charging ? CHARGE_SPEED : 1);
+          let guard = 0;
+          while (guard++ < 6 && q.mp >= 1) {
+            let step = -1, bv = field[q.hex];
+            for (const nb of H.neighbours(q.hex)) {
+              if (occ.has(nb) || !H.passable(map, nb)) continue;
+              if (field[nb] < bv) { bv = field[nb]; step = nb; }
+            }
+            if (step < 0) break;
+            const cost = H.moveCost(map, q.hex, step);
+            if (q.mp < cost) break;
+            occ.delete(q.hex); q.mp -= cost; q.hex = step; occ.add(q.hex); q.movedThisTick++;
+          }
+        }
+      }
+
+      // fire — a squad still crossing the ground cannot shoot
+      const idle = why => { q.idle++; q.idleWhy[why] = (q.idleWhy[why] || 0) + 1; };
+      if (q.charging) { idle('still closing'); continue; }
+      if (q.cd > 0) { q.cd--; idle('reloading'); continue; }
+      const d = map.d(q.hex, tgt.hex);
+      const reachBonus = map.terrain(q.hex).high ? 1 : 0;
+      const pointBlank = d < q.s.minR;
+      if (pointBlank && !map.seesFrom(q.hex, tgt.hex)) { idle('enemy inside its minimum range'); continue; }
+      if (d > q.s.maxR + reachBonus) { idle('nothing in range'); continue; }
+      if (!q.s.indirect && !map.seesFrom(q.hex, tgt.hex)) { idle('no clear line of sight'); continue; }
+
+      const th = toHit(q, tgt, map);
+      const shots = alive(q);
+      const impact = q.impact;
+      q.impact = false;
+      const elevated = map.terrain(q.hex).high && !pointBlank;
+      // real 2d6 per shot rather than a coin weighted by the odds — the margin is what crits
+      let hits = 0, saved = 0, crits = 0;
+      for (let i = 0; i < shots; i++) {
+        const roll = d6(rng) + d6(rng);
+        if (roll < th.need) continue;
+        const crit = elevated && roll - th.need >= CRIT_MARGIN;
+        const need = (tgt.s.save || 7) + q.s.ap + (impact ? IMPACT_AP : 0);
+        if (!crit && need <= 6 && d6(rng) >= need) { saved++; continue; }   // a crit goes through armour
+        hits++; if (crit) crits++;
+      }
+      let killed = 0;
+      let base = impact ? q.s.dmg * IMPACT_DAMAGE : q.s.dmg;
+      if (pointBlank) base *= POINT_BLANK_DAMAGE;
+      q.shots += shots; q.hits += hits;
+      for (let i = 0; i < hits; i++) {
+        if (!alive(tgt)) break;
+        const d = i < crits ? base * CRIT_DAMAGE : base;
+        const res = applyDamage(tgt, d, pointBlank ? 0 : q.s.splash, ev);
+        killed += res.killed; q.dealt += d; q.wasted += res.wasted;
+        if (res.killed) tgt.tookFrom[q.s.name] = (tgt.tookFrom[q.s.name] || 0) + res.killed;
+      }
+      q.kills += killed;
+      q.cd = Math.max(0, Math.round((q.s.cycle || 1) - 1));
+
+      ev.push({ k: q.side === 'p' ? 'pfire' : 'efire', from: q.hex, to: tgt.hex,
+        splash: q.s.splash, killed, side: q.side,
+        s: (impact ? 'IMPACT! ' : '') + (crits ? 'CRIT×' + crits + ' ' : '') + (pointBlank ? 'POINT BLANK ' : '') +
+           `${q.s.name} → ${tgt.s.name}: ${shots} shots, needs ${th.need}+, ${hits} hit` +
+           (saved ? `, ${saved} saved` : '') + (killed ? ` — ${killed} destroyed` : ''),
+        detail: modsText(th) });
+
+      if (killed && tgt.s.deathBlast && alive(tgt) >= 0) {          // suicide charge tech
+        const back = killed * tgt.s.deathBlast;
+        applyDamage(q, back, 0, ev);
+        ev.push({ k: 'boom', at: q.hex, s: `${tgt.s.name} detonate — ${back} back into ${q.s.name}` });
+      }
+      if (!alive(tgt)) ev.push({ k: 'wipe', at: tgt.hex, s: `${tgt.s.name} wiped out` });
+    }
+
+    /* Stalemate: a Siege Walker hugged by Pods cannot fire and cannot escape, and neither side
+       can hurt the other. Rather than grind to the tick cap doing nothing, call it. */
+    const hpAfter = squads.reduce((a, q) => a + q.hp.reduce((x, y) => x + y, 0), 0);
+    quiet = (hpBefore - hpAfter) < 1 ? quiet + 1 : 0;
+
+    if (!opts.noFrames) frames.push({
+      t,
+      squads: squads.filter(q => alive(q) > 0).map(q => ({
+        uid: q.uid, side: q.side, id: q.id, name: q.s.name, hex: q.hex,
+        n: alive(q), nMax: q.nMax, hpTop: q.hp.length ? Math.max(...q.hp) : 0, hpEach: q.s.hp, role: q.s.role,
+        charging: q.charging, stance: q.stance,
+      })),
+      ev,
+    });
+    if (quiet >= 14) break;
+  }
+
+  const pLeft = squads.filter(q => q.side === 'p' && alive(q) > 0);
+  const eLeft = squads.filter(q => q.side === 'e' && alive(q) > 0);
+  const pPower = pLeft.reduce((a, q) => a + alive(q) * q.s.hp, 0);
+  const ePower = eLeft.reduce((a, q) => a + alive(q) * q.s.hp, 0);
+  const won = pPower > ePower;
+  /* How badly it went is measured by what the WINNER has left of their own army, not by the
+     loser's remnant — battles end in annihilation, so the loser is always near zero and every
+     result scored as a rout. A winner who was mauled taking the field takes less from you. */
+  const pStart = playerSquads.reduce((a, sp) => a + sp.n * sp.hp, 0) || 1;
+  const eStart = enemySquads.reduce((a, sp) => a + sp.n * sp.hp, 0) || 1;
+  const winnerLeft = won ? pPower / pStart : ePower / eStart;
+  const bite = winnerLeft > 0.62 ? 3 : winnerLeft > 0.28 ? 2 : 1;
+
+  /* The after-action. An auto-battler's loop is watch, understand, adapt — and understanding was
+     entirely on the player until this existed. */
+  const mine = squads.filter(q => q.side === 'p');
+  const notes = [];
+  for (const q of mine) {
+    if (q.shots === 0) {
+      const why = Object.entries(q.idleWhy).sort((a, b) => b[1] - a[1])[0];
+      notes.push({ kind: 'silent', squad: q.s.name,
+        text: q.s.name + ' never fired a shot — ' + (why ? why[0] : 'no target') });
+    } else if (q.wasted > q.dealt * 0.3) {
+      notes.push({ kind: 'overkill', squad: q.s.name,
+        text: Math.round(q.wasted / (q.dealt || 1) * 100) + '% of ' + q.s.name +
+          ' damage was overkill — too much gun for what it shot at' });
+    }
+  }
+  const killers = {};
+  for (const q of mine) for (const [name, n] of Object.entries(q.tookFrom)) killers[name] = (killers[name] || 0) + n;
+  const worst = Object.entries(killers).sort((a, b) => b[1] - a[1])[0];
+  const lostMachines = mine.reduce((a, q) => a + (q.nMax - alive(q)), 0);
+  if (worst) notes.push({ kind: 'killer', squad: worst[0],
+    text: 'Their ' + worst[0] + ' accounted for ' + worst[1] + ' of your ' + lostMachines + ' machines lost' });
+
+  const foeRoles = {};
+  for (const q of squads.filter(x => x.side === 'e')) foeRoles[q.s.role] = (foeRoles[q.s.role] || 0) + q.nMax;
+  const advice = (foeRoles.swarm || 0) + (foeRoles.line || 0) >= 14 ? 'They are fielding numbers — splash hits several machines a shot.'
+    : (foeRoles.heavy || 0) + (foeRoles.ace || 0) > 0 ? 'They have armour — bring armour-piercing, or enough bodies that overkill stops mattering.'
+    : (foeRoles.siege || 0) > 0 ? 'They are shooting from range — something fast that closes shuts a siege line down.'
+    : null;
+  if (advice) notes.push({ kind: 'advice', text: advice });
+
+  return {
+    won, ticks: t, frames, map, bite, notes,
+    stats: mine.map(q => ({ name: q.s.name, shots: q.shots, hits: q.hits,
+      dealt: Math.round(q.dealt), wasted: Math.round(q.wasted), idle: q.idle,
+      lost: q.nMax - alive(q), nMax: q.nMax })),
+    survivors: pLeft.map(q => ({ uid: q.uid, id: q.id, n: alive(q), nMax: q.nMax, kills: q.kills })),
+    lostSquads: squads.filter(q => q.side === 'p' && !alive(q)).map(q => ({ uid: q.uid, id: q.id })),
+    enemyLost: squads.filter(q => q.side === 'e' && !alive(q)).map(q => ({ uid: q.uid, id: q.id })),
+    playerLeft: pLeft.length, enemyLeft: eLeft.length, pPower, ePower,
+  };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { simulateBattle, deployArmy, makeSquad, toHit, modsText, oddsOf, mulberry32, wantRange,
+    CHARGE_SPEED, CHARGE_EXPOSURE, IMPACT_DAMAGE, CRIT_MARGIN, CRIT_DAMAGE };
+}
+
+
+(function () {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+
+  let profile = load();
+  let doctrineOffer = [];
+  let st = newGame(Math.floor(Math.random() * 9999) + 1, modifiers(profile));
+  let map = null, enemy = [], enemyHex = [], phase = 'deploy', shopTab = 'units';
+  let sel = null, run = null, idx = 0, timer = null, speed = 2, paused = false, resolved = false;
+  let fx = [], curFrame = null, drag = null, press = null, buyDrag = null, boonOffer = [], unlockOffer = [];
+  let hoverHex = -1, denyUntil = 0;
+  const TICK_MS = 420;
+
+  /* ---------- board ---------- */
+  const cv = $('#board'), ctx = cv.getContext('2d');
+  const R = 25, SQ = Math.sqrt(3) * R, PAD = 14;
+  const BW = Math.round(SQ * (COLS + 0.5) + PAD * 2), BH = Math.round(R * 1.5 * (ROWS - 1) + R * 2 + PAD * 2);
+  function fitCanvas() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = BW * dpr; cv.height = BH * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // letterbox into whatever the column leaves us — max-width alone only ever shrinks
+    const box = cv.parentElement;
+    const cw = box.clientWidth - 16, ch = box.clientHeight - 16;
+    if (cw > 0 && ch > 0) {
+      const scale = Math.min(cw / BW, ch / BH);
+      cv.style.width = Math.round(BW * scale) + 'px';
+      cv.style.height = Math.round(BH * scale) + 'px';
+    }
+  }
+  fitCanvas();
+  window.addEventListener('resize', fitCanvas);
+  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(cv.parentElement);
+  const centre = i => ({ x: SQ * ((i % COLS) + 0.5 * (((i / COLS) | 0) & 1)) + SQ / 2 + PAD, y: R * 1.5 * ((i / COLS) | 0) + R + PAD });
+  function hexPath(x, y, rad) {
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {
+      const a = Math.PI / 180 * (60 * k - 90);
+      const px = x + rad * Math.cos(a), py = y + rad * Math.sin(a);
+      k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+  }
+  function hexAt(px, py) {
+    let best = -1, bd = 1e9;
+    for (let i = 0; i < N_HEX; i++) { const c = centre(i), d = (c.x - px) ** 2 + (c.y - py) ** 2; if (d < bd) { bd = d; best = i; } }
+    return bd <= (R * 0.95) ** 2 ? best : -1;
+  }
+  const RANK_COLOR = ['#7E8B99', '#5FD38A', '#56D2E4', '#FFC24B', '#FFD24B'];
+  const ROLE_COLOR = { swarm: '#9BB0C4', line: '#5FD38A', fast: '#56D2E4', siege: '#FFC24B', heavy: '#FF4438', ace: '#FF6A1F' };
+  function shade(hex, amt) {
+    const n = parseInt(hex.slice(1), 16), c = v => Math.max(0, Math.min(255, v + amt));
+    return `rgb(${c(n >> 16)},${c((n >> 8) & 255)},${c(n & 255)})`;
+  }
+  function poly(pts, s) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0] * s, p[1] * s) : ctx.moveTo(p[0] * s, p[1] * s)); ctx.closePath(); }
+
+  /* A squad token: one mech silhouette with the surviving count stamped under it. */
+  function drawSquad(x, y, size, col, role, n, nMax, mine) {
+    const dark = shade(col, -50), lit = shade(col, 30);
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.beginPath(); ctx.ellipse(0, size * .74, size * .6, size * .16, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, size * .07); ctx.strokeStyle = '#0B0F14';
+
+    if (role === 'siege') {
+      ctx.save(); ctx.rotate(mine ? -.4 : .4);
+      ctx.fillStyle = dark; poly([[-.09, -.08], [.09, -.08], [.09, -1.0], [-.09, -1.0]], size); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = col; poly([[-.54, .08], [.54, .08], [.42, .58], [-.42, .58]], size); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = dark; poly([[-.32, -.28], [.32, -.28], [.26, .10], [-.26, .10]], size); ctx.fill(); ctx.stroke();
+    } else {
+      const wide = role === 'heavy' || role === 'ace';
+      ctx.fillStyle = dark;
+      const leg = [[-.28, .12], [-.09, .12], [-.12, .70], [-.31, .70]];
+      poly(leg, size); ctx.fill(); ctx.stroke();
+      poly(leg.map(p => [-p[0], p[1]]), size); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = col;
+      poly([[-.36, -.34], [.36, -.34], [.29, .16], [-.29, .16]], size); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = lit;
+      const sp = [[-(wide ? .68 : .58), -.42], [-.32, -.46], [-.30, -.04], [-(wide ? .66 : .56), 0]];
+      poly(sp, size); ctx.fill(); ctx.stroke();
+      poly(sp.map(p => [-p[0], p[1]]), size); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = shade(col, -16);
+      poly([[-.14, -.64], [.14, -.64], [.12, -.36], [-.12, -.36]], size); ctx.fill(); ctx.stroke();
+      if (role === 'ace') { ctx.fillStyle = '#FFD24B'; poly([[-.30, -.72], [0, -.60], [.30, -.72], [0, -.80]], size); ctx.fill(); }
+      ctx.fillStyle = mine ? '#BFF4FF' : '#FF6E5A';
+      ctx.fillRect(-size * .10, -size * .56, size * .20, size * .07);
+    }
+    ctx.restore();
+
+    if (n != null) {
+      const label = '×' + n;
+      ctx.font = '700 10px ' + getComputedStyle(document.body).fontFamily;
+      ctx.textAlign = 'center';
+      const w = ctx.measureText(label).width + 8;
+      ctx.fillStyle = 'rgba(10,14,19,.85)';
+      ctx.fillRect(x - w / 2, y + size * .78, w, 12);
+      ctx.fillStyle = n < nMax ? '#FFC24B' : '#D8DFE6';
+      ctx.fillText(label, x, y + size * .78 + 9);
+    }
+  }
+
+  function drawBoard() {
+    ctx.clearRect(0, 0, BW, BH);
+    if (!map) return;
+    const now = performance.now();
+    for (let i = 0; i < N_HEX; i++) {
+      const { x, y } = centre(i), t = map.terrain(i);
+      hexPath(x, y, R - 1.5);
+      ctx.fillStyle = t.id === 'debris' ? '#2B333D' : t.id === 'ridge' ? '#26313D' : '#171D25';
+      ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = '#222A33'; ctx.stroke();
+      if (t.id === 'debris') { ctx.fillStyle = '#3B4552'; for (const [dx, dy] of [[-6, -3], [3, 4], [6, -6]]) ctx.fillRect(x + dx, y + dy, 3, 3); }
+      else if (t.id === 'ridge') { ctx.strokeStyle = '#3E4E5E'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x - 8, y + 5); ctx.lineTo(x, y - 4); ctx.lineTo(x + 8, y + 5); ctx.stroke(); }
+      if (phase === 'deploy' && map.deployZone.includes(i) && !t.blocks) {
+        const deny = now < denyUntil;
+        hexPath(x, y, R - 2);
+        ctx.fillStyle = deny ? 'rgba(255,106,31,.22)' : 'rgba(255,106,31,.09)';
+        ctx.fill();
+        ctx.strokeStyle = deny ? 'rgba(255,106,31,.9)' : 'rgba(255,106,31,.45)';
+        ctx.lineWidth = deny ? 2 : 1.2; ctx.stroke();
+      }
+    }
+
+    if (curFrame) {
+      for (const q of curFrame.squads) {
+        const { x, y } = centre(q.hex);
+        const col = q.charging ? '#FF4438' : (q.side === 'p' ? '#FF6A1F' : (ROLE_COLOR[q.role] || '#FF4438'));
+        drawSquad(x, y, q.role === 'heavy' || q.role === 'ace' ? 15 : 12, col, q.role, q.n, q.nMax, q.side === 'p');
+        if (q.charging) {                                  // a chevron for a squad mid-charge
+          ctx.strokeStyle = '#FF4438'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x - 7, y - 20); ctx.lineTo(x, y - 26); ctx.lineTo(x + 7, y - 20); ctx.stroke();
+        }
+      }
+    } else {
+      enemy.forEach((e, i) => {
+        const h = enemyHex[i]; if (h == null || h < 0) return;
+        const { x, y } = centre(h), u = U[e.id];
+        ctx.globalAlpha = .75;
+        drawSquad(x, y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, ROLE_COLOR[u.role] || '#FF4438', u.role, u.n, u.n, false);
+        ctx.globalAlpha = 1;
+      });
+      if (drag && drag.over != null && drag.over >= 0 &&
+          map.deployZone.includes(drag.over) && !map.terrain(drag.over).blocks) {
+        const c = centre(drag.over);
+        hexPath(c.x, c.y, R - 3);
+        ctx.fillStyle = 'rgba(86,210,228,.16)'; ctx.fill();
+        ctx.strokeStyle = '#56D2E4'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      for (const s of st.army) {
+        if (s.hex == null || s.hex < 0) continue;
+        const u = spec(st, s.id);
+        const held = drag && drag.uid === s.uid;
+        const p = held ? { x: drag.x, y: drag.y } : centre(s.hex);
+        if (held) {
+          const o = centre(s.hex);                       // ghost left behind at the old hex
+          ctx.globalAlpha = .28;
+          drawSquad(o.x, o.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true);
+          ctx.globalAlpha = 1;
+        } else if (sel === s.uid) {
+          hexPath(p.x, p.y, R - 4); ctx.strokeStyle = '#56D2E4'; ctx.lineWidth = 2; ctx.stroke();
+        }
+        drawSquad(p.x, p.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true);
+      }
+    }
+
+    if (phase === 'deploy' && hoverHex >= 0 && (sel != null || drag) && !drag) {
+      const ok = droppable(hoverHex);
+      const c = centre(hoverHex);
+      hexPath(c.x, c.y, R - 3);
+      ctx.strokeStyle = ok ? '#5FD38A' : '#FF4438';
+      ctx.lineWidth = 2; ctx.stroke();
+      if (!ok) {                                  // a plain cross: this hex will not take it
+        ctx.beginPath();
+        ctx.moveTo(c.x - 7, c.y - 7); ctx.lineTo(c.x + 7, c.y + 7);
+        ctx.moveTo(c.x + 7, c.y - 7); ctx.lineTo(c.x - 7, c.y + 7);
+        ctx.strokeStyle = '#FF4438'; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+
+    if (buyDrag && buyDrag.onBoard) {
+      const u = spec(st, buyDrag.id);
+      if (buyDrag.over >= 0 && droppable(buyDrag.over)) {
+        const c = centre(buyDrag.over);
+        hexPath(c.x, c.y, R - 3);
+        ctx.fillStyle = 'rgba(255,106,31,.18)'; ctx.fill();
+        ctx.strokeStyle = '#FF6A1F'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.globalAlpha = .9;
+      drawSquad(buyDrag.x, buyDrag.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true);
+      ctx.globalAlpha = 1;
+    }
+
+    fx = fx.filter(f => now - f.born < (f.boom ? 480 : 280));
+    for (const f of fx) {
+      const age = (now - f.born) / (f.boom ? 480 : 280);
+      if (f.boom) {
+        const { x, y } = centre(f.at), rad = 26 * age;
+        ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,106,31,${1 - age})`; ctx.lineWidth = 3 * (1 - age) + 1; ctx.stroke();
+        continue;
+      }
+      const a = centre(f.from), b = centre(f.to);
+      const col = f.side === 'p' ? '255,106,31' : '255,68,56';
+      const t0 = Math.min(1, age * 1.6);
+      const px = a.x + (b.x - a.x) * t0, py = a.y + (b.y - a.y) * t0;
+      const tx = a.x + (b.x - a.x) * Math.max(0, t0 - .25), ty = a.y + (b.y - a.y) * Math.max(0, t0 - .25);
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(px, py);
+      ctx.strokeStyle = `rgba(${col},${1 - age * .6})`; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.stroke();
+      if (age > .5 && f.splash) {
+        ctx.beginPath(); ctx.arc(b.x, b.y, 8 + 14 * (age - .5) / .5, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${col},${(1 - age) * 1.3})`; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+  }
+  (function loop() { drawBoard(); requestAnimationFrame(loop); })();
+
+  const at = ev => {
+    const r = cv.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) * BW / r.width, y: (ev.clientY - r.top) * BH / r.height };
+  };
+  const droppable = h => h >= 0 && map && map.deployZone.includes(h) && !map.terrain(h).blocks;
+  function placeAt(uid, h) {
+    const me = st.army.find(s => s.uid === uid);
+    if (!me || !droppable(h)) return false;
+    const other = st.army.find(s => s.hex === h && s.uid !== uid);
+    if (other) other.hex = me.hex;                       // swap rather than refuse
+    me.hex = h;
+    return true;
+  }
+
+  cv.addEventListener('pointerdown', ev => {
+    if (phase !== 'deploy') return;
+    const p = at(ev), h = hexAt(p.x, p.y);
+    const sq = st.army.find(s => s.hex === h);
+    press = { hex: h, uid: sq ? sq.uid : null };
+    if (sq) {
+      drag = { uid: sq.uid, x: p.x, y: p.y, over: h, moved: false };
+      sel = sq.uid;
+      if (cv.setPointerCapture) { try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* not supported */ } }
+      render();
+    }
+  });
+  cv.addEventListener('pointermove', ev => {
+    if (!drag) {
+      if (phase !== 'deploy') {
+        const p = at(ev), h = hexAt(p.x, p.y);
+        if (h !== hoverHex) { hoverHex = h; renderInspect(); }
+        return;
+      }
+      if (phase === 'deploy') {
+        const p = at(ev), h = hexAt(p.x, p.y);
+        if (h !== hoverHex) { hoverHex = h; renderInspect(); }
+        cv.style.cursor = st.army.some(s => s.hex === h) ? 'grab'
+          : (sel != null && h >= 0 && !droppable(h)) ? 'not-allowed' : 'crosshair';
+      }
+      return;
+    }
+    const p = at(ev);
+    if (Math.abs(p.x - drag.x) > 2 || Math.abs(p.y - drag.y) > 2) drag.moved = true;
+    drag.x = p.x; drag.y = p.y; drag.over = hexAt(p.x, p.y);
+    cv.style.cursor = 'grabbing';
+  });
+  function endDrag(ev) {
+    cv.style.cursor = 'crosshair';
+    if (drag) {
+      const target = drag.over;
+      if (drag.moved && !placeAt(drag.uid, target) && target >= 0) {
+        denyUntil = performance.now() + 900;
+        flash('You can only deploy in the highlighted zone at the bottom of the board.');
+      }
+      drag = null; press = null; render(); return;
+    }
+    // no drag: a tap on empty ground places whatever is selected
+    if (press && phase === 'deploy' && sel != null) {
+      const p = at(ev), h = hexAt(p.x, p.y);
+      if (h === press.hex && !press.uid) {
+        if (placeAt(sel, h)) {
+          const next = st.army.find(s => s.hex == null || s.hex < 0);
+          if (next) sel = next.uid;
+        } else if (h >= 0) {
+          denyUntil = performance.now() + 900;    // flash the zone rather than ignore the click
+          flash('You can only deploy in the highlighted zone at the bottom of the board.');
+        }
+      }
+    }
+    press = null; render();
+  }
+  cv.addEventListener('pointerup', endDrag);
+
+  window.addEventListener('pointermove', ev => {
+    if (!buyDrag) return;
+    buyDrag.moved = true;
+    const r = cv.getBoundingClientRect();
+    const inside = ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
+    buyDrag.onBoard = inside;
+    if (inside) {
+      buyDrag.x = (ev.clientX - r.left) * BW / r.width;
+      buyDrag.y = (ev.clientY - r.top) * BH / r.height;
+      buyDrag.over = hexAt(buyDrag.x, buyDrag.y);
+    } else buyDrag.over = -1;
+  });
+  window.addEventListener('pointerup', ev => {
+    if (!buyDrag) return;
+    const bd = buyDrag; buyDrag = null;
+    if (phase !== 'deploy') { render(); return; }
+    // dropped on legal ground: buy it and put it exactly there. A plain click buys and auto-places.
+    if (bd.moved && bd.onBoard && droppable(bd.over)) {
+      const sq = buy(st, bd.id);
+      if (sq) {
+        const taken = st.army.find(s => s.hex === bd.over && s.uid !== sq.uid);
+        sq.hex = bd.over; sel = sq.uid;
+        if (taken) { taken.hex = -1; autoPlaceOne(taken); }   // shove the previous occupant aside
+      }
+    }
+    render();
+  });
+  cv.addEventListener('pointercancel', () => { drag = null; press = null; cv.style.cursor = 'crosshair'; render(); });
+  cv.addEventListener('pointerleave', () => { hoverHex = -1; renderInspect(); });
+
+  /* ---------- panels ---------- */
+  function renderWar() {
+    const b = $('#warbar'); b.textContent = '';
+    const cell = (k, v, cls, pips, foe) => {
+      const d = el('div'); d.appendChild(el('span', null, k)); d.appendChild(el('b', cls || null, String(v)));
+      if (pips != null) {
+        const p = el('div', 'pips' + (foe ? ' foe' : ''));
+        for (let i = 0; i < 12; i++) { const x = el('i'); if (i < pips) x.className = 'on'; p.appendChild(x); }
+        d.appendChild(p);
+      }
+      b.appendChild(d);
+    };
+    const t = tierOf(profile);
+    const tc = el('div'); tc.dataset.tier = t.n;
+    tc.appendChild(el('span', null, 'Tier ' + t.n));
+    tc.appendChild(el('b', 'cool', t.name));
+    tc.appendChild(el('div', 'cnote', profile.warsWon + 'W / ' + profile.warsFought +
+      (profile.doctrines.length ? '  ·  ' + profile.doctrines.length + ' doctrine' + (profile.doctrines.length > 1 ? 's' : '') : '')));
+    tc.title = t.note;
+    b.appendChild(tc);
+    cell('Round', Math.min(st.round, ROUNDS) + ' / ' + ROUNDS);
+    cell('Credits', st.credits, 'hot');
+    const used = slotsUsed(st), cap = slotCap(st);
+    const sl = el('div');
+    sl.dataset.slots = used; sl.dataset.slotcap = cap;
+    sl.appendChild(el('span', null, 'Field slots'));
+    sl.appendChild(el('b', used >= cap ? 'bad' : '', used + ' / ' + cap));
+    const bar = el('div', 'slotbar');
+    const fill = el('i'); fill.style.width = (used / cap * 100) + '%';
+    if (used >= cap) fill.className = 'full';
+    bar.appendChild(fill); sl.appendChild(bar);
+    sl.title = 'Every squad takes slots by size. Full means you must merge or promote instead of buying.';
+    b.appendChild(sl);
+    // one contested bar reads faster than two numbers and two rows of pips
+    const sup = el('div'); sup.dataset.you = st.supply; sup.dataset.them = st.enemySupply;
+    sup.appendChild(el('span', null, 'Supply'));
+    const nums = el('b', st.supply <= 4 ? 'bad' : '');
+    nums.textContent = st.supply + ' v ' + st.enemySupply;
+    sup.appendChild(nums);
+    const track = el('div', 'contest');
+    const mine = el('i', 'me'); mine.style.width = (st.supply / 15 * 50) + '%';
+    const theirs = el('i', 'foe'); theirs.style.width = (st.enemySupply / 15 * 50) + '%';
+    track.appendChild(mine); track.appendChild(theirs);
+    sup.appendChild(track);
+    b.appendChild(sup);
+    $('#creditTag').textContent = st.credits + ' credits';
+  }
+
+  function renderShop() {
+    const box = $('#shop'); box.textContent = '';
+    $('#tabUnits').setAttribute('aria-pressed', shopTab === 'units');
+    $('#tabTech').setAttribute('aria-pressed', shopTab === 'tech');
+    if (phase !== 'deploy') { box.appendChild(el('div', 'lbl', 'The shop reopens after the battle.')); return; }
+
+    if (shopTab === 'units') {
+      for (const u of UNITS) {
+        const locked = !st.unlocked.includes(u.id);
+        const noRoom = slotsUsed(st) + u.slots > slotCap(st);
+        const s = spec(st, u.id);
+        const c = el('button', 'card' + (locked ? ' locked' : ''));
+        c.disabled = locked || st.credits < priceOf(st, u.id) || noRoom;
+        if (!locked && noRoom) c.title = 'No field slots left — merge or promote what you have.';
+        const r1 = el('div', 'crow');
+        r1.appendChild(el('div', 'cname', u.name));
+        r1.appendChild(el('span', 'pill ' + u.role, u.role));
+        r1.appendChild(el('span', 'pill era' + u.era, 'E' + u.era));
+        r1.appendChild(el('div', 'cost', locked ? 'LOCKED' : noRoom ? 'NO ROOM' : String(priceOf(st, u.id))));
+        c.appendChild(r1);
+        c.appendChild(el('div', 'cstat',
+          `${u.slots} slot${u.slots > 1 ? 's' : ''} · ${s.n}× ${s.hp}hp · ${s.dmg}dmg · ${s.minR}–${s.maxR}` +
+          (s.splash ? ` · splash${s.splash}` : '') + (s.ap ? ` · AP${s.ap}` : '') +
+          (s.indirect ? ' · indirect' : '')));
+        c.title = u.note;                      // the prose lives on hover, not on screen
+        // Click (or Enter) buys and auto-places; press-and-drag onto a hex buys and places there.
+        // A completed drag releases over the canvas, so no click fires on the card — no double buy.
+        c.onclick = () => { const sq = buy(st, u.id); if (sq) { autoPlaceOne(sq); sel = sq.uid; } render(); };
+        c.addEventListener('pointerdown', ev => {
+          if (c.disabled || phase !== 'deploy') return;
+          buyDrag = { id: u.id, x: 0, y: 0, over: -1, moved: false, onBoard: false };
+        });
+        box.appendChild(c);
+      }
+    } else {
+      for (const t of TECH) {
+        const owned = st.tech.includes(t.id);
+        const c = el('button', 'card');
+        c.disabled = owned || st.credits < t.cost;
+        const r1 = el('div', 'crow');
+        r1.appendChild(el('div', 'cname', t.name));
+        r1.appendChild(el('span', 'pill ' + U[t.unit].role, U[t.unit].name));
+        if (owned) r1.appendChild(el('span', 'pill owned', 'owned'));
+        else r1.appendChild(el('div', 'cost', String(t.cost)));
+        c.appendChild(r1);
+        c.appendChild(el('div', 'cnote', t.note));
+        c.onclick = () => { buyTech(st, t.id); render(); };
+        box.appendChild(c);
+      }
+    }
+  }
+
+  function autoPlaceOne(sq) {
+    const zone = map.deployZone.filter(h => !map.terrain(h).blocks && !st.army.some(s => s.hex === h));
+    sq.hex = zone.length ? zone[Math.floor(zone.length / 2)] : -1;
+  }
+
+  function renderArmy() {
+    const box = $('#army'); box.textContent = '';
+    if (phase !== 'deploy') return;
+    if (!st.army.length) { box.appendChild(el('div', 'lbl', 'No squads yet. Buy something from the shop.')); return; }
+    for (const s of st.army) {
+      const u = squadSpec(st, s);
+      const row = el('div', 'sq' + (s.hex < 0 ? ' unplaced' : ''));
+      row.setAttribute('aria-pressed', sel === s.uid);
+      row.dataset.hex = s.hex;              // placement is visible on the board, not spelled out here
+      row.dataset.uid = s.uid;
+      row.dataset.rank = s.rank || 0;
+      const rk = el('span', 'rank r' + (s.rank || 0), u.rankName);
+      rk.title = u.n + '× ' + u.hp + ' hull, ' + u.dmg + ' damage';
+      row.appendChild(rk);
+      row.appendChild(el('div', 'n', u.name + ' ×' + u.n));
+      if (s.hex < 0) row.appendChild(el('span', 'pill', 'unplaced'));
+
+      const group = mergeable(st, s);
+      if (group) {
+        const m = el('button', 'btn ghost sm merge', 'Merge ' + MERGE_COUNT);
+        m.title = 'Combine ' + MERGE_COUNT + ' ' + u.name + ' at rank ' + u.rankName +
+          ' into one at rank ' + RANKS[(s.rank || 0) + 1].name + ', freeing slots.';
+        m.onclick = e => { e.stopPropagation(); merge(st, s.uid); render(); };
+        row.appendChild(m);
+      } else {
+        const cost = upgradeCost(st, s);
+        if (cost != null) {
+          const up = el('button', 'btn ghost sm', '▲ ' + cost);
+          up.disabled = st.credits < cost;
+          up.title = 'Promote to rank ' + RANKS[(s.rank || 0) + 1].name +
+            ' — about a third more hull and damage.';
+          up.onclick = e => { e.stopPropagation(); upgrade(st, s.uid); render(); };
+          row.appendChild(up);
+        }
+      }
+      const stanceBtn = el('button', 'btn ghost sm' + (s.stance === 'charge' ? ' charging' : ''),
+        s.stance === 'charge' ? 'Charge' : 'Hold');
+      stanceBtn.title = s.stance === 'charge'
+        ? 'Sprinting into contact: cannot fire while closing and easier to hit, but the first strike lands at triple damage through armour.'
+        : 'Advances to its preferred range and fights from there.';
+      stanceBtn.onclick = e => { e.stopPropagation(); setStance(st, s.uid, s.stance === 'charge' ? 'hold' : 'charge'); render(); };
+      row.appendChild(stanceBtn);
+      const sellBtn = el('button', 'btn ghost sm', '×');
+      sellBtn.title = 'Sell this squad';
+      sellBtn.onclick = e => { e.stopPropagation(); sell(st, s.uid); if (sel === s.uid) sel = st.army.length ? st.army[0].uid : null; render(); };
+      row.appendChild(sellBtn);
+      row.onclick = () => { sel = s.uid; render(); };
+      box.appendChild(row);
+    }
+  }
+
+  function renderControls() {
+    const box = $('#controls'); box.textContent = '';
+    const add = (label, cls, fn, dis) => { const b = el('button', 'btn ' + (cls || ''), label); b.disabled = !!dis; b.onclick = fn; box.appendChild(b); };
+    if (phase === 'deploy') {
+      add('Fight', '', startBattle, !st.army.length);
+      add('Auto-place', 'ghost', () => {
+        const zone = map.deployZone.filter(h => !map.terrain(h).blocks);
+        st.army.forEach((s, i) => { s.hex = zone[Math.floor((i + 1) * zone.length / (st.army.length + 1))]; });
+        render();
+      }, !st.army.length);
+      add('New war', 'ghost', () => { st = newGame(Math.floor(Math.random() * 9999) + 1, modifiers(profile)); startRound(); });
+    } else if (phase === 'battle') {
+      add('Skip to result', 'ghost', () => { stopTimer(); idx = run.frames.length; finish(); });
+    } else if (phase === 'summary') {
+      add(st.over ? 'See the outcome' : unlockOffer.length ? 'Unlock a unit' : 'Take a reward', '', () => {
+        if (st.over) {
+          if (!st.recorded) {
+            st.recorded = true;
+            recordWar(profile, st.won);
+            doctrineOffer = st.won ? offerDoctrines(profile, mulberry32((st.seed * 97) >>> 0)) : [];
+          }
+          phase = 'over'; renderOver(); render(); return;
+        }
+        phase = unlockOffer.length ? 'unlock' : 'boon'; render();
+      });
+    } else if (phase === 'unlock') {
+      add('Skip the unlock', 'ghost', () => { phase = 'boon'; render(); });
+    } else if (phase === 'boon') {
+      add('Skip the reward', 'ghost', () => { startRound(); });
+    } else if (phase === 'over') {
+      add('Start a new war', '', () => { st = newGame(Math.floor(Math.random() * 9999) + 1, modifiers(profile)); startRound(); });
+    }
+  }
+
+  let flashTimer = null;
+  function flash(msg) {
+    const h = $('#hint');
+    h.hidden = false; h.classList.add('deny'); h.textContent = msg;
+    if (flashTimer) clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { h.classList.remove('deny'); renderHint(); }, 1800);
+  }
+
+  function squadAtHex(h) {
+    if (h == null || h < 0) return null;
+    if (curFrame) {
+      const q = curFrame.squads.find(x => x.hex === h);
+      if (!q) return null;
+      const u = q.side === 'p' ? U[q.id] : U[q.id];
+      return { side: q.side, u, n: q.n, nMax: q.nMax, rank: null, spec: U[q.id] };
+    }
+    const mine = st.army.find(x => x.hex === h);
+    if (mine) return { side: 'p', u: U[mine.id], n: null, rank: mine.rank || 0, spec: squadSpec(st, mine) };
+    const i = enemyHex.indexOf(h);
+    if (i >= 0) {
+      const e = enemy[i];
+      return { side: 'e', u: U[e.id], n: null, rank: e.rank || 0, spec: enemySpec(st, e) };
+    }
+    return null;
+  }
+
+  function renderInspect() {
+    const box = $('#inspect');
+    const found = squadAtHex(hoverHex);
+    if (!found) { box.hidden = true; return; }
+    box.hidden = false;
+    box.className = found.side === 'e' ? 'foe' : '';
+    box.textContent = '';
+    const sp = found.spec;
+    box.appendChild(el('div', 'who', (found.side === 'e' ? 'REGIME · ' : '') + sp.name));
+    if (found.rank != null) {
+      const r = el('span', 'rank r' + found.rank, RANKS[found.rank].name);
+      box.appendChild(r);
+    }
+    box.appendChild(el('span', 'pill ' + found.u.role, found.u.role));
+    box.appendChild(el('span', 'pill era' + found.u.era, 'E' + found.u.era));
+    const stat = el('div', 'st');
+    stat.innerHTML = '<b>' + (found.n != null ? found.n + '/' + found.nMax : '×' + sp.n) + '</b> machines · ' +
+      '<b>' + sp.hp + '</b> hull · <b>' + sp.dmg + '</b> dmg · range <b>' + sp.minR + '–' + sp.maxR + '</b>' +
+      (sp.splash ? ' · splash <b>' + sp.splash + '</b>' : '') +
+      (sp.ap ? ' · AP<b>' + sp.ap + '</b>' : '') +
+      (sp.save ? ' · save <b>' + sp.save + '+</b>' : '') +
+      (sp.indirect ? ' · <b>indirect</b>' : '') +
+      (sp.emplaced ? ' · <b>emplaced</b>' : '') +
+      ' · <b>' + sp.slots + '</b> slot' + (sp.slots > 1 ? 's' : '');
+    box.appendChild(stat);
+  }
+
+  function renderHint() {
+    const h = $('#hint');
+    if (h.classList.contains('deny')) return;   // a refusal is showing; do not paint over it
+    if (phase !== 'deploy') { h.hidden = true; return; }
+    h.hidden = false;
+    const ranked = {};
+    for (const e of enemy) {
+      const key = e.id + ':' + (e.rank || 0);
+      ranked[key] = ranked[key] || { n: 0, id: e.id, rank: e.rank || 0 };
+      ranked[key].n++;
+    }
+    const list = Object.values(ranked)
+      .sort((a, b) => b.n - a.n)
+      .map(x => x.n + '× ' + U[x.id].name + (x.rank ? ' ' + RANKS[x.rank].name : '')).join(', ') || 'nothing';
+    h.innerHTML = '<b>Incoming:</b> ' + list +
+      '  <b>·</b>  ' + slotsUsed(st) + ' of ' + slotCap(st) + ' field slots used';
+    h.title = 'Drag a unit from the shop onto a hex to buy and place it. Drag placed squads to rearrange; dropping one on another swaps them.';
+  }
+
+  /* ---------- round flow ---------- */
+  function startRound() {
+    const seed = (st.seed * 7919 + st.round * 104729) >>> 0;
+    const rng = mulberry32(seed);
+    map = makeMap(mulberry32((seed ^ 0x9e3779b9) >>> 0), st.round);
+    enemy = enemyArmy(st, rng);
+    enemyHex = deployArmy(map, enemy.map(e => enemySpec(st, e)), 'e');
+    const zone = map.deployZone.filter(h => !map.terrain(h).blocks);
+    st.army.forEach((s, i) => {
+      if (s.hex == null || s.hex < 0 || !zone.includes(s.hex)) s.hex = zone[Math.floor((i + 1) * zone.length / (st.army.length + 1))];
+    });
+    phase = 'deploy'; resolved = false; curFrame = null; run = null; fx = [];
+    sel = st.army.length ? st.army[0].uid : null;
+    $('#mainTitle').textContent = 'Deployment';
+    $('#viewTag').textContent = 'Place your squads';
+    $('#playbar').hidden = true; $('#summary').hidden = true;
+    setSide('army');
+    render();
+  }
+
+  const logBox = $('#log');
+  function logLine(t, kind, text, detail) {
+    const d = el('div', 'e-' + kind);
+    if (t != null) d.appendChild(el('span', 't', String(t).padStart(3, ' ') + '  '));
+    d.appendChild(document.createTextNode(text));
+    logBox.appendChild(d);
+    if (detail) logBox.appendChild(el('div', 'detail', detail));
+    logBox.scrollTop = logBox.scrollHeight;
+    while (logBox.children.length > 400) logBox.removeChild(logBox.firstChild);
+  }
+
+  function startBattle() {
+    phase = 'battle'; logBox.textContent = ''; fx = []; paused = false; setSide('log');
+    const mine = st.army.map(s => Object.assign(squadSpec(st, s), { hex: s.hex, stance: s.stance }));
+    const theirs = enemy.map((e, i) => Object.assign(enemySpec(st, e), { hex: enemyHex[i] }));
+    run = simulateBattle(mine, theirs, (st.seed * 31 + st.round * 977) >>> 0, { map, round: st.round });
+    idx = 0;
+    $('#mainTitle').textContent = 'Battle'; $('#summary').hidden = true;
+    startTimer(); updatePlaybar(); render();
+  }
+
+  function showFrame(f, withFx) {
+    curFrame = f;
+    if (withFx !== false) {
+      const now = performance.now();
+      for (const e of f.ev) {
+        if (e.from != null) fx.push({ from: e.from, to: e.to, side: e.side, splash: e.splash, born: now });
+        if (e.at != null) fx.push({ boom: true, at: e.at, born: now });
+      }
+    }
+    $('#viewTag').textContent = 'tick ' + f.t + ' · ' +
+      f.squads.filter(q => q.side === 'p').length + ' v ' + f.squads.filter(q => q.side === 'e').length + ' squads';
+  }
+  function logFrame(f) { for (const e of f.ev) if (e.s) logLine(f.t, e.k, e.s, e.detail); }
+  function rebuildLog(n) { logBox.textContent = ''; for (let i = 0; i < n; i++) logFrame(run.frames[i]); }
+  function updatePlaybar() {
+    const pb = $('#playbar'); pb.hidden = !run || (phase !== 'battle' && phase !== 'summary');
+    if (pb.hidden) return;
+    $('#scrub').max = String(Math.max(0, run.frames.length));
+    $('#scrub').value = String(idx);
+    const shown = idx === 0 ? 0 : run.frames[Math.min(idx, run.frames.length) - 1].t;
+    $('#tickTag').textContent = 'tick ' + shown + ' / ' + (run.frames.length ? run.frames[run.frames.length - 1].t : 0);
+    $('#pbPlay').textContent = phase === 'summary' ? 'Replay' : paused ? 'Play' : 'Pause';
+    $('#pbSpeed').textContent = 'Speed ×' + speed;
+  }
+  function stopTimer() { if (timer) clearInterval(timer); timer = null; }
+  function startTimer() { stopTimer(); if (!paused) timer = setInterval(tick, TICK_MS / speed); }
+  function tick() {
+    if (!run || idx >= run.frames.length) { stopTimer(); finish(); return; }
+    showFrame(run.frames[idx], true); logFrame(run.frames[idx]); idx++; updatePlaybar();
+  }
+  function seek(i) {
+    if (!run) return;
+    idx = Math.max(0, Math.min(run.frames.length, i)); fx = [];
+    rebuildLog(idx);
+    const f = run.frames[Math.max(0, idx - 1)];
+    if (f) showFrame(f, false);
+    updatePlaybar();
+  }
+  $('#pbPlay').onclick = () => {
+    if (phase === 'summary') {
+      phase = 'battle'; paused = false; $('#summary').hidden = true;
+      $('#mainTitle').textContent = 'Battle'; seek(0); startTimer(); render(); return;
+    }
+    paused = !paused; if (paused) stopTimer(); else startTimer(); updatePlaybar();
+  };
+  $('#pbStep').onclick = () => { if (!run) return; if (!paused) { paused = true; stopTimer(); } if (idx < run.frames.length) tick(); updatePlaybar(); };
+  $('#pbSpeed').onclick = () => { speed = speed === 0.5 ? 1 : speed === 1 ? 2 : speed === 2 ? 4 : 0.5; if (!paused && phase === 'battle') startTimer(); updatePlaybar(); };
+  $('#scrub').oninput = e => { if (!paused) { paused = true; stopTimer(); } seek(parseInt(e.target.value, 10)); };
+
+  function finish() {
+    stopTimer(); phase = 'summary'; paused = true;
+    let report = { lost: [], bite: run.bite };
+    if (!resolved) {
+      // battle uid "p3" refers to the third squad in the army we sent
+      run.lostSquads = run.lostSquads.map(l => {
+        const i = +String(l.uid).slice(1);
+        return { uid: st.army[i] ? st.army[i].uid : -1, id: l.id };
+      });
+      report = resolveRound(st, run);
+      resolved = true;
+      const rr = mulberry32((st.seed * 61 + st.round * 5171) >>> 0);
+      boonOffer = st.over ? [] : offerBoons(st, rr, st.lastLost);
+      unlockOffer = st.over ? [] : offerUnlocks(st, rr);
+    }
+    const s = $('#summary'); s.hidden = false; s.className = run.won ? 'win' : 'loss'; s.textContent = '';
+    s.appendChild(el('div', 'sumhead', run.won ? 'Field held' : 'Pushed off the field'));
+    const lines = el('div');
+    lines.appendChild(el('div', 'cnote', run.won
+      ? `The regime falls back. Their supply drops by ${report.bite}.`
+      : `You are driven off. Your supply drops by ${report.bite}.`));
+    if (report.lost && report.lost.length)
+      lines.appendChild(el('div', 'cnote', report.lost.length + ' squad' + (report.lost.length > 1 ? 's' : '') +
+        ' destroyed: ' + report.lost.join(', ')));
+    if (report.bill)
+      lines.appendChild(el('div', 'cnote', 'Rebuilt for ' + report.bill +
+        ' credits, taken out of next round\u2019s income.'));
+    if (report.scrapped && report.scrapped.length)
+      lines.appendChild(el('div', 'cnote', 'Could not afford to rebuild: ' + report.scrapped.join(', ') + ' \u2014 written off.'));
+    s.appendChild(lines);
+    // why it went the way it did
+    if (run.notes && run.notes.length) {
+      const why = el('div', 'why');
+      why.appendChild(el('div', 'lbl', 'What happened'));
+      for (const n of run.notes) why.appendChild(el('div', 'wnote ' + (n.kind || ''), n.text));
+      s.appendChild(why);
+    }
+    if (run.stats && run.stats.length) {
+      const t = el('table', 'ministat');
+      const hd = t.insertRow();
+      for (const h of ['Squad', 'Shots', 'Hit', 'Damage', 'Wasted', 'Idle', 'Losses'])
+        hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+      for (const q of run.stats) {
+        const r = t.insertRow();
+        const add = (x, cls) => { const c = r.insertCell(); c.textContent = x; if (cls) c.className = cls; };
+        add(q.name, 'n'); add(q.shots); add(q.hits); add(q.dealt);
+        add(q.wasted ? Math.round(q.wasted / (q.dealt || 1) * 100) + '%' : '—',
+          q.wasted > q.dealt * 0.3 ? 'bad' : '');
+        add(q.idle ? q.idle + 't' : '—', q.shots === 0 ? 'bad' : '');
+        add(q.lost + '/' + q.nMax, q.lost === q.nMax ? 'bad' : '');
+      }
+      s.appendChild(t);
+    }
+
+    const g = el('div', 'sumgrid');
+    for (const [k, v] of [['Ticks', run.ticks], ['Your squads left', run.playerLeft], ['Regime left', run.enemyLeft],
+      ['Your supply', st.supply], ['Regime supply', st.enemySupply], ['Credits', st.credits]]) {
+      const d = el('div'); d.appendChild(el('span', null, k)); d.appendChild(el('b', null, String(v))); g.appendChild(d);
+    }
+    s.appendChild(g);
+    $('#mainTitle').textContent = 'Round ' + (st.round - 1) + ' result';
+    updatePlaybar(); render();
+  }
+
+  function renderUnlocks() {
+    const s = $('#summary'); s.hidden = false; s.className = ''; s.textContent = '';
+    s.appendChild(el('div', 'sumhead', 'Unlock a unit'));
+    const era = currentEra(st);
+    s.appendChild(el('div', 'cnote', 'You field ' + st.unlocked.length + ' of ' + UNITS.length +
+      ' machines. Advancing through the ' + ERAS[era].toLowerCase() + ' era — the next opens once this one is complete.'));
+    const wrap = el('div', 'boons');
+    for (const u of unlockOffer) {
+      const sp = spec(st, u.id);
+      const c = el('button', 'card boon');
+      const r1 = el('div', 'crow');
+      r1.appendChild(el('div', 'cname', u.name));
+      r1.appendChild(el('span', 'pill ' + u.role, u.role));
+      r1.appendChild(el('span', 'pill era' + u.era, ERAS[u.era]));
+      r1.appendChild(el('div', 'cost', String(u.cost)));
+      c.appendChild(r1);
+      c.appendChild(el('div', 'cstat', `${sp.n}× · ${sp.hp} hull · ${sp.dmg} dmg · range ${sp.minR}–${sp.maxR}` +
+        (sp.splash ? ` · splash ${sp.splash}` : '') + (sp.ap ? ` · AP-${sp.ap}` : '')));
+      c.appendChild(el('div', 'cnote', u.note));
+      c.onclick = () => { takeUnlock(st, u.id); phase = 'boon'; render(); };
+      wrap.appendChild(c);
+    }
+    s.appendChild(wrap);
+    $('#mainTitle').textContent = 'Round ' + (st.round - 1) + ' unlock';
+  }
+
+  function renderBoons() {
+    const s = $('#summary'); s.hidden = false; s.className = ''; s.textContent = '';
+    s.appendChild(el('div', 'sumhead', 'Take one, lose the rest'));
+    s.appendChild(el('div', 'cnote',
+      'Field upgrades live here rather than competing with squads for credits. Rarer cards are ' +
+      'exponentially stronger, and rarer cards show up more the deeper the war runs — or when you are losing.'));
+    const wrap = el('div', 'boons');
+    for (const b of boonOffer) {
+      const r = RAR[b.rarity] || RAR.common;
+      const c = el('button', 'card boon r-' + (b.rarity || 'common'));
+      c.style.borderColor = r.color;
+      const r1 = el('div', 'crow');
+      r1.appendChild(el('div', 'cname', b.name));
+      const rp = el('span', 'pill', r.name);
+      rp.style.color = r.color; rp.style.borderColor = r.color;
+      r1.appendChild(rp);
+      if (b.catchUp) r1.appendChild(el('span', 'pill owned', 'catch-up'));
+      c.appendChild(r1);
+      c.appendChild(el('div', 'cnote', b.note));
+      c.onclick = () => { takeBoon(st, b); startRound(); };
+      wrap.appendChild(c);
+    }
+    s.appendChild(wrap);
+    $('#mainTitle').textContent = 'Round ' + (st.round - 1) + ' reward';
+  }
+
+  function renderOver() {
+    const s = $('#summary'); s.hidden = false; s.className = st.won ? 'win' : 'loss'; s.textContent = '';
+    s.appendChild(el('div', 'sumhead', st.won ? 'The regime withdraws from the sector' : 'Your supply is gone'));
+    s.appendChild(el('div', 'cnote', 'War record: ' + profile.warsWon + ' won of ' + profile.warsFought +
+      '  ·  best streak ' + profile.best + '  ·  next war at tier ' + tierOf(profile).n + ', ' + tierOf(profile).name));
+    if (doctrineOffer.length) {
+      s.appendChild(el('div', 'cnote', 'Take a doctrine — it is yours for every war from here.'));
+      const wrap = el('div', 'boons');
+      for (const dc of doctrineOffer) {
+        const c = el('button', 'card boon');
+        const r1 = el('div', 'crow');
+        r1.appendChild(el('div', 'cname', dc.name));
+        r1.appendChild(el('span', 'pill owned', 'permanent'));
+        c.appendChild(r1);
+        c.appendChild(el('div', 'cnote', dc.note));
+        c.onclick = () => { takeDoctrine(profile, dc.id); doctrineOffer = []; renderOver(); render(); };
+        wrap.appendChild(c);
+      }
+      s.appendChild(wrap);
+    } else if (profile.doctrines.length) {
+      s.appendChild(el('div', 'cnote', 'Doctrines held: ' +
+        profile.doctrines.map(id => DOCTRINES.find(x => x.id === id).name).join(', ')));
+    }
+    const l = el('div');
+    for (const e of st.log.slice(-6))
+      l.appendChild(el('div', 'cnote', e.text + (e.lost.length ? '   Lost: ' + e.lost.join(', ') : '')));
+    s.appendChild(l);
+    $('#mainTitle').textContent = 'The war';
+  }
+
+  $('#tabUnits').onclick = () => { shopTab = 'units'; renderShop(); };
+  $('#tabTech').onclick = () => { shopTab = 'tech'; renderShop(); };
+
+  let sideTab = 'army';
+  function setSide(t) {
+    sideTab = t;
+    for (const [id, name] of [['#tabArmy', 'army'], ['#tabLog', 'log'], ['#tabManual', 'manual']])
+      $(id).setAttribute('aria-pressed', t === name);
+    $('#army').hidden = t !== 'army';
+    $('#log').hidden = t !== 'log';
+    $('#manual').hidden = t !== 'manual';
+  }
+  $('#tabArmy').onclick = () => setSide('army');
+  $('#tabLog').onclick = () => setSide('log');
+  $('#tabManual').onclick = () => setSide('manual');
+
+
+  (function rarTable() {
+    const t = $('#rarTable'), hd = t.insertRow();
+    for (const h of ['Tier', 'Effect', 'Roughly']) hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+    const tot = RARITY.reduce((a, r) => a + r.w, 0);
+    for (const r of RARITY) {
+      const row = t.insertRow();
+      const c = row.insertCell(); c.textContent = r.name; c.className = 'n'; c.style.color = r.color;
+      row.insertCell().textContent = '×' + r.mult.toFixed(1);
+      row.insertCell().textContent = '1 in ' + Math.round(tot / r.w);
+    }
+  })();
+
+  (function specTable() {
+    const t = $('#specTable'), hd = t.insertRow();
+    for (const h of ['Unit', 'Role', 'Cost', 'Squad', 'Hull', 'Damage', 'Range', 'Splash', 'AP', 'Save', 'Speed', 'Notes'])
+      hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+    for (const u of UNITS) {
+      const r = t.insertRow();
+      const add = (x, cls) => { const c = r.insertCell(); c.textContent = x; if (cls) c.className = cls; };
+      add(u.name, 'n');
+      r.insertCell().appendChild(el('span', 'pill ' + u.role, u.role));
+      add(u.cost); add('×' + u.n); add(u.hp); add(u.dmg);
+      add(u.minR + '–' + u.maxR + (u.indirect ? ' indirect' : ''));
+      add(u.splash || '—'); add(u.ap ? '-' + u.ap : '—'); add(u.save ? u.save + '+' : '—');
+      add(u.emplaced ? 'emplaced' : u.speed, u.emplaced ? 'n' : '');
+      r.insertCell().appendChild(el('span', 'note', u.note));
+    }
+  })();
+
+  $('#btnSim').onclick = function () {
+    this.disabled = true; $('#simStatus').textContent = 'simulating…';
+    setTimeout(() => {
+      const RUNS = 40, agg = { won: 0, rounds: 0, roundWins: 0, played: 0, wipes: 0, boons: 0 };
+      for (let r2 = 1; r2 <= RUNS; r2++) {
+        const g = newGame(r2), rng = mulberry32(r2 * 7919);
+        let guard = 0;
+        while (!g.over && guard++ < 20) {
+          const en = enemyArmy(g, rng);
+          const theirs = {};
+          for (const e of en) theirs[U[e.id].role] = (theirs[U[e.id].role] || 0) + U[e.id].n;
+          const crowded = (theirs.swarm || 0) + (theirs.line || 0) >= 10;
+          const big = (theirs.heavy || 0) + (theirs.ace || 0) > 0;
+          const want = crowded ? ['missile', 'siege', 'line'] : big ? ['lancers', 'heavy', 'line'] : ['line', 'skirm', 'heavy'];
+          const tw = TECH.filter(t => !g.tech.includes(t.id) && g.army.filter(s => s.id === t.unit).length >= 2 && t.cost <= g.credits);
+          if (tw.length && rng() < 0.7) buyTech(g, tw[Math.floor(rng() * tw.length)].id);
+          let gd = 0;
+          while (gd++ < 30) { const pool = want.filter(id => U[id].cost <= g.credits); if (!pool.length) break; buy(g, pool[Math.floor(rng() * pool.length)]); }
+          if (!g.army.length) { g.over = true; g.won = false; break; }
+          const res = simulateBattle(g.army.map(s => squadSpec(g, s)), en.map(e => enemySpec(g, e)),
+            (g.seed * 31 + g.round * 977) >>> 0, { noFrames: true, round: g.round });
+          res.lostSquads = res.lostSquads.map(l => {
+            const i = +String(l.uid).slice(1);
+            return { uid: g.army[i] ? g.army[i].uid : -1, id: l.id };
+          });
+          agg.played++; if (res.won) agg.roundWins++; agg.wipes += res.lostSquads.length;
+          resolveRound(g, res);
+          if (!g.over) {
+            const offer = offerBoons(g, rng, g.lastLost);
+            const prefer = offer.find(b => b.kind === 'tech') || offer.find(b => b.catchUp) || offer[0];
+            takeBoon(g, prefer);
+            agg.boons++;
+          }
+        }
+        agg.rounds += g.round - 1; if (g.won) agg.won++;
+      }
+      const t = $('#simTable'); t.textContent = '';
+      const hd = t.insertRow();
+      for (const h of ['Measure', 'Result', '']) hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+      for (const [k, v, n] of [
+        ['Wars won', Math.round(agg.won / RUNS * 100) + '%', 'against a buyer that counters you'],
+        ['Avg rounds played', (agg.rounds / RUNS).toFixed(1) + ' / ' + ROUNDS, ''],
+        ['Rounds won', Math.round(agg.roundWins / agg.played * 100) + '%', ''],
+        ['Squads wiped per round', (agg.wipes / agg.played).toFixed(2), 'gone for good'],
+        ['Rewards drafted per war', (agg.boons / RUNS).toFixed(1), 'one per round survived'],
+      ]) {
+        const r = t.insertRow(); r.insertCell().textContent = k;
+        const c = r.insertCell(); c.className = 'n'; c.textContent = v;
+        r.insertCell().appendChild(el('span', 'note', n));
+      }
+      $('#simOut').hidden = false; $('#simStatus').textContent = RUNS + ' wars simulated';
+      this.disabled = false;
+    }, 30);
+  };
+
+  function render() {
+    renderWar(); renderShop(); renderArmy(); renderHint(); renderInspect(); renderControls();
+    if (phase === 'unlock') renderUnlocks();
+    if (phase === 'boon') renderBoons();
+  }
+  startRound();
+})();
+</script>
