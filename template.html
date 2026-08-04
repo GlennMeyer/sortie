@@ -876,6 +876,7 @@ html,body{height:100%;overflow:hidden}
       (sp.ap ? ' · AP<b>' + sp.ap + '</b>' : '') +
       (sp.save ? ' · save <b>' + sp.save + '+</b>' : '') +
       (sp.indirect ? ' · <b>indirect</b>' : '') +
+      (sp.emplaced ? ' · <b>emplaced</b>' : '') +
       ' · <b>' + sp.slots + '</b> slot' + (sp.slots > 1 ? 's' : '');
     box.appendChild(stat);
   }
@@ -1175,7 +1176,8 @@ html,body{height:100%;overflow:hidden}
       r.insertCell().appendChild(el('span', 'pill ' + u.role, u.role));
       add(u.cost); add('×' + u.n); add(u.hp); add(u.dmg);
       add(u.minR + '–' + u.maxR + (u.indirect ? ' indirect' : ''));
-      add(u.splash || '—'); add(u.ap ? '-' + u.ap : '—'); add(u.save ? u.save + '+' : '—'); add(u.speed);
+      add(u.splash || '—'); add(u.ap ? '-' + u.ap : '—'); add(u.save ? u.save + '+' : '—');
+      add(u.emplaced ? 'emplaced' : u.speed, u.emplaced ? 'n' : '');
       r.insertCell().appendChild(el('span', 'note', u.note));
     }
   })();

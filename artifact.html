@@ -653,11 +653,11 @@ const UNITS = [
     speed: 1.39, ap: 1, save: 6, splash: 0, acc: 0,
     note: 'Fast enough to choose its range. Hits hardest where nobody is looking.' },
   { id: 'siege',  name: 'SIEGE WALKERS',role: 'siege', era: 2, slots: 3, cost: 670, n: 2, hp: 295, dmg: 71, minR: 3, maxR: 9, br: [5,7,9],
-    speed: 0.32, ap: 1, save: 6, splash: 2, acc: 1,
-    note: 'Reaches the whole field and splashes two. Cannot fire inside three hexes.' },
+    speed: 0.32, ap: 1, save: 6, splash: 2, acc: 1, emplaced: true,
+    note: 'Emplaced: it holds the hex you put it on. Reaches the whole field and splashes two, and cannot fire inside three hexes — so where you set it down is the whole decision.' },
   { id: 'missile',name: 'MISSILE TRACK',role: 'siege', era: 3, slots: 2, cost: 590, n: 3, hp: 144, dmg: 40, minR: 2, maxR: 7, br: [4,6,7],
-    speed: 0.65, ap: 0, save: 0, splash: 3, acc: 1, indirect: true,
-    note: 'Indirect fire, splashes three, needs no line of sight. Swarm food becomes swarm graveyard.' },
+    speed: 0.65, ap: 0, save: 0, splash: 3, acc: 1, indirect: true, emplaced: true,
+    note: 'Emplaced, and fires indirect — no line of sight needed, so terrain never blocks it. Splashes three. Swarm food becomes swarm graveyard, if nothing reaches it.' },
   { id: 'colossus',name:'COLOSSUS',     role: 'heavy', era: 3, slots: 3, cost: 570, n: 1, hp: 1750,dmg: 93, minR: 1, maxR: 6, br: [2,4,6],
     speed: 0.48, ap: 2, save: 4, splash: 0, acc: 0,
     note: 'One machine worth a company. Everything small that shoots it dies; anything with AP does not.' },
@@ -1340,7 +1340,11 @@ function simulateBattle(playerSquads, enemySquads, seed, opts = {}) {
 
       const holdingHeight = map.terrain(q.hex).high && !q.charging &&
         d0 >= q.s.minR && d0 <= q.s.maxR + 1 && (q.s.indirect || map.seesFrom(q.hex, tgt.hex));
-      const needMove = !holdingHeight &&
+      /* Artillery is emplaced: it fights from the hex you put it on and never repositions.
+         Siege pieces that stroll toward the enemy read as slow brawlers rather than artillery,
+         and they walked themselves out of the cover they were placed in. Holding still makes
+         the placement the decision, and makes flanking them the answer. */
+      const needMove = !q.s.emplaced && !holdingHeight &&
         (d0 > want || d0 < q.s.minR || (!q.s.indirect && !map.seesFrom(q.hex, tgt.hex)));
 
       if (needMove) {
@@ -2074,6 +2078,7 @@ if (typeof module !== 'undefined' && module.exports) {
       (sp.ap ? ' · AP<b>' + sp.ap + '</b>' : '') +
       (sp.save ? ' · save <b>' + sp.save + '+</b>' : '') +
       (sp.indirect ? ' · <b>indirect</b>' : '') +
+      (sp.emplaced ? ' · <b>emplaced</b>' : '') +
       ' · <b>' + sp.slots + '</b> slot' + (sp.slots > 1 ? 's' : '');
     box.appendChild(stat);
   }
@@ -2373,7 +2378,8 @@ if (typeof module !== 'undefined' && module.exports) {
       r.insertCell().appendChild(el('span', 'pill ' + u.role, u.role));
       add(u.cost); add('×' + u.n); add(u.hp); add(u.dmg);
       add(u.minR + '–' + u.maxR + (u.indirect ? ' indirect' : ''));
-      add(u.splash || '—'); add(u.ap ? '-' + u.ap : '—'); add(u.save ? u.save + '+' : '—'); add(u.speed);
+      add(u.splash || '—'); add(u.ap ? '-' + u.ap : '—'); add(u.save ? u.save + '+' : '—');
+      add(u.emplaced ? 'emplaced' : u.speed, u.emplaced ? 'n' : '');
       r.insertCell().appendChild(el('span', 'note', u.note));
     }
   })();

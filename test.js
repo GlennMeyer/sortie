@@ -194,9 +194,13 @@ console.log('\n--- charging ---');
   /* Charging is for catching things that want to keep away from you. Before pathing was fixed it
      was the only way melee reached anything at all; now that they can walk, its job is closing on
      artillery and on faster units. */
+  /* Artillery is emplaced now, so it can no longer back away from a charge. That makes closing
+     cheaper — and the charge bonus correspondingly smaller, because speed is buying fewer saved
+     volleys rather than the difference between catching them and never catching them at all.
+     The edge is real but small, so it needs the seeds to see it: at 40 it sat inside the noise. */
   const siegeLine = ['siege', 'siege', 'missile'].map(i => A.spec(st, i));
-  const h1 = run('lancers', 'hold', siegeLine), c1 = run('lancers', 'charge', siegeLine);
-  ok(c1 > h1 + 0.06, 'charging closes on an artillery line that would otherwise shell you',
+  const h1 = run('lancers', 'hold', siegeLine, 120), c1 = run('lancers', 'charge', siegeLine, 120);
+  ok(c1 > h1 + 0.03, 'charging closes on an artillery line that would otherwise shell you',
     Math.round(h1 * 100) + '% -> ' + Math.round(c1 * 100) + '%');
 
   const fast = ['skirm', 'skirm', 'skirm'].map(i => A.spec(st, i));
