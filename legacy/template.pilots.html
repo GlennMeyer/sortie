@@ -1,0 +1,970 @@
+<title>SORTIE — the Argos irregulars</title>
+
+<style>
+/* SORTIE ops console. Deliberately single-theme: this is an instrument panel. */
+:root{
+  --ground:#12161C; --panel:#1A2029; --panel-2:#151B23; --line:#2C353F; --line-soft:#222A33;
+  --ink:#D8DFE6; --ink-dim:#7E8B99; --ink-faint:#55616E;
+  --accent:#FF6A1F; --coolant:#56D2E4; --warn:#FFC24B; --crit:#FF4438; --good:#5FD38A;
+  --mono: ui-monospace,'SF Mono',SFMono-Regular,'Cascadia Mono','Roboto Mono',Menlo,Consolas,'Liberation Mono',monospace;
+  --grot: 'Helvetica Neue',-apple-system,'Segoe UI',system-ui,Arial,sans-serif;
+  --r:2px;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.5;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1300px;margin:0 auto;padding:0 18px 70px}
+h1,h2{margin:0;text-wrap:balance}
+.lbl{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint)}
+
+.hazard{height:8px;background:repeating-linear-gradient(45deg,var(--accent) 0 12px,#0d1116 12px 24px);opacity:.85}
+header{padding:26px 0 18px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);display:flex;gap:14px;flex-wrap:wrap}
+.eyebrow span{color:var(--ink-faint)}
+h1{font-family:var(--grot);font-weight:800;font-size:clamp(34px,7vw,64px);letter-spacing:-.045em;line-height:.92;margin:8px 0 0;text-transform:uppercase}
+.deck{color:var(--ink-dim);max-width:64ch;margin-top:10px}
+.deck b{color:var(--ink);font-weight:400}
+
+.warbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);margin-top:16px;border-radius:var(--r);overflow:hidden}
+.warbar div{background:var(--panel-2);padding:8px 11px}
+.warbar span{display:block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+.warbar b{font-family:var(--grot);font-size:19px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.warbar b.hot{color:var(--accent)}.warbar b.bad{color:var(--crit)}.warbar b.cool{color:var(--coolant)}
+
+.grid{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:16px;margin-top:18px;align-items:start}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.phead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+.phead h2{font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:400}
+.phead .sub{font-size:10px;letter-spacing:.12em;color:var(--ink-faint);text-transform:uppercase}
+.pbody{padding:12px;display:flex;flex-direction:column;gap:11px}
+
+.pilot{border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);padding:8px 10px;display:flex;
+  flex-direction:column;gap:5px;cursor:pointer;text-align:left;width:100%;font-family:var(--mono);color:var(--ink-dim)}
+.pilot:hover{border-color:var(--ink-faint)}
+.pilot[aria-pressed="true"]{border-color:var(--accent);background:#241a13}
+.pilot.out,.pilot.dead{opacity:.4;cursor:default}
+.pilot.dead .pn{text-decoration:line-through;color:var(--crit)}
+.prow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pn{font-size:12px;letter-spacing:.08em;color:var(--ink)}
+.pilot[aria-pressed="true"] .pn{color:var(--accent)}
+.pbio{font-size:10px;color:var(--ink-faint);line-height:1.35}
+.pill{font-size:8px;letter-spacing:.12em;padding:2px 5px;border:1px solid var(--line);border-radius:1px;color:var(--ink-faint);text-transform:uppercase;white-space:nowrap}
+.pill.sig{color:var(--coolant);border-color:#1e3a40}
+.pill.reckless{color:var(--accent);border-color:#5a2d10}
+.pill.cautious{color:var(--coolant);border-color:#1e3a40}
+.pill.green{color:var(--warn);border-color:#4a3a16}
+.pill.ready{color:var(--good);border-color:#245038}
+.pill.wounded{color:var(--warn);border-color:#4a3a16}
+.pill.killed{color:var(--crit);border-color:#5a1c17}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.mini .m{display:flex;flex-direction:column;gap:3px}
+.mini .m span{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+.bar{height:5px;background:#0d1116;border:1px solid var(--line-soft);border-radius:1px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .09s linear}
+.bar.cool i{background:var(--coolant)}.bar.warn i{background:var(--warn)}
+.bar.crit i{background:var(--crit)}.bar.dim i{background:var(--ink-faint)}
+
+.frame{border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);padding:8px 10px;display:flex;flex-direction:column;gap:5px}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fname{font-size:11px;letter-spacing:.08em;color:var(--ink)}
+.fspec{font-size:9px;color:var(--ink-faint)}
+
+.btn{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;border-radius:var(--r);
+  cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#12161C;font-weight:700}
+.btn:hover{background:#ff7d3a}
+.btn.ghost{background:transparent;color:var(--ink-dim);border-color:var(--line)}
+.btn.ghost:hover{color:var(--ink);border-color:var(--ink-faint)}
+.btn.sig{background:transparent;border-color:var(--coolant);color:var(--coolant);padding:6px 10px}
+.btn.sig:hover{background:var(--coolant);color:#0b1417}
+.btn.sm{padding:5px 9px;font-size:9px}
+.btn:disabled{opacity:.3;cursor:default;background:transparent;color:var(--ink-faint);border-color:var(--line)}
+.btn:disabled:hover{background:transparent;color:var(--ink-faint)}
+:focus-visible{outline:2px solid var(--coolant);outline-offset:2px}
+.actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+
+/* board */
+#boardWrap{position:relative;background:#0E1319;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+#board{display:block;width:100%;height:auto;touch-action:manipulation}
+#board.placing{cursor:crosshair}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:9px;letter-spacing:.1em;color:var(--ink-faint);text-transform:uppercase;padding:7px 10px;border-top:1px solid var(--line);background:var(--panel-2)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.deployHint{padding:8px 11px;border:1px solid var(--accent);border-radius:var(--r);background:#241a13;color:var(--ink);font-size:11px}
+.deployHint b{color:var(--accent);font-weight:400}
+
+.slot{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);padding:6px 9px;cursor:pointer}
+.slot[aria-pressed="true"]{border-color:var(--accent);background:#241a13}
+.slot .sn{font-size:11px;color:var(--accent);min-width:70px;letter-spacing:.08em}
+select{font-family:var(--mono);font-size:10px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:1px;padding:5px 6px;flex:1}
+
+.unitrow{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--panel-2);padding:7px 9px}
+.urhead{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.urbars{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:620px){.urbars{grid-template-columns:1fr 1fr}}
+.locs{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.loc span{display:block;font-size:8px;letter-spacing:.1em;color:var(--ink-faint);margin-bottom:2px}
+.loc.gone span{color:var(--crit);text-decoration:line-through}
+.hb{font-size:8px;letter-spacing:.12em;padding:2px 5px;border-radius:1px;border:1px solid var(--line);color:var(--ink-faint)}
+.hb.WARM{color:var(--warn);border-color:#4a3a16}
+.hb.HOT{color:var(--warn);border-color:#4a3a16}
+.hb.CRITICAL{color:var(--crit);border-color:#5a1c17}
+.hb.REDLINE{color:#fff;background:var(--crit);border-color:var(--crit)}
+.unitrow .un{font-size:10px;letter-spacing:.08em;color:var(--ink)}
+.unitrow .un.dead{color:var(--crit);text-decoration:line-through}
+.um span{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:2px}
+
+#playbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel-2);padding:7px 9px}
+#scrub{flex:1;min-width:140px;accent-color:var(--accent);height:4px;cursor:pointer}
+#tickTag{font-variant-numeric:tabular-nums;white-space:nowrap}
+#log{height:190px;overflow-y:auto;background:#0d1116;border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;
+  font-size:11px;display:flex;flex-direction:column;gap:1px}
+#log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
+#log .detail{color:var(--ink-faint);font-size:10px;padding-left:22px}
+#log .t{color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.e-kill{color:var(--accent)}.e-hit{color:var(--ink-dim)}.e-miss{color:var(--ink-faint)}
+.e-crit{color:var(--crit)}.e-warn{color:var(--warn)}.e-sig{color:var(--coolant)}.e-sys{color:var(--ink-faint)}
+.e-defy{color:var(--warn)}.e-down{color:var(--crit);font-weight:700}
+.e-wave{color:var(--ink);border-top:1px solid var(--line-soft);margin-top:4px;padding-top:4px}
+
+#aar{border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);padding:12px;display:flex;flex-direction:column;gap:10px}
+#aar.win{border-color:var(--accent)}#aar.loss{border-color:var(--crit)}
+.aarhead{font-family:var(--grot);font-size:18px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase}
+#aar.win .aarhead{color:var(--accent)}#aar.loss .aarhead{color:var(--crit)}
+.casual{display:flex;flex-direction:column;gap:3px;font-size:11px}
+.casual .k{color:var(--crit)}.casual .w{color:var(--warn)}.casual .n{color:var(--ink-dim)}
+.aargrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:9px}
+.aargrid div span{display:block;font-size:9px;letter-spacing:.16em;color:var(--ink-faint);text-transform:uppercase}
+.aargrid div b{font-family:var(--grot);font-size:18px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+section{margin-top:30px}
+.shead{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:13px}
+.shead h2{font-family:var(--grot);font-size:15px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase}
+.shead p{margin:0;color:var(--ink-faint);font-size:11px}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:11px;min-width:580px}
+th{text-align:left;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:400;padding:8px 10px;
+  border-bottom:1px solid var(--line);background:var(--panel-2);white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid var(--line-soft);font-variant-numeric:tabular-nums;color:var(--ink-dim);white-space:nowrap}
+tr:last-child td{border-bottom:0}td.n{color:var(--ink)}td .note{color:var(--ink-faint);white-space:normal}
+.note-list{color:var(--ink-dim);font-size:12px;padding-left:16px;margin:0;display:flex;flex-direction:column;gap:6px}
+.note-list b{color:var(--ink);font-weight:400}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+footer{margin-top:36px;padding-top:13px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:10px;letter-spacing:.1em}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="hazard"></div>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">The Argos irregulars <span id="chapTag">Chapter 1 of 8</span> <span>Deterministic · seeded</span></div>
+  <h1>Sortie</h1>
+  <p class="deck">Pick who flies, <b>put them on the ground yourself</b>, and watch it happen.
+    Debris blocks line of sight. Artillery cannot fire inside two hexes — get under it and it is
+    harmless. Missiles arc over cover but only pay against a cluster. Where you place a pilot is
+    the difference between a crossing and a killing field.</p>
+  <div class="warbar" id="warbar"></div>
+</header>
+
+<div class="grid">
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel">
+      <div class="phead"><h2>Roster</h2><span class="sub" id="rosterTag">—</span></div>
+      <div class="pbody" id="roster"></div>
+    </div>
+    <div class="panel">
+      <div class="phead"><h2>Hangar</h2><span class="sub" id="hangarTag">—</span></div>
+      <div class="pbody" id="hangar"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="phead"><h2 id="mainTitle">Sortie orders</h2><span class="sub" id="viewTag">Standing by</span></div>
+    <div class="pbody">
+      <div id="orders" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div id="deployHint" class="deployHint" hidden></div>
+
+      <div id="boardWrap">
+        <canvas id="board" width="900" height="620"></canvas>
+        <div class="legend">
+          <span><i style="background:#FF6A1F"></i>Your pilots</span>
+          <span><i style="background:#6B7785"></i>Grunt</span>
+          <span><i style="background:#C89B4B"></i>Artillery</span>
+          <span><i style="background:#7FA8B8"></i>Skirmisher</span>
+          <span><i style="background:#A85F4F"></i>Line model</span>
+          <span><i style="background:#FF4438"></i>Rival</span>
+          <span><i style="background:#2B333D"></i>Debris (blocks sight)</span>
+          <span><i style="background:#26313D"></i>Ridge (high ground)</span>
+        </div>
+      </div>
+
+      <div id="playbar" hidden>
+        <button class="btn ghost sm" id="pbPlay">Pause</button>
+        <button class="btn ghost sm" id="pbStep">Step</button>
+        <button class="btn ghost sm" id="pbSpeed">Speed ×1</button>
+        <input type="range" id="scrub" min="0" max="0" value="0" step="1" aria-label="Scrub through the battle">
+        <span class="lbl" id="tickTag">tick 0 / 0</span>
+      </div>
+      <div id="unitMeters" style="display:flex;flex-direction:column;gap:5px"></div>
+      <div id="log" hidden></div>
+      <div class="actions" id="controls"></div>
+      <div id="aar" hidden></div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="shead"><h2>War simulator</h2><p>Play the whole campaign headlessly, many times.</p></div>
+  <div class="actions" style="margin-bottom:11px">
+    <button class="btn" id="btnWars">Simulate 60 wars</button>
+    <span class="lbl" id="warStatus">idle</span>
+  </div>
+  <div id="warOut" class="tblwrap" hidden><table id="warTable"></table></div>
+</section>
+
+<section>
+  <div class="cols">
+    <div>
+      <div class="shead"><h2>Ground rules</h2><p>What the board actually does.</p></div>
+      <ul class="note-list">
+        <li><b>Debris blocks line of sight</b> and costs double to cross. Beam and ballistic weapons need a clear line; missiles do not.</li>
+        <li><b>Artillery has a minimum range of three.</b> Inside two hexes it cannot fire at all — closing is the entire answer to it.</li>
+        <li><b>Ridges are high ground</b>: +1 weapon range, and shots fired up at them are 12% less likely to land.</li>
+        <li><b>Every weapon has a minimum range too.</b> A beam rifle cannot fire at an adjacent enemy; a saber can only fire there.</li>
+        <li><b>Area weapons aim at the hex catching the most bodies</b>, so a packed formation is missile food and a spread one starves them.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="shead"><h2>How pilots fail</h2><p>Orders are issued. Compliance is not guaranteed.</p></div>
+      <ul class="note-list">
+        <li><b>Reckless pilots push forward</b> against the break-off order, harder when the rival is on the field.</li>
+        <li><b>Frightened pilots refuse to close</b> and break for cover, and fear compounds as the hull opens up.</li>
+        <li><b>Trauma and fatigue persist between chapters.</b> Standing a pilot down clears them, and costs you that sortie.</li>
+        <li><b>Signatures</b> charge by taking damage and fire once per sortie — the one thing you control mid-fight.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2>The ruleset</h2><p>Every shot resolves on dice you can read before they are rolled.</p></div>
+  <div class="cols">
+    <ul class="note-list">
+      <li><b>To hit: roll 2d6 against a target number.</b> It starts at the pilot's gunnery and takes modifiers for range bracket, whether either mech moved, cover, high ground and reactor heat. The whole stack is printed in the combat log next to every shot.</li>
+      <li><b>Range brackets, not a range number.</b> Short is +0, medium +1, long +3. Closing a bracket is often worth more than any weapon upgrade.</li>
+      <li><b>Armour is a save, not subtraction.</b> Light frames save on 5+, medium 4+, heavy 3+. A weapon's AP worsens that roll — a beam saber at AP-2 leaves a heavy mech saving on 5+, and nothing saves against 7+.</li>
+    </ul>
+    <ul class="note-list">
+      <li><b>Damage lands somewhere.</b> A second 2d6 picks the location. Arms carry weapons and take them with them; legs cost you movement; the head and centre torso end the sortie.</li>
+      <li><b>Heat degrades before it kills.</b> WARM +1 to hit, HOT +2 and slower, CRITICAL +3, REDLINE +4 and a shutdown check on 8+ every tick. Only a full bar forces the scram outright.</li>
+      <li><b>Pilots roll their own gunnery.</b> Steady nerve buys −1; being green costs +1; trauma and fatigue add up to +2 as a war drags on.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><h2>Module spec</h2><p>Every number the sim reads, including hex ranges.</p></div>
+  <div class="tblwrap"><table id="specTable"></table></div>
+</section>
+
+<footer>SORTIE · deterministic prototype · same war seed + same orders + same deployment = same battle</footer>
+</div>
+
+<script>
+/*__HEX__*/
+/*__SIM__*/
+/*__CAMPAIGN__*/
+
+(function () {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+  const pct = v => Math.round(v * 100) + '%';
+
+  let st = newCampaign(Math.floor(Math.random() * 9999) + 1);
+  let squad = [], phase = 'hangar';
+  let map = null, deploy = [], selSlot = 0;
+  let run = null, idx = 0, timer = null, speed = 1, paused = false, sigOrders = [], lastReport = null;
+  const TICK_MS = 450;   // a sortie is meant to be watched, not blinked at
+  let fx = [], curFrame = null, preview = [];
+
+  /* ---------- board ---------- */
+  const cv = $('#board'), ctx = cv.getContext('2d');
+  const R = 25, SQ = Math.sqrt(3) * R, PAD = 14;
+  const BW = Math.round(SQ * (COLS + 0.5) + PAD * 2), BH = Math.round(R * 1.5 * (ROWS - 1) + R * 2 + PAD * 2);
+
+  function fitCanvas() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = BW * dpr; cv.height = BH * dpr;
+    cv.style.aspectRatio = BW + ' / ' + BH;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  fitCanvas();
+
+  function centre(i) {
+    const c = i % COLS, r = (i / COLS) | 0;
+    return { x: SQ * (c + 0.5 * (r & 1)) + SQ / 2 + PAD, y: R * 1.5 * r + R + PAD };
+  }
+  function hexPath(x, y, rad) {
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {
+      const a = Math.PI / 180 * (60 * k - 90);
+      const px = x + rad * Math.cos(a), py = y + rad * Math.sin(a);
+      k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+  }
+  function hexAt(px, py) {
+    let best = -1, bd = 1e9;
+    for (let i = 0; i < N_HEX; i++) {
+      const c = centre(i), d = (c.x - px) ** 2 + (c.y - py) ** 2;
+      if (d < bd) { bd = d; best = i; }
+    }
+    return bd <= (R * 0.95) ** 2 ? best : -1;
+  }
+
+  const FOE_COLOR = { grunt: '#6B7785', arty: '#C89B4B', skirm: '#7FA8B8', elite: '#A85F4F', ace: '#FF4438' };
+
+  function shade(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    const c = v => Math.max(0, Math.min(255, v + amt));
+    return `rgb(${c(n >> 16)},${c((n >> 8) & 255)},${c(n & 255)})`;
+  }
+  function poly(pts, s) {
+    ctx.beginPath();
+    pts.forEach((p, i) => i ? ctx.lineTo(p[0] * s, p[1] * s) : ctx.moveTo(p[0] * s, p[1] * s));
+    ctx.closePath();
+  }
+  function mirror(pts) { return pts.map(p => [-p[0], p[1]]); }
+
+  /* Side-on mech silhouettes. Read at 24px: heavy shoulders, a lit eye, legs under a tapered
+     torso. Every chassis gets a different outline so the board is readable at a glance. */
+  function drawMech(x, y, s, col, kind, opts) {
+    opts = opts || {};
+    const body = col, dark = shade(col, -46), lit = shade(col, 34);
+    ctx.save(); ctx.translate(x, y);
+
+    ctx.fillStyle = 'rgba(0,0,0,.42)';
+    ctx.beginPath(); ctx.ellipse(0, s * .78, s * .62, s * .17, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, s * .07); ctx.strokeStyle = '#0B0F14';
+
+    if (kind === 'arty') {                                   // tracked gun platform, no legs
+      ctx.save(); ctx.rotate(opts.flip ? .38 : -.38);
+      ctx.fillStyle = dark; poly([[-.10, -.10], [.10, -.10], [.10, -1.05], [-.10, -1.05]], s); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = lit; poly([[-.14, -.86], [.14, -.86], [.14, -1.02], [-.14, -1.02]], s); ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = body; poly([[-.55, .10], [.55, .10], [.44, .60], [-.44, .60]], s); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = dark; poly([[-.34, -.30], [.34, -.30], [.28, .12], [-.28, .12]], s); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#FFD9A0';
+      ctx.fillRect(-s * .16, -s * .20, s * .32, s * .07);
+      ctx.restore(); return;
+    }
+
+    const P = {
+      player: { sw: .34, sh: .46, torso: .38, headW: .15, eye: 'twin', fin: true, legs: .74 },
+      ace:    { sw: .40, sh: .52, torso: .42, headW: .17, eye: 'twin', fin: true, legs: .80, crest: true },
+      grunt:  { sw: .30, sh: .40, torso: .35, headW: .17, eye: 'mono', fin: false, legs: .68, shield: true },
+      skirm:  { sw: .20, sh: .34, torso: .28, headW: .13, eye: 'mono', fin: false, legs: .80, thruster: true },
+      elite:  { sw: .42, sh: .48, torso: .44, headW: .16, eye: 'twin', fin: false, legs: .70 },
+    }[kind] || { sw: .30, sh: .42, torso: .36, headW: .15, eye: 'mono', fin: false, legs: .70 };
+
+    // legs
+    ctx.fillStyle = dark;
+    const leg = [[-.30, .14], [-.10, .14], [-.13, P.legs], [-.33, P.legs]];
+    poly(leg, s); ctx.fill(); ctx.stroke();
+    poly(mirror(leg), s); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = shade(col, -62);
+    poly([[-.36, P.legs - .10], [-.09, P.legs - .10], [-.09, P.legs], [-.38, P.legs]], s); ctx.fill();
+    poly(mirror([[-.36, P.legs - .10], [-.09, P.legs - .10], [-.09, P.legs], [-.38, P.legs]]), s); ctx.fill();
+
+    // torso
+    ctx.fillStyle = body;
+    poly([[-P.torso, -.36], [P.torso, -.36], [P.torso - .08, .18], [-P.torso + .08, .18]], s); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = shade(col, -20);
+    poly([[-.12, -.30], [.12, -.30], [.10, .10], [-.10, .10]], s); ctx.fill();
+
+    // shoulders
+    ctx.fillStyle = lit;
+    const sp = [[-P.sw - .28, -.44], [-P.sw + .02, -.48], [-P.sw + .04, -.48 + P.sh], [-P.sw - .26, -.44 + P.sh]];
+    poly(sp, s); ctx.fill(); ctx.stroke();
+    if (P.shield) {                                          // one oversized shoulder shield
+      ctx.fillStyle = shade(col, 10);
+      poly([[P.sw - .02, -.54], [P.sw + .40, -.46], [P.sw + .38, .12], [P.sw - .04, .06]], s); ctx.fill(); ctx.stroke();
+    } else { ctx.fillStyle = lit; poly(mirror(sp), s); ctx.fill(); ctx.stroke(); }
+
+    if (P.thruster) {
+      ctx.fillStyle = shade(col, -50);
+      poly([[-.20, -.30], [.20, -.30], [.26, -.06], [-.26, -.06]], s); ctx.fill();
+      ctx.fillStyle = 'rgba(86,210,228,.75)';
+      ctx.fillRect(-s * .18, s * .00, s * .12, s * .16); ctx.fillRect(s * .06, s * .00, s * .12, s * .16);
+    }
+
+    // head
+    ctx.fillStyle = shade(col, -14);
+    poly([[-P.headW, -.68], [P.headW, -.68], [P.headW - .02, -.40], [-P.headW + .02, -.40]], s); ctx.fill(); ctx.stroke();
+    if (P.fin) {
+      ctx.fillStyle = P.crest ? '#FFD24B' : lit;
+      poly([[-P.headW - .16, -.74], [0, -.62], [P.headW + .16, -.74], [0, -.80]], s); ctx.fill(); ctx.stroke();
+    }
+    ctx.fillStyle = kind === 'player' || kind === 'ace' ? '#BFF4FF' : '#FF6E5A';
+    if (P.eye === 'twin') {
+      ctx.fillRect(-s * .11, -s * .60, s * .07, s * .08);
+      ctx.fillRect(s * .04, -s * .60, s * .07, s * .08);
+    } else {
+      ctx.fillRect(-s * .12, -s * .58, s * .24, s * .07);
+    }
+    ctx.restore();
+  }
+
+  function drawBoard() {
+    ctx.clearRect(0, 0, BW, BH);
+    if (!map) return;
+    const now = performance.now();
+
+    // terrain
+    for (let i = 0; i < N_HEX; i++) {
+      const { x, y } = centre(i), t = map.terrain(i);
+      hexPath(x, y, R - 1.5);
+      ctx.fillStyle = t.id === 'debris' ? '#2B333D' : t.id === 'ridge' ? '#26313D' : '#171D25';
+      ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = '#222A33'; ctx.stroke();
+      if (t.id === 'debris') {
+        ctx.fillStyle = '#3B4552';
+        for (const [dx, dy] of [[-6, -3], [3, 4], [6, -6], [-2, 6]]) { ctx.fillRect(x + dx, y + dy, 3, 3); }
+      } else if (t.id === 'ridge') {
+        ctx.strokeStyle = '#3E4E5E'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(x - 8, y + 5); ctx.lineTo(x, y - 4); ctx.lineTo(x + 8, y + 5); ctx.stroke();
+      }
+      if (phase === 'deploy' && map.deployZone.includes(i) && !t.blocks) {
+        hexPath(x, y, R - 3); ctx.strokeStyle = 'rgba(255,106,31,.45)'; ctx.lineWidth = 1.2; ctx.stroke();
+      }
+    }
+
+    // enemies — during deployment this previews exactly where wave one will stand
+    const foes = curFrame ? curFrame.enemies : (phase === 'deploy' ? preview : []);
+    if (!curFrame && foes.length) ctx.globalAlpha = 0.62;
+    for (const e of foes) {
+      const { x, y } = centre(e.hex), col = FOE_COLOR[e.type] || '#6B7785';
+      const sz = e.type === 'ace' ? 15 : e.type === 'elite' ? 13 : e.type === 'arty' ? 12 : 10.5;
+      drawMech(x, y, sz, col, e.type);
+      if (e.hp < e.max) {
+        ctx.beginPath(); ctx.arc(x, y, sz + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (e.hp / e.max));
+        ctx.strokeStyle = col; ctx.lineWidth = 2.4; ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // player units
+    const us = curFrame ? curFrame.units : deploy.map((h, i) => ({ hex: h, name: nameOf(i), armor: 1, armorMax: 1, dead: false }));
+    us.forEach((u, i) => {
+      if (u.hex == null || u.hex < 0) return;
+      const { x, y } = centre(u.hex);
+      if (phase === 'deploy' && i === selSlot) {
+        hexPath(x, y, R - 4); ctx.strokeStyle = '#56D2E4'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      const col = u.dead ? '#3A424C' : u.shutdown ? '#FF4438' : u.sigOn ? '#56D2E4' : '#FF6A1F';
+      ctx.save();
+      if (u.dead) ctx.globalAlpha = .45;
+      drawMech(x, y, 14, col, 'player');
+      ctx.restore();
+      if (!u.dead && u.armorMax && u.armor < u.armorMax) {
+        ctx.beginPath(); ctx.arc(x, y, 19, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (u.armor / u.armorMax));
+        ctx.strokeStyle = u.armor / u.armorMax < .3 ? '#FF4438' : '#FF6A1F'; ctx.lineWidth = 2.6; ctx.stroke();
+      }
+      ctx.fillStyle = u.dead ? '#7E8B99' : '#D8DFE6';
+      ctx.font = '700 9px ' + getComputedStyle(document.body).fontFamily;
+      ctx.textAlign = 'center';
+      ctx.fillText(u.name || '', x, y - 22);
+    });
+
+    // pew pew
+    fx = fx.filter(f => now - f.born < (f.boom != null ? 520 : 300));
+    for (const f of fx) {
+      const age = (now - f.born) / (f.boom != null ? 520 : 300);
+      if (f.boom != null) {
+        const { x, y } = centre(f.boom), rad = (f.big ? 30 : 18) * age;
+        ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,106,31,${(1 - age) * .95})`; ctx.lineWidth = 3 * (1 - age) + 1; ctx.stroke();
+        ctx.beginPath(); ctx.arc(x, y, rad * .55, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,196,80,${(1 - age) * .5})`; ctx.fill();
+        continue;
+      }
+      const a = centre(f.from), b = centre(f.to);
+      const beam = f.dtype === 'beam', foe = f.side === 'e';
+      const col = foe ? '255,68,56' : beam ? '86,210,228' : '255,194,75';
+      if (beam) {
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = `rgba(${col},${(1 - age) * .9})`; ctx.lineWidth = 3.2 * (1 - age) + .8; ctx.stroke();
+      } else {
+        const t0 = Math.min(1, age * 1.5);
+        const px = a.x + (b.x - a.x) * t0, py = a.y + (b.y - a.y) * t0;
+        const tx = a.x + (b.x - a.x) * Math.max(0, t0 - .22), ty = a.y + (b.y - a.y) * Math.max(0, t0 - .22);
+        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(px, py);
+        ctx.strokeStyle = `rgba(${col},${1 - age * .7})`; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.stroke();
+      }
+      if (age < .35) {                                       // muzzle flash at the shooter
+        const k = 1 - age / .35;
+        ctx.beginPath(); ctx.arc(a.x, a.y, 4 + 6 * k, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${col},${k * .55})`; ctx.fill();
+      }
+      if (f.missed) continue;
+      if (age > .55) {
+        ctx.beginPath(); ctx.arc(b.x, b.y, (f.blast ? 20 : 11) * (age - .55) / .45, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${col},${(1 - age) * 1.4})`; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+  }
+  function nameOf(i) { const s = squad[i]; const p = s && st.roster.find(x => x.id === s.pilotId); return p ? p.name : '?'; }
+
+  (function loop() { drawBoard(); requestAnimationFrame(loop); })();
+
+  cv.onclick = ev => {
+    if (phase !== 'deploy') return;
+    const r = cv.getBoundingClientRect();
+    const h = hexAt((ev.clientX - r.left) * BW / r.width, (ev.clientY - r.top) * BH / r.height);
+    if (h < 0 || !map.deployZone.includes(h) || map.terrain(h).blocks) return;
+    const taken = deploy.indexOf(h);
+    if (taken >= 0 && taken !== selSlot) { deploy[taken] = deploy[selSlot]; }
+    deploy[selSlot] = h;
+    selSlot = (selSlot + 1) % squad.length;
+    renderOrders();
+  };
+
+  /* ---------- panels ---------- */
+  function bar(v, cls) { const w = el('div', 'bar ' + (cls || '')); const i = el('i'); i.style.width = Math.min(100, v) + '%'; w.appendChild(i); return w; }
+
+  function renderWar() {
+    const b = $('#warbar'); b.textContent = '';
+    for (const [k, v, cls] of [['Chapter', Math.min(st.chapter, CHAPTERS) + ' / ' + CHAPTERS, ''],
+      ['Salvage parts', st.parts, 'hot'], ['Public opinion', st.opinion, st.opinion < 35 ? 'bad' : ''],
+      ['Civilians killed', st.collateral, st.collateral > 0 ? 'bad' : ''],
+      [st.rival.name, Math.round(st.rival.hp), 'cool'], ['Driven off', st.rival.drivenOff + '×', '']]) {
+      const d = el('div'); d.appendChild(el('span', null, k)); d.appendChild(el('b', cls || null, String(v))); b.appendChild(d);
+    }
+    $('#chapTag').textContent = 'Chapter ' + Math.min(st.chapter, CHAPTERS) + ' of ' + CHAPTERS;
+  }
+
+  function renderRoster() {
+    const box = $('#roster'); box.textContent = '';
+    $('#rosterTag').textContent = st.roster.filter(p => p.status === 'READY').length + ' ready · ' +
+      st.roster.filter(p => p.status === 'KILLED').length + ' lost';
+    for (const p of st.roster) {
+      const dead = p.status === 'KILLED', out = p.status !== 'READY' && !dead;
+      const c = el('button', 'pilot' + (dead ? ' dead' : out ? ' out' : ''));
+      c.setAttribute('aria-pressed', squad.some(s => s.pilotId === p.id));
+      c.disabled = dead || out || phase !== 'hangar';
+      const r1 = el('div', 'prow');
+      r1.appendChild(el('div', 'pn', p.name));
+      r1.appendChild(el('span', 'pill ' + p.temperament, TEMPERAMENTS[p.temperament].name));
+      r1.appendChild(el('span', 'pill sig', SIGNATURES[p.signature].name));
+      r1.appendChild(el('span', 'pill ' + (p.status === 'READY' ? 'ready' : dead ? 'killed' : 'wounded'),
+        p.status + (out && p.outFor ? ' ' + p.outFor : '')));
+      c.appendChild(r1);
+      c.appendChild(el('div', 'pbio', p.bio));
+      if (!dead) {
+        const m = el('div', 'mini');
+        const a = el('div', 'm'); a.appendChild(el('span', null, 'Fatigue ' + Math.round(p.fatigue)));
+        a.appendChild(bar(p.fatigue, p.fatigue > 65 ? 'warn' : 'dim')); m.appendChild(a);
+        const t = el('div', 'm'); t.appendChild(el('span', null, 'Trauma ' + Math.round(p.trauma)));
+        t.appendChild(bar(p.trauma, p.trauma > 55 ? 'crit' : 'dim')); m.appendChild(t);
+        c.appendChild(m);
+        const foot = el('div', 'prow');
+        foot.appendChild(el('span', 'pill', p.sorties + ' sorties · ' + p.kills + ' kills'));
+        if (phase === 'hangar' && p.status === 'READY') {
+          const sd = el('button', 'btn ghost sm', 'Stand down');
+          sd.onclick = e => { e.stopPropagation(); standDown(st, p.id); squad = squad.filter(s => s.pilotId !== p.id); render(); };
+          foot.appendChild(sd);
+        }
+        c.appendChild(foot);
+      }
+      c.onclick = () => {
+        if (phase !== 'hangar') return;
+        const i = squad.findIndex(s => s.pilotId === p.id);
+        if (i >= 0) squad.splice(i, 1);
+        else {
+          const free = flyable(st).filter(f => !squad.some(s => s.frameId === f.id));
+          if (!free.length || squad.length >= 3) return;
+          squad.push({ pilotId: p.id, frameId: free.sort((a, b) => b.integrity - a.integrity)[0].id });
+        }
+        render();
+      };
+      box.appendChild(c);
+    }
+  }
+
+  function renderHangar() {
+    const box = $('#hangar'); box.textContent = '';
+    $('#hangarTag').textContent = flyable(st).length + ' of ' + st.frames.length + ' flyable';
+    for (const f of st.frames) {
+      const s = buildStats(f.build), c = el('div', 'frame'), r = el('div', 'frow'), left = el('div');
+      left.appendChild(el('div', 'fname', f.name + (f.salvaged ? ' · salvaged' : '')));
+      left.appendChild(el('div', 'fspec', s.chassis.name + ' · ' + f.build.mods.map(m => MOD[m].name.split(' ')[0]).join(' ') ));
+      r.appendChild(left);
+      const cost = repairCost(f);
+      if (cost > 0 && phase === 'hangar') {
+        const b = el('button', 'btn ghost sm', 'Repair ' + cost);
+        b.disabled = st.parts < cost; b.onclick = () => { repair(st, f.id); render(); };
+        r.appendChild(b);
+      }
+      c.appendChild(r);
+      const m = el('div', 'm');
+      m.appendChild(el('span', 'lbl', 'Integrity ' + pct(f.integrity)));
+      m.appendChild(bar(f.integrity * 100, f.integrity < 0.5 ? 'crit' : f.integrity < 0.85 ? 'warn' : ''));
+      c.appendChild(m);
+      box.appendChild(c);
+    }
+  }
+
+  function renderOrders() {
+    const box = $('#orders'), hint = $('#deployHint');
+    box.textContent = '';
+    if (phase === 'hangar') {
+      hint.hidden = true;
+      if (!squad.length) { box.appendChild(el('div', 'lbl', 'Select up to three pilots from the roster.')); return; }
+      for (const s of squad) {
+        const p = st.roster.find(x => x.id === s.pilotId);
+        const row = el('div', 'slot'); row.appendChild(el('div', 'sn', p.name));
+        const sel = el('select');
+        for (const f of flyable(st)) {
+          if (squad.some(o => o !== s && o.frameId === f.id)) continue;
+          const o = el('option', null, f.name + ' · ' + buildStats(f.build).chassis.name + ' · ' + pct(f.integrity));
+          o.value = f.id; if (f.id === s.frameId) o.selected = true; sel.appendChild(o);
+        }
+        sel.onchange = () => { s.frameId = sel.value; render(); };
+        row.appendChild(sel); box.appendChild(row);
+      }
+      return;
+    }
+    if (phase === 'deploy') {
+      hint.hidden = false;
+      hint.innerHTML = 'Click a hex in the <b>outlined deploy zone</b> to place <b>' + nameOf(selSlot) +
+        '</b>. The faded machines up top are <b>wave one, exactly where it spawns</b>. Debris blocks ' +
+        'line of sight, ridges are high ground, and artillery cannot fire inside two hexes.';
+      squad.forEach((s, i) => {
+        const p = st.roster.find(x => x.id === s.pilotId);
+        const f = st.frames.find(x => x.id === s.frameId);
+        const row = el('div', 'slot'); row.setAttribute('aria-pressed', i === selSlot);
+        row.appendChild(el('div', 'sn', p.name));
+        const info = el('div'); info.style.flex = '1';
+        info.appendChild(el('div', 'fspec', f.name + ' · reach ' + buildStats(f.build).reach + ' hexes · ' +
+          (deploy[i] != null ? 'row ' + (((deploy[i] / COLS) | 0) + 1) + ', col ' + (deploy[i] % COLS + 1) : 'unplaced')));
+        row.appendChild(info);
+        row.onclick = () => { selSlot = i; renderOrders(); };
+        box.appendChild(row);
+      });
+      return;
+    }
+    hint.hidden = true;
+  }
+
+  function renderControls() {
+    const box = $('#controls'); box.textContent = '';
+    const add = (label, cls, fn, dis) => { const b = el('button', 'btn ' + (cls || ''), label); b.disabled = !!dis; b.onclick = fn; box.appendChild(b); return b; };
+    if (phase === 'hangar') {
+      add('Plan deployment', '', () => {
+        map = sortieMap(st);
+        const z = map.deployZone.filter(h => !map.terrain(h).blocks);
+        deploy = squad.map((_, i) => z[Math.floor((i + 1) * z.length / (squad.length + 1))]);
+        preview = previewWave(st, squad.length, map);
+        selSlot = 0; phase = 'deploy'; curFrame = null;
+        $('#mainTitle').textContent = 'Deployment'; $('#viewTag').textContent = 'Place your pilots';
+        render();
+      }, !squad.length);
+      add('Recruit (25)', 'ghost', () => { recruit(st); render(); },
+        st.opinion < 30 || st.parts < 25 || !st.recruitsLeft.length);
+      add('New war', 'ghost', () => { st = newCampaign(Math.floor(Math.random() * 9999) + 1); squad = []; phase = 'hangar'; map = null; curFrame = null; $('#aar').hidden = true; render(); });
+    } else if (phase === 'deploy') {
+      add('Launch', '', startSortie);
+      add('Back to hangar', 'ghost', () => { phase = 'hangar'; map = null; $('#mainTitle').textContent = 'Sortie orders'; render(); });
+    } else if (phase === 'sortie') {
+      for (const u of run.units) {
+        const f = run.frames[Math.max(0, idx - 1)], fu = f && f.units[u.idx];
+        add(u.pilot.name + ' · ' + SIGNATURES[u.pilot.signature].name, 'sig',
+          () => fireSignature(u.idx), !fu || fu.dead || fu.sigUsed || fu.charge < 100);
+      }
+    } else if (phase === 'aar') {
+      add(st.over ? 'See the outcome' : 'Advance to chapter ' + (st.chapter + 1), '', () => {
+        stopTimer(); advanceChapter(st); squad = []; map = null; curFrame = null; run = null;
+        phase = st.over ? 'over' : 'hangar';
+        $('#aar').hidden = true; $('#log').hidden = true; $('#playbar').hidden = true;
+        $('#mainTitle').textContent = 'Sortie orders'; render();
+      });
+    } else if (phase === 'over') {
+      add('Start a new war', '', () => { st = newCampaign(Math.floor(Math.random() * 9999) + 1); squad = []; phase = 'hangar'; map = null; curFrame = null; render(); });
+    }
+  }
+
+  /* ---------- playback ---------- */
+  const logBox = $('#log');
+  function logLine(t, kind, text, detail) {
+    const d = el('div', 'e-' + kind);
+    if (t != null) d.appendChild(el('span', 't', String(t).padStart(3, ' ') + '  '));
+    d.appendChild(document.createTextNode(text));
+    logBox.appendChild(d);
+    if (detail) logBox.appendChild(el('div', 'detail', detail));
+    logBox.scrollTop = logBox.scrollHeight;
+    while (logBox.children.length > 400) logBox.removeChild(logBox.firstChild);
+  }
+
+  function startSortie() {
+    phase = 'sortie'; sigOrders = []; logBox.textContent = ''; logBox.hidden = false; fx = [];
+    run = runSortie(st, squad, { autoSig: false, map, deploy: deploy.slice() });
+    if (run.invalid) { phase = 'deploy'; alert(run.reason); render(); return; }
+    idx = 0; curFrame = null; paused = false; resultApplied = false;
+    $('#aar').hidden = true; $('#mainTitle').textContent = 'Sortie in progress';
+    startTimer(); updatePlaybar();
+    render();
+  }
+
+  function logFrame(f, prev) {
+    if (!prev || prev.wave !== f.wave)
+      logLine(null, 'wave', '── ' + f.waveLabel + ' · ' + f.total + ' contacts' +
+        (f.aceCoat ? ' · ANTI-BEAM COATING' : '') + (f.aceBoost ? ' · BOOST PACKAGE' : ''));
+    for (const e of f.ev) if (e.s && e.k !== 'efire' && e.k !== 'fx') logLine(f.t, e.k, e.s, e.detail);
+  }
+  function rebuildLog(upTo) {
+    logBox.textContent = '';
+    for (let i = 0; i < upTo; i++) logFrame(run.frames[i], i > 0 ? run.frames[i - 1] : null);
+  }
+  function updatePlaybar() {
+    const pb = $('#playbar'); pb.hidden = !run || (phase !== 'sortie' && phase !== 'aar');
+    if (pb.hidden) return;
+    const sc = $('#scrub');
+    sc.max = String(Math.max(0, run.frames.length));
+    sc.value = String(idx);
+    // idx is "frames shown", so nothing shown yet is tick 0 — clamping to frames[0] here made
+    // the counter look frozen for the first step.
+    const shown = idx === 0 ? 0 : run.frames[Math.min(idx, run.frames.length) - 1].t;
+    $('#tickTag').textContent = 'tick ' + shown + ' / ' + (run.frames.length ? run.frames[run.frames.length - 1].t : 0);
+    $('#pbPlay').textContent = phase === 'aar' ? 'Replay' : paused ? 'Play' : 'Pause';
+    $('#pbSpeed').textContent = 'Speed ×' + speed;
+  }
+
+  function showFrame(f, prev, withFx) {
+    curFrame = f;
+    if (withFx !== false) {
+      const now = performance.now();
+      for (const e of f.ev) {
+        if (e.shot) fx.push(Object.assign({ born: now }, e.shot));
+        if (e.boom != null) fx.push({ boom: e.boom, big: e.big, born: now });
+      }
+    }
+    $('#viewTag').textContent = f.waveLabel + ' · tick ' + f.t + ' · ' + f.alive + ' hostile';
+
+    const box = $('#unitMeters'); box.textContent = '';
+    f.units.forEach(u => {
+      const row = el('div', 'unitrow');
+      const head = el('div', 'urhead');
+      head.appendChild(el('div', 'un' + (u.dead ? ' dead' : ''), u.name));
+      if (u.gunnery != null) head.appendChild(el('span', 'pill', 'gunnery ' + u.gunnery + '+'));
+      if (u.save != null) head.appendChild(el('span', 'pill', 'save ' + u.save + '+'));
+      head.appendChild(el('span', 'hb ' + (u.heatBand || 'NOMINAL'), u.heatBand || 'NOMINAL'));
+      if (u.shutdown) head.appendChild(el('span', 'pill killed', 'SHUT DOWN'));
+      row.appendChild(head);
+
+      const bars = el('div', 'urbars');
+      const add = (label, val, max, cls) => {
+        const d = el('div', 'um'); d.appendChild(el('span', null, label + ' ' + Math.round(val)));
+        d.appendChild(bar(max ? (val / max) * 100 : val, cls)); bars.appendChild(d);
+      };
+      add('Hull', u.armor, u.armorMax, u.armor / u.armorMax < 0.3 ? 'crit' : '');
+      add('Heat', u.heat, u.heatCap, u.heat / u.heatCap > 0.8 ? 'warn' : 'cool');
+      add('Fuel', u.prop, u.propMax, 'dim');
+      const ch = el('div', 'um');
+      ch.appendChild(el('span', null, u.sigUsed ? 'Signature spent' : 'Signature ' + Math.round(u.charge) + '%'));
+      ch.appendChild(bar(u.sigUsed ? 0 : u.charge, 'cool'));
+      bars.appendChild(ch);
+      row.appendChild(bars);
+
+      if (u.loc) {
+        const locs = el('div', 'locs');
+        const SHORT = { HEAD: 'HD', TORSO: 'TS', 'L ARM': 'LA', 'R ARM': 'RA', 'L LEG': 'LL', 'R LEG': 'RL' };
+        for (const L of ['HEAD', 'TORSO', 'L ARM', 'R ARM', 'L LEG', 'R LEG']) {
+          const gone = u.lost && u.lost[L];
+          const d = el('div', 'loc' + (gone ? ' gone' : ''));
+          d.appendChild(el('span', null, SHORT[L]));
+          const frac = u.locMax[L] ? (u.loc[L] / u.locMax[L]) * 100 : 0;
+          d.appendChild(bar(frac, gone ? 'crit' : frac < 35 ? 'warn' : ''));
+          locs.appendChild(d);
+        }
+        row.appendChild(locs);
+      }
+      box.appendChild(row);
+    });
+    updatePlaybar();
+    renderControls();
+  }
+
+  function tick() {
+    if (!run || idx >= run.frames.length) { stopTimer(); finish(); return; }
+    const f = run.frames[idx], prev = idx > 0 ? run.frames[idx - 1] : null;
+    showFrame(f, prev, true); logFrame(f, prev);
+    idx++;
+    updatePlaybar();
+  }
+  function stopTimer() { if (timer) clearInterval(timer); timer = null; }
+  function startTimer() { stopTimer(); if (!paused) timer = setInterval(tick, TICK_MS / speed); }
+
+  /* Scrubbing rebuilds state from the frame list — the sim is deterministic, so any tick
+     can be reconstructed exactly. */
+  function seek(i) {
+    if (!run) return;
+    idx = Math.max(0, Math.min(run.frames.length, i));
+    fx = [];
+    rebuildLog(idx);
+    const f = run.frames[Math.max(0, idx - 1)];
+    if (f) showFrame(f, null, false); else { curFrame = null; updatePlaybar(); }
+  }
+
+  $('#pbPlay').onclick = () => {
+    if (phase === 'aar') {                        // replay is a rewatch, not a re-fight
+      phase = 'sortie'; paused = false; $('#aar').hidden = true;
+      $('#mainTitle').textContent = 'Sortie in progress';
+      seek(0); startTimer(); render(); return;
+    }
+    paused = !paused;
+    if (paused) stopTimer(); else startTimer();
+    updatePlaybar();
+  };
+  $('#pbStep').onclick = () => {
+    if (!run) return;
+    if (!paused) { paused = true; stopTimer(); }
+    if (idx < run.frames.length) tick(); 
+    updatePlaybar();
+  };
+  $('#pbSpeed').onclick = () => {
+    speed = speed === 0.5 ? 1 : speed === 1 ? 2 : speed === 2 ? 4 : 0.5;
+    if (!paused && phase === 'sortie') startTimer();
+    updatePlaybar();
+  };
+  $('#scrub').oninput = e => {
+    if (!paused) { paused = true; stopTimer(); }
+    seek(parseInt(e.target.value, 10));
+    updatePlaybar();
+  };
+
+  function fireSignature(uIdx) {
+    const cur = run.frames[Math.max(0, idx - 1)];
+    sigOrders.push({ u: uIdx, t: (cur ? cur.t : 0) + 1 });
+    const re = runSortie(st, squad, { autoSig: false, sigOrders, map, deploy: deploy.slice() });
+    if (re.frames.length) run = re;
+    renderControls();
+  }
+
+  function finish() {
+    stopTimer(); phase = 'aar'; paused = true;
+    // Replaying must not bank the salvage, casualties and rival growth a second time.
+    if (!resultApplied) { lastReport = applyResult(st, run, squad); resultApplied = true; }
+    const a = $('#aar'); a.hidden = false; a.className = run.ok ? 'win' : 'loss'; a.textContent = '';
+    a.appendChild(el('div', 'aarhead', run.reason));
+    const cas = el('div', 'casual');
+    for (const k of lastReport.killed) cas.appendChild(el('div', 'k', '✖  ' + k.name + ' KILLED IN ACTION — ' + k.cause));
+    for (const w of lastReport.wounded) cas.appendChild(el('div', 'w', '▲  ' + w.name + ' ejected, wounded — out ' + w.out + ' chapter' + (w.out > 1 ? 's' : '')));
+    for (const n of lastReport.notes) cas.appendChild(el('div', 'n', '·  ' + n));
+    if (!cas.children.length) cas.appendChild(el('div', 'n', '·  no casualties'));
+    a.appendChild(cas);
+    const g = el('div', 'aargrid');
+    for (const [k, v] of [['Ticks', run.ticks], ['Salvage', '+' + (lastReport.salvage || 0)],
+      ['Killed', lastReport.killed.length], ['Wounded', lastReport.wounded.length],
+      ['Scrams', run.overheats], ['Orders ignored', run.survivors.reduce((x, s) => x + s.disobeys, 0)]]) {
+      const d = el('div'); d.appendChild(el('span', null, k)); d.appendChild(el('b', null, String(v))); g.appendChild(d);
+    }
+    a.appendChild(g);
+    $('#mainTitle').textContent = 'After action';
+    updatePlaybar();
+    render();
+  }
+
+  function renderOver() {
+    const a = $('#aar'); a.hidden = false; a.className = st.won ? 'win' : 'loss'; a.textContent = '';
+    a.appendChild(el('div', 'aarhead', st.won ? 'The regime withdraws from the sector' : 'The irregulars are finished'));
+    const cas = el('div', 'casual');
+    cas.appendChild(el('div', 'n', st.won
+      ? `${st.rival.name} driven off for the last time after ${st.rival.encounters} encounters.`
+      : `${st.rival.name} holds the field. ${st.rival.drivenOff} defeats were not enough.`));
+    for (const p of st.roster.filter(p => p.status === 'KILLED'))
+      cas.appendChild(el('div', 'k', '✖  ' + p.name + ' — ' + p.sorties + ' sorties, ' + p.kills + ' kills'));
+    cas.appendChild(el('div', 'n', `${st.collateral} civilians killed by your area fire. Opinion ended at ${st.opinion}.`));
+    a.appendChild(cas);
+    $('#mainTitle').textContent = 'The war';
+  }
+
+  /* ---------- war simulator ---------- */
+  $('#btnWars').onclick = function () {
+    this.disabled = true; $('#warStatus').textContent = 'simulating…';
+    setTimeout(() => {
+      const RUNS = 60, agg = { won: 0, deaths: 0, wounds: 0, defy: 0, reached: 0, fail: {} };
+      for (let r = 1; r <= RUNS; r++) {
+        const s = newCampaign(r); let g = 0;
+        while (!s.over && g++ < 30) {
+          for (const f of s.frames.slice().sort((a, b) => a.integrity - b.integrity))
+            if (repairCost(f) > 0 && s.parts >= repairCost(f)) repair(s, f.id);
+          if (s.opinion >= 30) recruit(s);
+          const size = s.chapter >= 4 ? 3 : 2;
+          const ps = s.roster.filter(p => p.status === 'READY').sort((a, b) => (a.fatigue + a.trauma) - (b.fatigue + b.trauma)).slice(0, size);
+          const fs = flyable(s).sort((a, b) => b.integrity - a.integrity).slice(0, ps.length);
+          if (!ps.length || !fs.length) break;
+          const sq = ps.slice(0, fs.length).map((p, i) => ({ pilotId: p.id, frameId: fs[i].id }));
+          const res = runSortie(s, sq, { noFrames: true });
+          const rep = applyResult(s, res, sq);
+          if (!res.ok) agg.fail[s.chapter] = (agg.fail[s.chapter] || 0) + 1;
+          agg.deaths += rep.killed.length; agg.wounds += rep.wounded.length;
+          agg.defy += (res.survivors || []).reduce((x, u) => x + u.disobeys, 0);
+          advanceChapter(s);
+        }
+        agg.reached += Math.min(s.chapter - 1, CHAPTERS);
+        if (s.won) agg.won++;
+      }
+      const t = $('#warTable'); t.textContent = '';
+      const hd = t.insertRow();
+      for (const h of ['Measure', 'Result', '']) hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+      for (const [k, v, n] of [
+        ['Wars won', pct(agg.won / RUNS), 'the final sortie decides it'],
+        ['Avg chapter reached', (agg.reached / RUNS).toFixed(1) + ' / ' + CHAPTERS, ''],
+        ['Pilots killed per war', (agg.deaths / RUNS).toFixed(2), 'permadeath'],
+        ['Pilots wounded per war', (agg.wounds / RUNS).toFixed(2), 'out one to two chapters'],
+        ['Orders ignored per war', (agg.defy / RUNS).toFixed(1), 'temperament beating doctrine'],
+        ['Sorties failed by chapter', Object.entries(agg.fail).map(([k2, v2]) => 'ch' + k2 + ':' + v2).join(' ') || 'none', 'escalation biting late'],
+      ]) {
+        const r = t.insertRow(); r.insertCell().textContent = k;
+        const c = r.insertCell(); c.className = 'n'; c.textContent = v;
+        r.insertCell().appendChild(el('span', 'note', n));
+      }
+      $('#warOut').hidden = false; $('#warStatus').textContent = RUNS + ' wars simulated';
+      this.disabled = false;
+    }, 30);
+  };
+
+  (function specTable() {
+    const t = $('#specTable'), hd = t.insertRow();
+    for (const h of ['Module', 'Type', 'Mass', 'Power', 'Heat', 'Damage', 'Brackets', 'To hit', 'AP', 'Mount', 'Sight', 'Ammo', 'Role'])
+      hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+    for (const m of MODULES) {
+      const r = t.insertRow();
+      const add = (x, cls) => { const c = r.insertCell(); c.textContent = x; if (cls) c.className = cls; };
+      add(m.name, 'n');
+      const tc = r.insertCell();
+      tc.appendChild(el('span', 'pill' + (m.kind === 'w' && m.dtype === 'beam' ? ' sig' : ''), m.kind === 'w' ? m.dtype : 'support'));
+      add(m.mass); add(m.power || 0);
+      add(m.kind === 'w' ? m.heat : (m.passiveHeat ? '+' + m.passiveHeat + '/t' : '—'));
+      add(m.kind === 'w' ? m.dmg + (m.blast ? ' blast' : '') : '—');
+      add(m.kind === 'w' ? m.minR + '–' + m.br[0] + ' / ' + m.br[1] + ' / ' + m.br[2] : '—');
+      add(m.kind === 'w' ? (m.acc > 0 ? '+' + m.acc : m.acc < 0 ? String(m.acc) : '0') : '—');
+      add(m.kind === 'w' ? '-' + m.ap : '—');
+      add(m.kind === 'w' ? m.mount : '—');
+      add(m.kind === 'w' ? (m.los ? 'needs line' : 'indirect') : '—');
+      add(m.kind === 'w' ? (m.ammo ? String(m.ammo) : '∞') : '—');
+      r.insertCell().appendChild(el('span', 'note', m.note));
+    }
+  })();
+
+  function render() {
+    renderWar(); renderRoster(); renderHangar(); renderOrders(); renderControls();
+    if (phase === 'over') renderOver();
+  }
+  render();
+})();
+</script>

@@ -1,0 +1,1245 @@
+<title>SORTIE — mobile suit auto-battler</title>
+
+<style>
+:root{
+  --ground:#12161C; --panel:#1A2029; --panel-2:#151B23; --line:#2C353F; --line-soft:#222A33;
+  --ink:#D8DFE6; --ink-dim:#7E8B99; --ink-faint:#55616E;
+  --accent:#FF6A1F; --coolant:#56D2E4; --warn:#FFC24B; --crit:#FF4438; --good:#5FD38A;
+  --mono: ui-monospace,'SF Mono',SFMono-Regular,'Cascadia Mono','Roboto Mono',Menlo,Consolas,'Liberation Mono',monospace;
+  --grot: 'Helvetica Neue',-apple-system,'Segoe UI',system-ui,Arial,sans-serif;
+  --r:2px;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.5;margin:0;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1340px;margin:0 auto;padding:0 18px 70px}
+h1,h2{margin:0;text-wrap:balance}
+.lbl{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint)}
+
+.hazard{height:8px;background:repeating-linear-gradient(45deg,var(--accent) 0 12px,#0d1116 12px 24px);opacity:.85}
+header{padding:24px 0 16px;border-bottom:1px solid var(--line)}
+.eyebrow{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);display:flex;gap:14px;flex-wrap:wrap}
+.eyebrow span{color:var(--ink-faint)}
+h1{font-family:var(--grot);font-weight:800;font-size:clamp(32px,6.5vw,58px);letter-spacing:-.045em;line-height:.92;margin:8px 0 0;text-transform:uppercase}
+.deck{color:var(--ink-dim);max-width:66ch;margin-top:9px}
+.deck b{color:var(--ink);font-weight:400}
+
+.warbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);
+  border:1px solid var(--line);margin-top:14px;border-radius:var(--r);overflow:hidden}
+.warbar div{background:var(--panel-2);padding:8px 11px}
+.warbar span{display:block;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+.warbar b{font-family:var(--grot);font-size:19px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.warbar b.hot{color:var(--accent)}.warbar b.bad{color:var(--crit)}.warbar b.cool{color:var(--coolant)}
+.warbar .cnote{font-size:9px;margin-top:2px}
+.warbar b{font-size:15px}
+.contest{display:flex;justify-content:center;gap:2px;margin-top:4px;height:5px}
+.contest i{display:block;height:100%;border-radius:1px}
+.contest i.me{background:var(--accent)} .contest i.foe{background:var(--crit)}
+.slotbar{height:5px;margin-top:4px;background:#0d1116;border-radius:1px;overflow:hidden}
+.slotbar i{display:block;height:100%;background:var(--coolant)}
+.slotbar i.full{background:var(--crit)}
+
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+@media(max-width:1020px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.phead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+.phead h2{font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:400}
+.phead .sub{font-size:10px;letter-spacing:.12em;color:var(--ink-faint);text-transform:uppercase}
+.pbody{padding:11px;display:flex;flex-direction:column;gap:9px}
+
+.card{border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);padding:6px 9px;
+  display:flex;flex-direction:column;gap:3px;cursor:pointer;text-align:left;width:100%;font-family:var(--mono);color:var(--ink-dim)}
+.card:hover{border-color:var(--ink-faint)}
+.card:disabled{opacity:.38;cursor:default}
+.card:disabled:hover{border-color:var(--line)}
+.card.locked{opacity:.32}
+.card.locked .cost{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink-faint)}
+.crow{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.cname{font-size:11px;letter-spacing:.08em;color:var(--ink);flex:1}
+.cost{font-family:var(--grot);font-weight:800;font-size:15px;letter-spacing:-.02em;color:var(--accent);font-variant-numeric:tabular-nums}
+.cstat{font-size:9px;color:var(--ink-faint);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cnote{font-size:10px;color:var(--ink-faint);line-height:1.35}
+.pill{font-size:8px;letter-spacing:.12em;padding:2px 5px;border:1px solid var(--line);border-radius:1px;color:var(--ink-faint);text-transform:uppercase;white-space:nowrap}
+.pill.swarm{color:#9BB0C4;border-color:#33404e}
+.pill.line{color:var(--good);border-color:#245038}
+.pill.fast{color:var(--coolant);border-color:#1e3a40}
+.pill.siege{color:var(--warn);border-color:#4a3a16}
+.pill.heavy{color:var(--crit);border-color:#5a1c17}
+.pill.ace{color:var(--accent);border-color:#5a2d10}
+.pill.owned{color:var(--good);border-color:#245038}
+.pill.era1{color:var(--ink-faint)}
+.pill.era2{color:var(--coolant);border-color:#1e3a40}
+.pill.era3{color:var(--accent);border-color:#5a2d10}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:2px}
+.tabs button{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;background:var(--panel-2);
+  color:var(--ink-dim);border:1px solid var(--line);border-radius:var(--r);padding:7px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#12161C;font-weight:700}
+
+.sq{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel-2);padding:5px 8px;cursor:pointer}
+.sq[aria-pressed="true"]{border-color:var(--coolant);background:#13252b}
+.sq .n{font-size:11px;color:var(--ink);flex:1}
+.sq .where{font-size:9px;color:var(--ink-faint)}
+.rank{font-family:var(--grot);font-weight:800;font-size:12px;width:16px;text-align:center;letter-spacing:-.02em}
+.rank.r0{color:var(--ink-faint)} .rank.r1{color:var(--good)} .rank.r2{color:var(--coolant)}
+.rank.r3{color:var(--warn)} .rank.r4{color:#FFD24B}
+.btn.merge{color:var(--coolant);border-color:var(--coolant)}
+.btn.merge:hover{background:var(--coolant);color:#12161C}
+.sq.unplaced .where{color:var(--warn)}
+
+#boardWrap{position:relative;background:#0E1319;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+#board{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.legend{display:flex;gap:11px;flex-wrap:wrap;font-size:9px;letter-spacing:.1em;color:var(--ink-faint);
+  text-transform:uppercase;padding:7px 10px;border-top:1px solid var(--line);background:var(--panel-2)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.hint{padding:8px 11px;border:1px solid var(--accent);border-radius:var(--r);background:#241a13;color:var(--ink);font-size:11px}
+.hint b{color:var(--accent);font-weight:400}
+.hint.deny{border-color:var(--crit);background:#2a1412;color:var(--crit)}
+#inspect{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--panel-2);padding:6px 10px;margin:0 8px;font-size:10px}
+#inspect .who{font-size:11px;letter-spacing:.08em;color:var(--ink)}
+#inspect.foe{border-color:#5a1c17}
+#inspect.foe .who{color:var(--crit)}
+#inspect .st{color:var(--ink-faint);font-variant-numeric:tabular-nums}
+#inspect .st b{color:var(--ink-dim);font-weight:400}
+
+.btn{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;border-radius:var(--r);
+  cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#12161C;font-weight:700}
+.btn:hover{background:#ff7d3a}
+.btn.ghost{background:transparent;color:var(--ink-dim);border-color:var(--line)}
+.btn.ghost:hover{color:var(--ink);border-color:var(--ink-faint)}
+.btn.sm{padding:5px 9px;font-size:9px}
+.btn.charging{color:var(--crit);border-color:var(--crit)}
+.btn.charging:hover{background:var(--crit);color:#12161C}
+.btn:disabled{opacity:.3;cursor:default;background:transparent;color:var(--ink-faint);border-color:var(--line)}
+.btn:disabled:hover{background:transparent;color:var(--ink-faint)}
+:focus-visible{outline:2px solid var(--coolant);outline-offset:2px}
+.actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+
+#playbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel-2);padding:7px 9px}
+#scrub{flex:1;min-width:140px;accent-color:var(--accent);height:4px;cursor:pointer}
+#tickTag{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+#log{height:200px;overflow-y:auto;background:#0d1116;border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;
+  font-size:11px;display:flex;flex-direction:column;gap:1px}
+#log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
+#log .detail{color:var(--ink-faint);font-size:10px;padding-left:16px}
+#log .t{color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.e-pfire{color:var(--accent)}.e-efire{color:var(--ink-dim)}.e-wipe{color:var(--crit);font-weight:700}
+.e-boom{color:var(--warn)}
+
+#summary{border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);padding:12px;display:flex;flex-direction:column;gap:9px}
+#summary.win{border-color:var(--accent)}#summary.loss{border-color:var(--crit)}
+.sumhead{font-family:var(--grot);font-size:18px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase}
+#summary.win .sumhead{color:var(--accent)}#summary.loss .sumhead{color:var(--crit)}
+.sumgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:9px}
+.sumgrid div span{display:block;font-size:9px;letter-spacing:.16em;color:var(--ink-faint);text-transform:uppercase}
+.sumgrid div b{font-family:var(--grot);font-size:18px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.why{display:flex;flex-direction:column;gap:3px}
+.wnote{font-size:11px;color:var(--ink-dim);padding-left:12px;position:relative}
+.wnote::before{content:'·';position:absolute;left:2px;color:var(--ink-faint)}
+.wnote.silent,.wnote.killer{color:var(--crit)}
+.wnote.overkill{color:var(--warn)}
+.wnote.advice{color:var(--coolant)}
+.ministat{min-width:0;font-size:10px}
+.ministat th{padding:4px 6px;letter-spacing:.1em}
+.ministat td{padding:3px 6px}
+.ministat td.bad{color:var(--crit)}
+.boons{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px}
+.card.boon{border-color:var(--coolant)}
+.card.boon:hover{border-color:#8fe6f5;background:#13252b}
+.card.boon{border-width:1px}
+.card.boon:hover{filter:brightness(1.35)}
+.card.boon.r-epic{box-shadow:inset 0 0 22px rgba(255,106,31,.16)}
+.card.boon.r-legendary{box-shadow:inset 0 0 26px rgba(255,210,75,.22)}
+.card.boon.r-legendary .cname{color:#FFD24B}
+
+section{margin-top:28px}
+.shead{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:13px}
+.shead h2{font-family:var(--grot);font-size:15px;font-weight:800;letter-spacing:-.01em;text-transform:uppercase}
+.shead p{margin:0;color:var(--ink-faint);font-size:11px}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:11px;min-width:660px}
+th{text-align:left;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:400;padding:8px 10px;
+  border-bottom:1px solid var(--line);background:var(--panel-2);white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid var(--line-soft);font-variant-numeric:tabular-nums;color:var(--ink-dim);white-space:nowrap}
+tr:last-child td{border-bottom:0}td.n{color:var(--ink)}td .note{color:var(--ink-faint);white-space:normal}
+.note-list{color:var(--ink-dim);font-size:12px;padding-left:16px;margin:0;display:flex;flex-direction:column;gap:6px}
+.note-list b{color:var(--ink);font-weight:400}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+footer{margin-top:34px;padding-top:13px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:10px;letter-spacing:.1em}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- app shell: the page is a screen, not a document ----
+   These rules come last on purpose and govern layout outright; the earlier block still styles
+   the components inside them. */
+html,body{height:100%;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100dvh;min-height:0}
+.strip{display:flex;align-items:center;gap:12px;padding:7px 12px;border-bottom:1px solid var(--line);
+  background:var(--panel-2);flex:0 0 auto}
+.brand{font-family:var(--grot);font-weight:800;font-size:17px;letter-spacing:-.03em;text-transform:uppercase;
+  white-space:nowrap;display:flex;align-items:baseline;gap:8px}
+.brand span{font-family:var(--mono);font-size:8px;letter-spacing:.18em;color:var(--ink-faint);font-weight:400}
+.strip .warbar{margin:0;flex:1;border:0;background:transparent;gap:0;
+  grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+.strip .warbar div{background:transparent;padding:2px 10px;border-left:1px solid var(--line)}
+.strip .warbar b{font-size:15px}
+.strip .pips{margin-top:2px}
+.strip .pips i{height:4px}
+
+.cols3{flex:1;min-height:0;display:grid;grid-template-columns:288px minmax(0,1fr) 300px;gap:1px;background:var(--line)}
+.cols3 > .panel{border:0;border-radius:0;display:flex;flex-direction:column;min-height:0;min-width:0}
+.panel .phead{flex:0 0 auto}
+.panel .tabs{flex:0 0 auto;margin:8px 8px 4px;gap:4px}
+.scroll{flex:1;min-height:0;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px}
+.board-col{padding:0}
+.board-col .hint{flex:0 0 auto;margin:8px 8px 0;font-size:10px;padding:6px 9px}
+.boardfit{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px;background:#0E1319}
+#board{display:block;touch-action:none;cursor:crosshair}
+#playbar{flex:0 0 auto;margin:0 8px 6px;border-radius:var(--r)}
+.board-col .actions{flex:0 0 auto;padding:0 8px 8px}
+#log{height:auto}
+
+/* the result and the reward draft take space in the column; nothing floats over anything */
+#summary{flex:0 0 auto;margin:0 8px 8px;max-height:46%;overflow-y:auto}
+
+.tabs3{grid-template-columns:1fr 1fr 1fr}
+.manual-body{gap:12px;font-size:11px}
+.manual-body .cols{grid-template-columns:1fr;gap:12px}
+.manual-body h3{font-family:var(--grot);font-size:12px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;
+  margin:4px 0 2px;color:var(--ink)}
+.manual-body .cols{gap:22px}
+.manual-body table{min-width:0;font-size:10px}
+.manual-body .note-list{font-size:11px;gap:5px}
+
+/* An author rule that sets `display` beats the browser's [hidden]{display:none}, so anything
+   styled display:flex ignored the hidden attribute entirely. This has to win outright. */
+[hidden]{display:none!important}
+
+@media(max-width:1080px){
+  html,body{overflow:auto}
+  .app{height:auto;min-height:100dvh}
+  .cols3{grid-template-columns:1fr;background:transparent;gap:10px;padding:10px}
+  .cols3 > .panel{border:1px solid var(--line);border-radius:var(--r)}
+  .scroll{max-height:290px}
+  .boardfit{min-height:52vh}
+  .strip{flex-wrap:wrap}
+}
+</style>
+
+<div class="app">
+  <header class="strip">
+    <div class="brand">SORTIE<span>mobile suit auto-battler</span></div>
+    <div class="warbar" id="warbar"></div>
+    
+  </header>
+
+  <main class="cols3">
+    <section class="panel">
+      <div class="phead"><h2>Shop</h2><span class="sub" id="creditTag">—</span></div>
+      <div class="tabs">
+        <button id="tabUnits" aria-pressed="true">Units</button>
+        <button id="tabTech" aria-pressed="false">Upgrades</button>
+      </div>
+      <div id="shop" class="scroll"></div>
+    </section>
+
+    <section class="panel board-col">
+      <div class="phead"><h2 id="mainTitle">Deployment</h2><span class="sub" id="viewTag">Place your squads</span></div>
+      <div id="hint" class="hint"></div>
+      <div id="inspect" hidden></div>
+      <div class="boardfit"><canvas id="board" width="900" height="620"></canvas></div>
+      <div id="playbar" hidden>
+        <button class="btn ghost sm" id="pbPlay">Pause</button>
+        <button class="btn ghost sm" id="pbStep">Step</button>
+        <button class="btn ghost sm" id="pbSpeed">Speed ×2</button>
+        <input type="range" id="scrub" min="0" max="0" value="0" step="1" aria-label="Scrub the battle">
+        <span class="lbl" id="tickTag">tick 0 / 0</span>
+      </div>
+      <div class="actions" id="controls"></div>
+      <div id="summary" hidden></div>
+    </section>
+
+    <section class="panel">
+      <div class="tabs tabs3">
+        <button id="tabArmy" aria-pressed="true">Army</button>
+        <button id="tabLog" aria-pressed="false">Log</button>
+        <button id="tabManual" aria-pressed="false">Manual</button>
+      </div>
+      <div id="army" class="scroll"></div>
+      <div id="log" class="scroll" hidden></div>
+      <div id="manual" class="scroll manual-body" hidden>
+<div class="cols">
+        <div>
+          <h3>The loop</h3>
+          <ul class="note-list">
+            <li><b>You see the regime's army before you spend a credit</b> — it is already standing on the board.</li>
+            <li><b>Drag a unit from the shop onto a hex</b> to buy and place in one motion. Drag squads already down to rearrange; dropping one on another swaps them.</li>
+            <li><b>Squads that survive fight again</b> next round, repaired. Squads wiped out are gone for good.</li>
+            <li><b>After each round you draft one reward of three</b> and lose the rest. Rarer cards are exponentially stronger, and show up more the deeper the war runs — or when you are losing.</li>
+          </ul>
+          <h3>The counter web</h3>
+          <ul class="note-list">
+            <li><b>Overkill is wasted.</b> Damage lands on one machine at a time, so a 95-damage Colossus shot into a 63-hull Pod throws most of itself away. That is why cheap bodies work.</li>
+            <li><b>Splash hits several machines at once</b> — devastating against a swarm, nearly pointless against one big target that only offers one body.</li>
+            <li><b>Armour is a save.</b> Armour-piercing worsens that roll; at 7+ there is no save at all.</li>
+            <li><b>Range must be paid for.</b> Siege reaches nine hexes but cannot fire inside three.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>The board</h3>
+          <ul class="note-list">
+            <li><b>Debris blocks line of sight</b> and costs double to cross. Missile Tracks arc over it.</li>
+            <li><b>Ridges are high ground</b>: +1 reach, −1 to hit shooting down, +1 shooting up. Climbing costs 3, moving along costs 2, dropping off costs 1.</li>
+          </ul>
+          <h3>Reward rarity</h3>
+          <div class="tblwrap"><table id="rarTable"></table></div>
+          <h3>Balance runner</h3>
+          <div class="actions" style="margin-bottom:9px">
+            <button class="btn" id="btnSim">Simulate 40 wars</button>
+            <span class="lbl" id="simStatus">idle</span>
+          </div>
+          <div id="simOut" class="tblwrap" hidden><table id="simTable"></table></div>
+        </div>
+      </div>
+      <h3>Army list</h3>
+      <div class="tblwrap"><table id="specTable"></table></div>
+    
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/*__HEX__*/
+/*__META__*/
+/*__ARMY__*/
+/*__BATTLE__*/
+
+(function () {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+
+  let profile = load();
+  let doctrineOffer = [];
+  let st = newGame(Math.floor(Math.random() * 9999) + 1, modifiers(profile));
+  let map = null, enemy = [], enemyHex = [], phase = 'deploy', shopTab = 'units';
+  let sel = null, run = null, idx = 0, timer = null, speed = 2, paused = false, resolved = false;
+  let fx = [], curFrame = null, drag = null, press = null, buyDrag = null, boonOffer = [], unlockOffer = [];
+  let hoverHex = -1, denyUntil = 0;
+  const TICK_MS = 420;
+
+  /* ---------- board ---------- */
+  const cv = $('#board'), ctx = cv.getContext('2d');
+  const R = 25, SQ = Math.sqrt(3) * R, PAD = 14;
+  const BW = Math.round(SQ * (COLS + 0.5) + PAD * 2), BH = Math.round(R * 1.5 * (ROWS - 1) + R * 2 + PAD * 2);
+  function fitCanvas() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = BW * dpr; cv.height = BH * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // letterbox into whatever the column leaves us — max-width alone only ever shrinks
+    const box = cv.parentElement;
+    const cw = box.clientWidth - 16, ch = box.clientHeight - 16;
+    if (cw > 0 && ch > 0) {
+      const scale = Math.min(cw / BW, ch / BH);
+      cv.style.width = Math.round(BW * scale) + 'px';
+      cv.style.height = Math.round(BH * scale) + 'px';
+    }
+  }
+  fitCanvas();
+  window.addEventListener('resize', fitCanvas);
+  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(cv.parentElement);
+  const centre = i => ({ x: SQ * ((i % COLS) + 0.5 * (((i / COLS) | 0) & 1)) + SQ / 2 + PAD, y: R * 1.5 * ((i / COLS) | 0) + R + PAD });
+  function hexPath(x, y, rad) {
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {
+      const a = Math.PI / 180 * (60 * k - 90);
+      const px = x + rad * Math.cos(a), py = y + rad * Math.sin(a);
+      k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.closePath();
+  }
+  function hexAt(px, py) {
+    let best = -1, bd = 1e9;
+    for (let i = 0; i < N_HEX; i++) { const c = centre(i), d = (c.x - px) ** 2 + (c.y - py) ** 2; if (d < bd) { bd = d; best = i; } }
+    return bd <= (R * 0.95) ** 2 ? best : -1;
+  }
+  const RANK_COLOR = ['#7E8B99', '#5FD38A', '#56D2E4', '#FFC24B', '#FFD24B'];
+  const ROLE_COLOR = { swarm: '#9BB0C4', line: '#5FD38A', fast: '#56D2E4', siege: '#FFC24B', heavy: '#FF4438', ace: '#FF6A1F' };
+  function shade(hex, amt) {
+    const n = parseInt(hex.slice(1), 16), c = v => Math.max(0, Math.min(255, v + amt));
+    return `rgb(${c(n >> 16)},${c((n >> 8) & 255)},${c(n & 255)})`;
+  }
+  function poly(pts, s) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0] * s, p[1] * s) : ctx.moveTo(p[0] * s, p[1] * s)); ctx.closePath(); }
+
+  /* A squad token: one mech silhouette with the surviving count stamped under it. */
+  function drawSquad(x, y, size, col, role, n, nMax, mine) {
+    const dark = shade(col, -50), lit = shade(col, 30);
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.beginPath(); ctx.ellipse(0, size * .74, size * .6, size * .16, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(1, size * .07); ctx.strokeStyle = '#0B0F14';
+
+    if (role === 'siege') {
+      ctx.save(); ctx.rotate(mine ? -.4 : .4);
+      ctx.fillStyle = dark; poly([[-.09, -.08], [.09, -.08], [.09, -1.0], [-.09, -1.0]], size); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = col; poly([[-.54, .08], [.54, .08], [.42, .58], [-.42, .58]], size); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = dark; poly([[-.32, -.28], [.32, -.28], [.26, .10], [-.26, .10]], size); ctx.fill(); ctx.stroke();
+    } else {
+      const wide = role === 'heavy' || role === 'ace';
+      ctx.fillStyle = dark;
+      const leg = [[-.28, .12], [-.09, .12], [-.12, .70], [-.31, .70]];
+      poly(leg, size); ctx.fill(); ctx.stroke();
+      poly(leg.map(p => [-p[0], p[1]]), size); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = col;
+      poly([[-.36, -.34], [.36, -.34], [.29, .16], [-.29, .16]], size); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = lit;
+      const sp = [[-(wide ? .68 : .58), -.42], [-.32, -.46], [-.30, -.04], [-(wide ? .66 : .56), 0]];
+      poly(sp, size); ctx.fill(); ctx.stroke();
+      poly(sp.map(p => [-p[0], p[1]]), size); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = shade(col, -16);
+      poly([[-.14, -.64], [.14, -.64], [.12, -.36], [-.12, -.36]], size); ctx.fill(); ctx.stroke();
+      if (role === 'ace') { ctx.fillStyle = '#FFD24B'; poly([[-.30, -.72], [0, -.60], [.30, -.72], [0, -.80]], size); ctx.fill(); }
+      ctx.fillStyle = mine ? '#BFF4FF' : '#FF6E5A';
+      ctx.fillRect(-size * .10, -size * .56, size * .20, size * .07);
+    }
+    ctx.restore();
+
+    if (n != null) {
+      const label = '×' + n;
+      ctx.font = '700 10px ' + getComputedStyle(document.body).fontFamily;
+      ctx.textAlign = 'center';
+      const w = ctx.measureText(label).width + 8;
+      ctx.fillStyle = 'rgba(10,14,19,.85)';
+      ctx.fillRect(x - w / 2, y + size * .78, w, 12);
+      ctx.fillStyle = n < nMax ? '#FFC24B' : '#D8DFE6';
+      ctx.fillText(label, x, y + size * .78 + 9);
+    }
+  }
+
+  function drawBoard() {
+    ctx.clearRect(0, 0, BW, BH);
+    if (!map) return;
+    const now = performance.now();
+    for (let i = 0; i < N_HEX; i++) {
+      const { x, y } = centre(i), t = map.terrain(i);
+      hexPath(x, y, R - 1.5);
+      ctx.fillStyle = t.id === 'debris' ? '#2B333D' : t.id === 'ridge' ? '#26313D' : '#171D25';
+      ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = '#222A33'; ctx.stroke();
+      if (t.id === 'debris') { ctx.fillStyle = '#3B4552'; for (const [dx, dy] of [[-6, -3], [3, 4], [6, -6]]) ctx.fillRect(x + dx, y + dy, 3, 3); }
+      else if (t.id === 'ridge') { ctx.strokeStyle = '#3E4E5E'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x - 8, y + 5); ctx.lineTo(x, y - 4); ctx.lineTo(x + 8, y + 5); ctx.stroke(); }
+      if (phase === 'deploy' && map.deployZone.includes(i) && !t.blocks) {
+        const deny = now < denyUntil;
+        hexPath(x, y, R - 2);
+        ctx.fillStyle = deny ? 'rgba(255,106,31,.22)' : 'rgba(255,106,31,.09)';
+        ctx.fill();
+        ctx.strokeStyle = deny ? 'rgba(255,106,31,.9)' : 'rgba(255,106,31,.45)';
+        ctx.lineWidth = deny ? 2 : 1.2; ctx.stroke();
+      }
+    }
+
+    if (curFrame) {
+      for (const q of curFrame.squads) {
+        const { x, y } = centre(q.hex);
+        const col = q.charging ? '#FF4438' : (q.side === 'p' ? '#FF6A1F' : (ROLE_COLOR[q.role] || '#FF4438'));
+        drawSquad(x, y, q.role === 'heavy' || q.role === 'ace' ? 15 : 12, col, q.role, q.n, q.nMax, q.side === 'p');
+        if (q.charging) {                                  // a chevron for a squad mid-charge
+          ctx.strokeStyle = '#FF4438'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x - 7, y - 20); ctx.lineTo(x, y - 26); ctx.lineTo(x + 7, y - 20); ctx.stroke();
+        }
+      }
+    } else {
+      enemy.forEach((e, i) => {
+        const h = enemyHex[i]; if (h == null || h < 0) return;
+        const { x, y } = centre(h), u = U[e.id];
+        ctx.globalAlpha = .75;
+        drawSquad(x, y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, ROLE_COLOR[u.role] || '#FF4438', u.role, u.n, u.n, false);
+        ctx.globalAlpha = 1;
+      });
+      if (drag && drag.over != null && drag.over >= 0 &&
+          map.deployZone.includes(drag.over) && !map.terrain(drag.over).blocks) {
+        const c = centre(drag.over);
+        hexPath(c.x, c.y, R - 3);
+        ctx.fillStyle = 'rgba(86,210,228,.16)'; ctx.fill();
+        ctx.strokeStyle = '#56D2E4'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      for (const s of st.army) {
+        if (s.hex == null || s.hex < 0) continue;
+        const u = spec(st, s.id);
+        const held = drag && drag.uid === s.uid;
+        const p = held ? { x: drag.x, y: drag.y } : centre(s.hex);
+        if (held) {
+          const o = centre(s.hex);                       // ghost left behind at the old hex
+          ctx.globalAlpha = .28;
+          drawSquad(o.x, o.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true);
+          ctx.globalAlpha = 1;
+        } else if (sel === s.uid) {
+          hexPath(p.x, p.y, R - 4); ctx.strokeStyle = '#56D2E4'; ctx.lineWidth = 2; ctx.stroke();
+        }
+        drawSquad(p.x, p.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true);
+      }
+    }
+
+    if (phase === 'deploy' && hoverHex >= 0 && (sel != null || drag) && !drag) {
+      const ok = droppable(hoverHex);
+      const c = centre(hoverHex);
+      hexPath(c.x, c.y, R - 3);
+      ctx.strokeStyle = ok ? '#5FD38A' : '#FF4438';
+      ctx.lineWidth = 2; ctx.stroke();
+      if (!ok) {                                  // a plain cross: this hex will not take it
+        ctx.beginPath();
+        ctx.moveTo(c.x - 7, c.y - 7); ctx.lineTo(c.x + 7, c.y + 7);
+        ctx.moveTo(c.x + 7, c.y - 7); ctx.lineTo(c.x - 7, c.y + 7);
+        ctx.strokeStyle = '#FF4438'; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+
+    if (buyDrag && buyDrag.onBoard) {
+      const u = spec(st, buyDrag.id);
+      if (buyDrag.over >= 0 && droppable(buyDrag.over)) {
+        const c = centre(buyDrag.over);
+        hexPath(c.x, c.y, R - 3);
+        ctx.fillStyle = 'rgba(255,106,31,.18)'; ctx.fill();
+        ctx.strokeStyle = '#FF6A1F'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.globalAlpha = .9;
+      drawSquad(buyDrag.x, buyDrag.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true);
+      ctx.globalAlpha = 1;
+    }
+
+    fx = fx.filter(f => now - f.born < (f.boom ? 480 : 280));
+    for (const f of fx) {
+      const age = (now - f.born) / (f.boom ? 480 : 280);
+      if (f.boom) {
+        const { x, y } = centre(f.at), rad = 26 * age;
+        ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,106,31,${1 - age})`; ctx.lineWidth = 3 * (1 - age) + 1; ctx.stroke();
+        continue;
+      }
+      const a = centre(f.from), b = centre(f.to);
+      const col = f.side === 'p' ? '255,106,31' : '255,68,56';
+      const t0 = Math.min(1, age * 1.6);
+      const px = a.x + (b.x - a.x) * t0, py = a.y + (b.y - a.y) * t0;
+      const tx = a.x + (b.x - a.x) * Math.max(0, t0 - .25), ty = a.y + (b.y - a.y) * Math.max(0, t0 - .25);
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(px, py);
+      ctx.strokeStyle = `rgba(${col},${1 - age * .6})`; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.stroke();
+      if (age > .5 && f.splash) {
+        ctx.beginPath(); ctx.arc(b.x, b.y, 8 + 14 * (age - .5) / .5, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${col},${(1 - age) * 1.3})`; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+  }
+  (function loop() { drawBoard(); requestAnimationFrame(loop); })();
+
+  const at = ev => {
+    const r = cv.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) * BW / r.width, y: (ev.clientY - r.top) * BH / r.height };
+  };
+  const droppable = h => h >= 0 && map && map.deployZone.includes(h) && !map.terrain(h).blocks;
+  function placeAt(uid, h) {
+    const me = st.army.find(s => s.uid === uid);
+    if (!me || !droppable(h)) return false;
+    const other = st.army.find(s => s.hex === h && s.uid !== uid);
+    if (other) other.hex = me.hex;                       // swap rather than refuse
+    me.hex = h;
+    return true;
+  }
+
+  cv.addEventListener('pointerdown', ev => {
+    if (phase !== 'deploy') return;
+    const p = at(ev), h = hexAt(p.x, p.y);
+    const sq = st.army.find(s => s.hex === h);
+    press = { hex: h, uid: sq ? sq.uid : null };
+    if (sq) {
+      drag = { uid: sq.uid, x: p.x, y: p.y, over: h, moved: false };
+      sel = sq.uid;
+      if (cv.setPointerCapture) { try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* not supported */ } }
+      render();
+    }
+  });
+  cv.addEventListener('pointermove', ev => {
+    if (!drag) {
+      if (phase !== 'deploy') {
+        const p = at(ev), h = hexAt(p.x, p.y);
+        if (h !== hoverHex) { hoverHex = h; renderInspect(); }
+        return;
+      }
+      if (phase === 'deploy') {
+        const p = at(ev), h = hexAt(p.x, p.y);
+        if (h !== hoverHex) { hoverHex = h; renderInspect(); }
+        cv.style.cursor = st.army.some(s => s.hex === h) ? 'grab'
+          : (sel != null && h >= 0 && !droppable(h)) ? 'not-allowed' : 'crosshair';
+      }
+      return;
+    }
+    const p = at(ev);
+    if (Math.abs(p.x - drag.x) > 2 || Math.abs(p.y - drag.y) > 2) drag.moved = true;
+    drag.x = p.x; drag.y = p.y; drag.over = hexAt(p.x, p.y);
+    cv.style.cursor = 'grabbing';
+  });
+  function endDrag(ev) {
+    cv.style.cursor = 'crosshair';
+    if (drag) {
+      const target = drag.over;
+      if (drag.moved && !placeAt(drag.uid, target) && target >= 0) {
+        denyUntil = performance.now() + 900;
+        flash('You can only deploy in the highlighted zone at the bottom of the board.');
+      }
+      drag = null; press = null; render(); return;
+    }
+    // no drag: a tap on empty ground places whatever is selected
+    if (press && phase === 'deploy' && sel != null) {
+      const p = at(ev), h = hexAt(p.x, p.y);
+      if (h === press.hex && !press.uid) {
+        if (placeAt(sel, h)) {
+          const next = st.army.find(s => s.hex == null || s.hex < 0);
+          if (next) sel = next.uid;
+        } else if (h >= 0) {
+          denyUntil = performance.now() + 900;    // flash the zone rather than ignore the click
+          flash('You can only deploy in the highlighted zone at the bottom of the board.');
+        }
+      }
+    }
+    press = null; render();
+  }
+  cv.addEventListener('pointerup', endDrag);
+
+  window.addEventListener('pointermove', ev => {
+    if (!buyDrag) return;
+    buyDrag.moved = true;
+    const r = cv.getBoundingClientRect();
+    const inside = ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
+    buyDrag.onBoard = inside;
+    if (inside) {
+      buyDrag.x = (ev.clientX - r.left) * BW / r.width;
+      buyDrag.y = (ev.clientY - r.top) * BH / r.height;
+      buyDrag.over = hexAt(buyDrag.x, buyDrag.y);
+    } else buyDrag.over = -1;
+  });
+  window.addEventListener('pointerup', ev => {
+    if (!buyDrag) return;
+    const bd = buyDrag; buyDrag = null;
+    if (phase !== 'deploy') { render(); return; }
+    // dropped on legal ground: buy it and put it exactly there. A plain click buys and auto-places.
+    if (bd.moved && bd.onBoard && droppable(bd.over)) {
+      const sq = buy(st, bd.id);
+      if (sq) {
+        const taken = st.army.find(s => s.hex === bd.over && s.uid !== sq.uid);
+        sq.hex = bd.over; sel = sq.uid;
+        if (taken) { taken.hex = -1; autoPlaceOne(taken); }   // shove the previous occupant aside
+      }
+    }
+    render();
+  });
+  cv.addEventListener('pointercancel', () => { drag = null; press = null; cv.style.cursor = 'crosshair'; render(); });
+  cv.addEventListener('pointerleave', () => { hoverHex = -1; renderInspect(); });
+
+  /* ---------- panels ---------- */
+  function renderWar() {
+    const b = $('#warbar'); b.textContent = '';
+    const cell = (k, v, cls, pips, foe) => {
+      const d = el('div'); d.appendChild(el('span', null, k)); d.appendChild(el('b', cls || null, String(v)));
+      if (pips != null) {
+        const p = el('div', 'pips' + (foe ? ' foe' : ''));
+        for (let i = 0; i < 12; i++) { const x = el('i'); if (i < pips) x.className = 'on'; p.appendChild(x); }
+        d.appendChild(p);
+      }
+      b.appendChild(d);
+    };
+    const t = tierOf(profile);
+    const tc = el('div'); tc.dataset.tier = t.n;
+    tc.appendChild(el('span', null, 'Tier ' + t.n));
+    tc.appendChild(el('b', 'cool', t.name));
+    tc.appendChild(el('div', 'cnote', profile.warsWon + 'W / ' + profile.warsFought +
+      (profile.doctrines.length ? '  ·  ' + profile.doctrines.length + ' doctrine' + (profile.doctrines.length > 1 ? 's' : '') : '')));
+    tc.title = t.note;
+    b.appendChild(tc);
+    cell('Round', Math.min(st.round, ROUNDS) + ' / ' + ROUNDS);
+    cell('Credits', st.credits, 'hot');
+    const used = slotsUsed(st), cap = slotCap(st);
+    const sl = el('div');
+    sl.dataset.slots = used; sl.dataset.slotcap = cap;
+    sl.appendChild(el('span', null, 'Field slots'));
+    sl.appendChild(el('b', used >= cap ? 'bad' : '', used + ' / ' + cap));
+    const bar = el('div', 'slotbar');
+    const fill = el('i'); fill.style.width = (used / cap * 100) + '%';
+    if (used >= cap) fill.className = 'full';
+    bar.appendChild(fill); sl.appendChild(bar);
+    sl.title = 'Every squad takes slots by size. Full means you must merge or promote instead of buying.';
+    b.appendChild(sl);
+    // one contested bar reads faster than two numbers and two rows of pips
+    const sup = el('div'); sup.dataset.you = st.supply; sup.dataset.them = st.enemySupply;
+    sup.appendChild(el('span', null, 'Supply'));
+    const nums = el('b', st.supply <= 4 ? 'bad' : '');
+    nums.textContent = st.supply + ' v ' + st.enemySupply;
+    sup.appendChild(nums);
+    const track = el('div', 'contest');
+    const mine = el('i', 'me'); mine.style.width = (st.supply / 15 * 50) + '%';
+    const theirs = el('i', 'foe'); theirs.style.width = (st.enemySupply / 15 * 50) + '%';
+    track.appendChild(mine); track.appendChild(theirs);
+    sup.appendChild(track);
+    b.appendChild(sup);
+    $('#creditTag').textContent = st.credits + ' credits';
+  }
+
+  function renderShop() {
+    const box = $('#shop'); box.textContent = '';
+    $('#tabUnits').setAttribute('aria-pressed', shopTab === 'units');
+    $('#tabTech').setAttribute('aria-pressed', shopTab === 'tech');
+    if (phase !== 'deploy') { box.appendChild(el('div', 'lbl', 'The shop reopens after the battle.')); return; }
+
+    if (shopTab === 'units') {
+      for (const u of UNITS) {
+        const locked = !st.unlocked.includes(u.id);
+        const noRoom = slotsUsed(st) + u.slots > slotCap(st);
+        const s = spec(st, u.id);
+        const c = el('button', 'card' + (locked ? ' locked' : ''));
+        c.disabled = locked || st.credits < priceOf(st, u.id) || noRoom;
+        if (!locked && noRoom) c.title = 'No field slots left — merge or promote what you have.';
+        const r1 = el('div', 'crow');
+        r1.appendChild(el('div', 'cname', u.name));
+        r1.appendChild(el('span', 'pill ' + u.role, u.role));
+        r1.appendChild(el('span', 'pill era' + u.era, 'E' + u.era));
+        r1.appendChild(el('div', 'cost', locked ? 'LOCKED' : noRoom ? 'NO ROOM' : String(priceOf(st, u.id))));
+        c.appendChild(r1);
+        c.appendChild(el('div', 'cstat',
+          `${u.slots} slot${u.slots > 1 ? 's' : ''} · ${s.n}× ${s.hp}hp · ${s.dmg}dmg · ${s.minR}–${s.maxR}` +
+          (s.splash ? ` · splash${s.splash}` : '') + (s.ap ? ` · AP${s.ap}` : '') +
+          (s.indirect ? ' · indirect' : '')));
+        c.title = u.note;                      // the prose lives on hover, not on screen
+        // Click (or Enter) buys and auto-places; press-and-drag onto a hex buys and places there.
+        // A completed drag releases over the canvas, so no click fires on the card — no double buy.
+        c.onclick = () => { const sq = buy(st, u.id); if (sq) { autoPlaceOne(sq); sel = sq.uid; } render(); };
+        c.addEventListener('pointerdown', ev => {
+          if (c.disabled || phase !== 'deploy') return;
+          buyDrag = { id: u.id, x: 0, y: 0, over: -1, moved: false, onBoard: false };
+        });
+        box.appendChild(c);
+      }
+    } else {
+      for (const t of TECH) {
+        const owned = st.tech.includes(t.id);
+        const c = el('button', 'card');
+        c.disabled = owned || st.credits < t.cost;
+        const r1 = el('div', 'crow');
+        r1.appendChild(el('div', 'cname', t.name));
+        r1.appendChild(el('span', 'pill ' + U[t.unit].role, U[t.unit].name));
+        if (owned) r1.appendChild(el('span', 'pill owned', 'owned'));
+        else r1.appendChild(el('div', 'cost', String(t.cost)));
+        c.appendChild(r1);
+        c.appendChild(el('div', 'cnote', t.note));
+        c.onclick = () => { buyTech(st, t.id); render(); };
+        box.appendChild(c);
+      }
+    }
+  }
+
+  function autoPlaceOne(sq) {
+    const zone = map.deployZone.filter(h => !map.terrain(h).blocks && !st.army.some(s => s.hex === h));
+    sq.hex = zone.length ? zone[Math.floor(zone.length / 2)] : -1;
+  }
+
+  function renderArmy() {
+    const box = $('#army'); box.textContent = '';
+    if (phase !== 'deploy') return;
+    if (!st.army.length) { box.appendChild(el('div', 'lbl', 'No squads yet. Buy something from the shop.')); return; }
+    for (const s of st.army) {
+      const u = squadSpec(st, s);
+      const row = el('div', 'sq' + (s.hex < 0 ? ' unplaced' : ''));
+      row.setAttribute('aria-pressed', sel === s.uid);
+      row.dataset.hex = s.hex;              // placement is visible on the board, not spelled out here
+      row.dataset.uid = s.uid;
+      row.dataset.rank = s.rank || 0;
+      const rk = el('span', 'rank r' + (s.rank || 0), u.rankName);
+      rk.title = u.n + '× ' + u.hp + ' hull, ' + u.dmg + ' damage';
+      row.appendChild(rk);
+      row.appendChild(el('div', 'n', u.name + ' ×' + u.n));
+      if (s.hex < 0) row.appendChild(el('span', 'pill', 'unplaced'));
+
+      const group = mergeable(st, s);
+      if (group) {
+        const m = el('button', 'btn ghost sm merge', 'Merge ' + MERGE_COUNT);
+        m.title = 'Combine ' + MERGE_COUNT + ' ' + u.name + ' at rank ' + u.rankName +
+          ' into one at rank ' + RANKS[(s.rank || 0) + 1].name + ', freeing slots.';
+        m.onclick = e => { e.stopPropagation(); merge(st, s.uid); render(); };
+        row.appendChild(m);
+      } else {
+        const cost = upgradeCost(st, s);
+        if (cost != null) {
+          const up = el('button', 'btn ghost sm', '▲ ' + cost);
+          up.disabled = st.credits < cost;
+          up.title = 'Promote to rank ' + RANKS[(s.rank || 0) + 1].name +
+            ' — about a third more hull and damage.';
+          up.onclick = e => { e.stopPropagation(); upgrade(st, s.uid); render(); };
+          row.appendChild(up);
+        }
+      }
+      const stanceBtn = el('button', 'btn ghost sm' + (s.stance === 'charge' ? ' charging' : ''),
+        s.stance === 'charge' ? 'Charge' : 'Hold');
+      stanceBtn.title = s.stance === 'charge'
+        ? 'Sprinting into contact: cannot fire while closing and easier to hit, but the first strike lands at triple damage through armour.'
+        : 'Advances to its preferred range and fights from there.';
+      stanceBtn.onclick = e => { e.stopPropagation(); setStance(st, s.uid, s.stance === 'charge' ? 'hold' : 'charge'); render(); };
+      row.appendChild(stanceBtn);
+      const sellBtn = el('button', 'btn ghost sm', '×');
+      sellBtn.title = 'Sell this squad';
+      sellBtn.onclick = e => { e.stopPropagation(); sell(st, s.uid); if (sel === s.uid) sel = st.army.length ? st.army[0].uid : null; render(); };
+      row.appendChild(sellBtn);
+      row.onclick = () => { sel = s.uid; render(); };
+      box.appendChild(row);
+    }
+  }
+
+  function renderControls() {
+    const box = $('#controls'); box.textContent = '';
+    const add = (label, cls, fn, dis) => { const b = el('button', 'btn ' + (cls || ''), label); b.disabled = !!dis; b.onclick = fn; box.appendChild(b); };
+    if (phase === 'deploy') {
+      add('Fight', '', startBattle, !st.army.length);
+      add('Auto-place', 'ghost', () => {
+        const zone = map.deployZone.filter(h => !map.terrain(h).blocks);
+        st.army.forEach((s, i) => { s.hex = zone[Math.floor((i + 1) * zone.length / (st.army.length + 1))]; });
+        render();
+      }, !st.army.length);
+      add('New war', 'ghost', () => { st = newGame(Math.floor(Math.random() * 9999) + 1, modifiers(profile)); startRound(); });
+    } else if (phase === 'battle') {
+      add('Skip to result', 'ghost', () => { stopTimer(); idx = run.frames.length; finish(); });
+    } else if (phase === 'summary') {
+      add(st.over ? 'See the outcome' : unlockOffer.length ? 'Unlock a unit' : 'Take a reward', '', () => {
+        if (st.over) {
+          if (!st.recorded) {
+            st.recorded = true;
+            recordWar(profile, st.won);
+            doctrineOffer = st.won ? offerDoctrines(profile, mulberry32((st.seed * 97) >>> 0)) : [];
+          }
+          phase = 'over'; renderOver(); render(); return;
+        }
+        phase = unlockOffer.length ? 'unlock' : 'boon'; render();
+      });
+    } else if (phase === 'unlock') {
+      add('Skip the unlock', 'ghost', () => { phase = 'boon'; render(); });
+    } else if (phase === 'boon') {
+      add('Skip the reward', 'ghost', () => { startRound(); });
+    } else if (phase === 'over') {
+      add('Start a new war', '', () => { st = newGame(Math.floor(Math.random() * 9999) + 1, modifiers(profile)); startRound(); });
+    }
+  }
+
+  let flashTimer = null;
+  function flash(msg) {
+    const h = $('#hint');
+    h.hidden = false; h.classList.add('deny'); h.textContent = msg;
+    if (flashTimer) clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { h.classList.remove('deny'); renderHint(); }, 1800);
+  }
+
+  function squadAtHex(h) {
+    if (h == null || h < 0) return null;
+    if (curFrame) {
+      const q = curFrame.squads.find(x => x.hex === h);
+      if (!q) return null;
+      const u = q.side === 'p' ? U[q.id] : U[q.id];
+      return { side: q.side, u, n: q.n, nMax: q.nMax, rank: null, spec: U[q.id] };
+    }
+    const mine = st.army.find(x => x.hex === h);
+    if (mine) return { side: 'p', u: U[mine.id], n: null, rank: mine.rank || 0, spec: squadSpec(st, mine) };
+    const i = enemyHex.indexOf(h);
+    if (i >= 0) {
+      const e = enemy[i];
+      return { side: 'e', u: U[e.id], n: null, rank: e.rank || 0, spec: enemySpec(st, e) };
+    }
+    return null;
+  }
+
+  function renderInspect() {
+    const box = $('#inspect');
+    const found = squadAtHex(hoverHex);
+    if (!found) { box.hidden = true; return; }
+    box.hidden = false;
+    box.className = found.side === 'e' ? 'foe' : '';
+    box.textContent = '';
+    const sp = found.spec;
+    box.appendChild(el('div', 'who', (found.side === 'e' ? 'REGIME · ' : '') + sp.name));
+    if (found.rank != null) {
+      const r = el('span', 'rank r' + found.rank, RANKS[found.rank].name);
+      box.appendChild(r);
+    }
+    box.appendChild(el('span', 'pill ' + found.u.role, found.u.role));
+    box.appendChild(el('span', 'pill era' + found.u.era, 'E' + found.u.era));
+    const stat = el('div', 'st');
+    stat.innerHTML = '<b>' + (found.n != null ? found.n + '/' + found.nMax : '×' + sp.n) + '</b> machines · ' +
+      '<b>' + sp.hp + '</b> hull · <b>' + sp.dmg + '</b> dmg · range <b>' + sp.minR + '–' + sp.maxR + '</b>' +
+      (sp.splash ? ' · splash <b>' + sp.splash + '</b>' : '') +
+      (sp.ap ? ' · AP<b>' + sp.ap + '</b>' : '') +
+      (sp.save ? ' · save <b>' + sp.save + '+</b>' : '') +
+      (sp.indirect ? ' · <b>indirect</b>' : '') +
+      ' · <b>' + sp.slots + '</b> slot' + (sp.slots > 1 ? 's' : '');
+    box.appendChild(stat);
+  }
+
+  function renderHint() {
+    const h = $('#hint');
+    if (h.classList.contains('deny')) return;   // a refusal is showing; do not paint over it
+    if (phase !== 'deploy') { h.hidden = true; return; }
+    h.hidden = false;
+    const ranked = {};
+    for (const e of enemy) {
+      const key = e.id + ':' + (e.rank || 0);
+      ranked[key] = ranked[key] || { n: 0, id: e.id, rank: e.rank || 0 };
+      ranked[key].n++;
+    }
+    const list = Object.values(ranked)
+      .sort((a, b) => b.n - a.n)
+      .map(x => x.n + '× ' + U[x.id].name + (x.rank ? ' ' + RANKS[x.rank].name : '')).join(', ') || 'nothing';
+    h.innerHTML = '<b>Incoming:</b> ' + list +
+      '  <b>·</b>  ' + slotsUsed(st) + ' of ' + slotCap(st) + ' field slots used';
+    h.title = 'Drag a unit from the shop onto a hex to buy and place it. Drag placed squads to rearrange; dropping one on another swaps them.';
+  }
+
+  /* ---------- round flow ---------- */
+  function startRound() {
+    const seed = (st.seed * 7919 + st.round * 104729) >>> 0;
+    const rng = mulberry32(seed);
+    map = makeMap(mulberry32((seed ^ 0x9e3779b9) >>> 0), st.round);
+    enemy = enemyArmy(st, rng);
+    enemyHex = deployArmy(map, enemy.map(e => enemySpec(st, e)), 'e');
+    const zone = map.deployZone.filter(h => !map.terrain(h).blocks);
+    st.army.forEach((s, i) => {
+      if (s.hex == null || s.hex < 0 || !zone.includes(s.hex)) s.hex = zone[Math.floor((i + 1) * zone.length / (st.army.length + 1))];
+    });
+    phase = 'deploy'; resolved = false; curFrame = null; run = null; fx = [];
+    sel = st.army.length ? st.army[0].uid : null;
+    $('#mainTitle').textContent = 'Deployment';
+    $('#viewTag').textContent = 'Place your squads';
+    $('#playbar').hidden = true; $('#summary').hidden = true;
+    setSide('army');
+    render();
+  }
+
+  const logBox = $('#log');
+  function logLine(t, kind, text, detail) {
+    const d = el('div', 'e-' + kind);
+    if (t != null) d.appendChild(el('span', 't', String(t).padStart(3, ' ') + '  '));
+    d.appendChild(document.createTextNode(text));
+    logBox.appendChild(d);
+    if (detail) logBox.appendChild(el('div', 'detail', detail));
+    logBox.scrollTop = logBox.scrollHeight;
+    while (logBox.children.length > 400) logBox.removeChild(logBox.firstChild);
+  }
+
+  function startBattle() {
+    phase = 'battle'; logBox.textContent = ''; fx = []; paused = false; setSide('log');
+    const mine = st.army.map(s => Object.assign(squadSpec(st, s), { hex: s.hex, stance: s.stance }));
+    const theirs = enemy.map((e, i) => Object.assign(enemySpec(st, e), { hex: enemyHex[i] }));
+    run = simulateBattle(mine, theirs, (st.seed * 31 + st.round * 977) >>> 0, { map, round: st.round });
+    idx = 0;
+    $('#mainTitle').textContent = 'Battle'; $('#summary').hidden = true;
+    startTimer(); updatePlaybar(); render();
+  }
+
+  function showFrame(f, withFx) {
+    curFrame = f;
+    if (withFx !== false) {
+      const now = performance.now();
+      for (const e of f.ev) {
+        if (e.from != null) fx.push({ from: e.from, to: e.to, side: e.side, splash: e.splash, born: now });
+        if (e.at != null) fx.push({ boom: true, at: e.at, born: now });
+      }
+    }
+    $('#viewTag').textContent = 'tick ' + f.t + ' · ' +
+      f.squads.filter(q => q.side === 'p').length + ' v ' + f.squads.filter(q => q.side === 'e').length + ' squads';
+  }
+  function logFrame(f) { for (const e of f.ev) if (e.s) logLine(f.t, e.k, e.s, e.detail); }
+  function rebuildLog(n) { logBox.textContent = ''; for (let i = 0; i < n; i++) logFrame(run.frames[i]); }
+  function updatePlaybar() {
+    const pb = $('#playbar'); pb.hidden = !run || (phase !== 'battle' && phase !== 'summary');
+    if (pb.hidden) return;
+    $('#scrub').max = String(Math.max(0, run.frames.length));
+    $('#scrub').value = String(idx);
+    const shown = idx === 0 ? 0 : run.frames[Math.min(idx, run.frames.length) - 1].t;
+    $('#tickTag').textContent = 'tick ' + shown + ' / ' + (run.frames.length ? run.frames[run.frames.length - 1].t : 0);
+    $('#pbPlay').textContent = phase === 'summary' ? 'Replay' : paused ? 'Play' : 'Pause';
+    $('#pbSpeed').textContent = 'Speed ×' + speed;
+  }
+  function stopTimer() { if (timer) clearInterval(timer); timer = null; }
+  function startTimer() { stopTimer(); if (!paused) timer = setInterval(tick, TICK_MS / speed); }
+  function tick() {
+    if (!run || idx >= run.frames.length) { stopTimer(); finish(); return; }
+    showFrame(run.frames[idx], true); logFrame(run.frames[idx]); idx++; updatePlaybar();
+  }
+  function seek(i) {
+    if (!run) return;
+    idx = Math.max(0, Math.min(run.frames.length, i)); fx = [];
+    rebuildLog(idx);
+    const f = run.frames[Math.max(0, idx - 1)];
+    if (f) showFrame(f, false);
+    updatePlaybar();
+  }
+  $('#pbPlay').onclick = () => {
+    if (phase === 'summary') {
+      phase = 'battle'; paused = false; $('#summary').hidden = true;
+      $('#mainTitle').textContent = 'Battle'; seek(0); startTimer(); render(); return;
+    }
+    paused = !paused; if (paused) stopTimer(); else startTimer(); updatePlaybar();
+  };
+  $('#pbStep').onclick = () => { if (!run) return; if (!paused) { paused = true; stopTimer(); } if (idx < run.frames.length) tick(); updatePlaybar(); };
+  $('#pbSpeed').onclick = () => { speed = speed === 0.5 ? 1 : speed === 1 ? 2 : speed === 2 ? 4 : 0.5; if (!paused && phase === 'battle') startTimer(); updatePlaybar(); };
+  $('#scrub').oninput = e => { if (!paused) { paused = true; stopTimer(); } seek(parseInt(e.target.value, 10)); };
+
+  function finish() {
+    stopTimer(); phase = 'summary'; paused = true;
+    let report = { lost: [], bite: run.bite };
+    if (!resolved) {
+      // battle uid "p3" refers to the third squad in the army we sent
+      run.lostSquads = run.lostSquads.map(l => {
+        const i = +String(l.uid).slice(1);
+        return { uid: st.army[i] ? st.army[i].uid : -1, id: l.id };
+      });
+      report = resolveRound(st, run);
+      resolved = true;
+      const rr = mulberry32((st.seed * 61 + st.round * 5171) >>> 0);
+      boonOffer = st.over ? [] : offerBoons(st, rr, st.lastLost);
+      unlockOffer = st.over ? [] : offerUnlocks(st, rr);
+    }
+    const s = $('#summary'); s.hidden = false; s.className = run.won ? 'win' : 'loss'; s.textContent = '';
+    s.appendChild(el('div', 'sumhead', run.won ? 'Field held' : 'Pushed off the field'));
+    const lines = el('div');
+    lines.appendChild(el('div', 'cnote', run.won
+      ? `The regime falls back. Their supply drops by ${report.bite}.`
+      : `You are driven off. Your supply drops by ${report.bite}.`));
+    if (report.lost && report.lost.length)
+      lines.appendChild(el('div', 'cnote', report.lost.length + ' squad' + (report.lost.length > 1 ? 's' : '') +
+        ' destroyed: ' + report.lost.join(', ')));
+    if (report.bill)
+      lines.appendChild(el('div', 'cnote', 'Rebuilt for ' + report.bill +
+        ' credits, taken out of next round\u2019s income.'));
+    if (report.scrapped && report.scrapped.length)
+      lines.appendChild(el('div', 'cnote', 'Could not afford to rebuild: ' + report.scrapped.join(', ') + ' \u2014 written off.'));
+    s.appendChild(lines);
+    // why it went the way it did
+    if (run.notes && run.notes.length) {
+      const why = el('div', 'why');
+      why.appendChild(el('div', 'lbl', 'What happened'));
+      for (const n of run.notes) why.appendChild(el('div', 'wnote ' + (n.kind || ''), n.text));
+      s.appendChild(why);
+    }
+    if (run.stats && run.stats.length) {
+      const t = el('table', 'ministat');
+      const hd = t.insertRow();
+      for (const h of ['Squad', 'Shots', 'Hit', 'Damage', 'Wasted', 'Idle', 'Losses'])
+        hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+      for (const q of run.stats) {
+        const r = t.insertRow();
+        const add = (x, cls) => { const c = r.insertCell(); c.textContent = x; if (cls) c.className = cls; };
+        add(q.name, 'n'); add(q.shots); add(q.hits); add(q.dealt);
+        add(q.wasted ? Math.round(q.wasted / (q.dealt || 1) * 100) + '%' : '—',
+          q.wasted > q.dealt * 0.3 ? 'bad' : '');
+        add(q.idle ? q.idle + 't' : '—', q.shots === 0 ? 'bad' : '');
+        add(q.lost + '/' + q.nMax, q.lost === q.nMax ? 'bad' : '');
+      }
+      s.appendChild(t);
+    }
+
+    const g = el('div', 'sumgrid');
+    for (const [k, v] of [['Ticks', run.ticks], ['Your squads left', run.playerLeft], ['Regime left', run.enemyLeft],
+      ['Your supply', st.supply], ['Regime supply', st.enemySupply], ['Credits', st.credits]]) {
+      const d = el('div'); d.appendChild(el('span', null, k)); d.appendChild(el('b', null, String(v))); g.appendChild(d);
+    }
+    s.appendChild(g);
+    $('#mainTitle').textContent = 'Round ' + (st.round - 1) + ' result';
+    updatePlaybar(); render();
+  }
+
+  function renderUnlocks() {
+    const s = $('#summary'); s.hidden = false; s.className = ''; s.textContent = '';
+    s.appendChild(el('div', 'sumhead', 'Unlock a unit'));
+    const era = currentEra(st);
+    s.appendChild(el('div', 'cnote', 'You field ' + st.unlocked.length + ' of ' + UNITS.length +
+      ' machines. Advancing through the ' + ERAS[era].toLowerCase() + ' era — the next opens once this one is complete.'));
+    const wrap = el('div', 'boons');
+    for (const u of unlockOffer) {
+      const sp = spec(st, u.id);
+      const c = el('button', 'card boon');
+      const r1 = el('div', 'crow');
+      r1.appendChild(el('div', 'cname', u.name));
+      r1.appendChild(el('span', 'pill ' + u.role, u.role));
+      r1.appendChild(el('span', 'pill era' + u.era, ERAS[u.era]));
+      r1.appendChild(el('div', 'cost', String(u.cost)));
+      c.appendChild(r1);
+      c.appendChild(el('div', 'cstat', `${sp.n}× · ${sp.hp} hull · ${sp.dmg} dmg · range ${sp.minR}–${sp.maxR}` +
+        (sp.splash ? ` · splash ${sp.splash}` : '') + (sp.ap ? ` · AP-${sp.ap}` : '')));
+      c.appendChild(el('div', 'cnote', u.note));
+      c.onclick = () => { takeUnlock(st, u.id); phase = 'boon'; render(); };
+      wrap.appendChild(c);
+    }
+    s.appendChild(wrap);
+    $('#mainTitle').textContent = 'Round ' + (st.round - 1) + ' unlock';
+  }
+
+  function renderBoons() {
+    const s = $('#summary'); s.hidden = false; s.className = ''; s.textContent = '';
+    s.appendChild(el('div', 'sumhead', 'Take one, lose the rest'));
+    s.appendChild(el('div', 'cnote',
+      'Field upgrades live here rather than competing with squads for credits. Rarer cards are ' +
+      'exponentially stronger, and rarer cards show up more the deeper the war runs — or when you are losing.'));
+    const wrap = el('div', 'boons');
+    for (const b of boonOffer) {
+      const r = RAR[b.rarity] || RAR.common;
+      const c = el('button', 'card boon r-' + (b.rarity || 'common'));
+      c.style.borderColor = r.color;
+      const r1 = el('div', 'crow');
+      r1.appendChild(el('div', 'cname', b.name));
+      const rp = el('span', 'pill', r.name);
+      rp.style.color = r.color; rp.style.borderColor = r.color;
+      r1.appendChild(rp);
+      if (b.catchUp) r1.appendChild(el('span', 'pill owned', 'catch-up'));
+      c.appendChild(r1);
+      c.appendChild(el('div', 'cnote', b.note));
+      c.onclick = () => { takeBoon(st, b); startRound(); };
+      wrap.appendChild(c);
+    }
+    s.appendChild(wrap);
+    $('#mainTitle').textContent = 'Round ' + (st.round - 1) + ' reward';
+  }
+
+  function renderOver() {
+    const s = $('#summary'); s.hidden = false; s.className = st.won ? 'win' : 'loss'; s.textContent = '';
+    s.appendChild(el('div', 'sumhead', st.won ? 'The regime withdraws from the sector' : 'Your supply is gone'));
+    s.appendChild(el('div', 'cnote', 'War record: ' + profile.warsWon + ' won of ' + profile.warsFought +
+      '  ·  best streak ' + profile.best + '  ·  next war at tier ' + tierOf(profile).n + ', ' + tierOf(profile).name));
+    if (doctrineOffer.length) {
+      s.appendChild(el('div', 'cnote', 'Take a doctrine — it is yours for every war from here.'));
+      const wrap = el('div', 'boons');
+      for (const dc of doctrineOffer) {
+        const c = el('button', 'card boon');
+        const r1 = el('div', 'crow');
+        r1.appendChild(el('div', 'cname', dc.name));
+        r1.appendChild(el('span', 'pill owned', 'permanent'));
+        c.appendChild(r1);
+        c.appendChild(el('div', 'cnote', dc.note));
+        c.onclick = () => { takeDoctrine(profile, dc.id); doctrineOffer = []; renderOver(); render(); };
+        wrap.appendChild(c);
+      }
+      s.appendChild(wrap);
+    } else if (profile.doctrines.length) {
+      s.appendChild(el('div', 'cnote', 'Doctrines held: ' +
+        profile.doctrines.map(id => DOCTRINES.find(x => x.id === id).name).join(', ')));
+    }
+    const l = el('div');
+    for (const e of st.log.slice(-6))
+      l.appendChild(el('div', 'cnote', e.text + (e.lost.length ? '   Lost: ' + e.lost.join(', ') : '')));
+    s.appendChild(l);
+    $('#mainTitle').textContent = 'The war';
+  }
+
+  $('#tabUnits').onclick = () => { shopTab = 'units'; renderShop(); };
+  $('#tabTech').onclick = () => { shopTab = 'tech'; renderShop(); };
+
+  let sideTab = 'army';
+  function setSide(t) {
+    sideTab = t;
+    for (const [id, name] of [['#tabArmy', 'army'], ['#tabLog', 'log'], ['#tabManual', 'manual']])
+      $(id).setAttribute('aria-pressed', t === name);
+    $('#army').hidden = t !== 'army';
+    $('#log').hidden = t !== 'log';
+    $('#manual').hidden = t !== 'manual';
+  }
+  $('#tabArmy').onclick = () => setSide('army');
+  $('#tabLog').onclick = () => setSide('log');
+  $('#tabManual').onclick = () => setSide('manual');
+
+
+  (function rarTable() {
+    const t = $('#rarTable'), hd = t.insertRow();
+    for (const h of ['Tier', 'Effect', 'Roughly']) hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+    const tot = RARITY.reduce((a, r) => a + r.w, 0);
+    for (const r of RARITY) {
+      const row = t.insertRow();
+      const c = row.insertCell(); c.textContent = r.name; c.className = 'n'; c.style.color = r.color;
+      row.insertCell().textContent = '×' + r.mult.toFixed(1);
+      row.insertCell().textContent = '1 in ' + Math.round(tot / r.w);
+    }
+  })();
+
+  (function specTable() {
+    const t = $('#specTable'), hd = t.insertRow();
+    for (const h of ['Unit', 'Role', 'Cost', 'Squad', 'Hull', 'Damage', 'Range', 'Splash', 'AP', 'Save', 'Speed', 'Notes'])
+      hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+    for (const u of UNITS) {
+      const r = t.insertRow();
+      const add = (x, cls) => { const c = r.insertCell(); c.textContent = x; if (cls) c.className = cls; };
+      add(u.name, 'n');
+      r.insertCell().appendChild(el('span', 'pill ' + u.role, u.role));
+      add(u.cost); add('×' + u.n); add(u.hp); add(u.dmg);
+      add(u.minR + '–' + u.maxR + (u.indirect ? ' indirect' : ''));
+      add(u.splash || '—'); add(u.ap ? '-' + u.ap : '—'); add(u.save ? u.save + '+' : '—'); add(u.speed);
+      r.insertCell().appendChild(el('span', 'note', u.note));
+    }
+  })();
+
+  $('#btnSim').onclick = function () {
+    this.disabled = true; $('#simStatus').textContent = 'simulating…';
+    setTimeout(() => {
+      const RUNS = 40, agg = { won: 0, rounds: 0, roundWins: 0, played: 0, wipes: 0, boons: 0 };
+      for (let r2 = 1; r2 <= RUNS; r2++) {
+        const g = newGame(r2), rng = mulberry32(r2 * 7919);
+        let guard = 0;
+        while (!g.over && guard++ < 20) {
+          const en = enemyArmy(g, rng);
+          const theirs = {};
+          for (const e of en) theirs[U[e.id].role] = (theirs[U[e.id].role] || 0) + U[e.id].n;
+          const crowded = (theirs.swarm || 0) + (theirs.line || 0) >= 10;
+          const big = (theirs.heavy || 0) + (theirs.ace || 0) > 0;
+          const want = crowded ? ['missile', 'siege', 'line'] : big ? ['lancers', 'heavy', 'line'] : ['line', 'skirm', 'heavy'];
+          const tw = TECH.filter(t => !g.tech.includes(t.id) && g.army.filter(s => s.id === t.unit).length >= 2 && t.cost <= g.credits);
+          if (tw.length && rng() < 0.7) buyTech(g, tw[Math.floor(rng() * tw.length)].id);
+          let gd = 0;
+          while (gd++ < 30) { const pool = want.filter(id => U[id].cost <= g.credits); if (!pool.length) break; buy(g, pool[Math.floor(rng() * pool.length)]); }
+          if (!g.army.length) { g.over = true; g.won = false; break; }
+          const res = simulateBattle(g.army.map(s => squadSpec(g, s)), en.map(e => enemySpec(g, e)),
+            (g.seed * 31 + g.round * 977) >>> 0, { noFrames: true, round: g.round });
+          res.lostSquads = res.lostSquads.map(l => {
+            const i = +String(l.uid).slice(1);
+            return { uid: g.army[i] ? g.army[i].uid : -1, id: l.id };
+          });
+          agg.played++; if (res.won) agg.roundWins++; agg.wipes += res.lostSquads.length;
+          resolveRound(g, res);
+          if (!g.over) {
+            const offer = offerBoons(g, rng, g.lastLost);
+            const prefer = offer.find(b => b.kind === 'tech') || offer.find(b => b.catchUp) || offer[0];
+            takeBoon(g, prefer);
+            agg.boons++;
+          }
+        }
+        agg.rounds += g.round - 1; if (g.won) agg.won++;
+      }
+      const t = $('#simTable'); t.textContent = '';
+      const hd = t.insertRow();
+      for (const h of ['Measure', 'Result', '']) hd.appendChild(Object.assign(document.createElement('th'), { textContent: h }));
+      for (const [k, v, n] of [
+        ['Wars won', Math.round(agg.won / RUNS * 100) + '%', 'against a buyer that counters you'],
+        ['Avg rounds played', (agg.rounds / RUNS).toFixed(1) + ' / ' + ROUNDS, ''],
+        ['Rounds won', Math.round(agg.roundWins / agg.played * 100) + '%', ''],
+        ['Squads wiped per round', (agg.wipes / agg.played).toFixed(2), 'gone for good'],
+        ['Rewards drafted per war', (agg.boons / RUNS).toFixed(1), 'one per round survived'],
+      ]) {
+        const r = t.insertRow(); r.insertCell().textContent = k;
+        const c = r.insertCell(); c.className = 'n'; c.textContent = v;
+        r.insertCell().appendChild(el('span', 'note', n));
+      }
+      $('#simOut').hidden = false; $('#simStatus').textContent = RUNS + ' wars simulated';
+      this.disabled = false;
+    }, 30);
+  };
+
+  function render() {
+    renderWar(); renderShop(); renderArmy(); renderHint(); renderInspect(); renderControls();
+    if (phase === 'unlock') renderUnlocks();
+    if (phase === 'boon') renderBoons();
+  }
+  startRound();
+})();
+</script>
