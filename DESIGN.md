@@ -43,6 +43,30 @@ Counter-picking is the strongest way to play, so the game has to let you see wha
 Income rises every round for both sides, so round eight looks nothing like round one. Run out of
 supply and the war is over.
 
+## Emplaced artillery
+
+Siege Walkers and Missile Tracks do not move. You put them on a hex and they fight from it for
+the whole battle.
+
+They used to reposition like everything else, and it was wrong twice over. A gun line that walks
+toward the enemy reads as a slow brawler rather than artillery, and it kept strolling out of the
+cover it had been placed in — the player's positioning decision was being undone by the approach
+heuristic a few ticks later.
+
+Holding still makes both halves of the piece sharp. Placement becomes the whole decision: a
+Siege Walker cannot fire inside three hexes, so where you set it down decides which lanes it
+covers and how long it has before something reaches it. And it hands the opponent a clear answer
+— go around it, or close the distance and stand where it cannot depress its guns. A Missile Track
+fires indirect and ignores terrain entirely, so the only counter to one is reaching it.
+
+This made artillery stronger, not weaker: measured value went from the middle of the pack to
+61% (Siege) and 58% (Missile), because a gun that stops walking itself into a brawl keeps firing.
+Prices moved to match.
+
+It also took some of the point out of charging. Against a gun line that could flee, charge speed
+was the difference between catching it and never catching it; against one that holds, it only
+buys a couple of saved volleys. Still a real edge — 19% to 23% — just a smaller one.
+
 ## Charging
 
 The one order you give. Every squad is set to **HOLD** or **CHARGE** before the battle.
