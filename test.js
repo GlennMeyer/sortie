@@ -272,13 +272,19 @@ console.log('\n--- unit unlocks ---');
   ok(seen.every((e, i) => i === 0 || e >= seen[i - 1]), 'unlocks never go backwards down the ladder', seen.join('->'));
   ok(seen.includes(2) && seen.includes(3), 'and a full war reaches the advanced era', seen.join('->'));
 
-  /* Round one must be a fair fight. Fairness here is equal resources and the same rung of the
-     ladder — not an equal win rate, because the outcome depends on how well you spend. A naive
-     random buyer loses this opener and a value-first buyer wins it, which is the point.
-     The regime once opened with 1330 credits to the player's 950 and won it 95% of the time. */
+  /* Round one must be winnable by someone who does not yet know what beats what.
+     Equal budgets sounded like fairness and were not: the regime's buyer is a solved policy, so
+     on 950 apiece a sensible-but-uninformed player lost the opening battle about two in three.
+     The regime now opens lighter. The handicap is deliberate, bounded, and belongs to the
+     bottom of the ladder — tiers scale it straight back up.
+     (It once opened with 1330 to the player's 950 and won the opener 95% of the time.) */
   {
     const g = A.newGame(11);
-    ok(g.credits === g.eCredits, 'both sides open on the same credits', g.credits + ' v ' + g.eCredits);
+    ok(g.eCredits < g.credits && g.eCredits > g.credits * 0.8,
+      'the regime opens lighter than you, but not by a landslide', g.credits + ' v ' + g.eCredits);
+    const hard = A.newGame(11, { enemyIncome: 1.4 });
+    ok(hard.eCredits > g.eCredits, 'and the tiers scale that handicap away',
+      g.eCredits + ' at tier one, ' + hard.eCredits + ' at the top');
     const theirs = A.enemyArmy(g, B.mulberry32(4));
     ok(theirs.every(e => A.U[e.id].era === 1), 'and the regime opens on era one, same as you',
       [...new Set(theirs.map(e => A.U[e.id].name))].join(', '));

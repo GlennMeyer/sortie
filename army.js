@@ -117,7 +117,12 @@ function newGame(seed, mods) {
     tech: mods.freeTech ? [TECH[0].id] : [],
     unlocked: roster,
     efleet: [],          // the regime's standing army — it persists exactly like yours
-    eCredits: Math.round(950 * (mods.enemyIncome || 1)),   // round one is even at tier one
+    /* The regime opens lighter than you do. Round one used to be an even 950 apiece, which sounds
+       fair and is not: the regime's buyer is a solved policy and a person playing their first war
+       is not, so an even budget lost the opening battle about two times in three. The first
+       sortie has to be winnable by someone still learning what beats what. Tiers scale this back
+       up, so the handicap belongs to the beginning of the ladder, not to the whole of it. */
+    eCredits: Math.round(840 * (mods.enemyIncome || 1)),
     enemyTech: [],
     log: [], over: false, won: false, nextUid: 1,
   };

@@ -92,6 +92,8 @@ h1{font-family:var(--grot);font-weight:800;font-size:clamp(32px,6.5vw,58px);lett
 .rank.r3{color:var(--warn)} .rank.r4{color:#FFD24B}
 .btn.merge{color:var(--coolant);border-color:var(--coolant)}
 .btn.merge:hover{background:var(--coolant);color:#12161C}
+.btn.rankup{border-color:var(--accent);color:var(--accent)}
+.btn.rankup:hover{background:var(--accent);color:#12161C}
 .sq.unplaced .where{color:var(--warn)}
 
 #boardWrap{position:relative;background:#0E1319;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
@@ -760,7 +762,12 @@ function newGame(seed, mods) {
     tech: mods.freeTech ? [TECH[0].id] : [],
     unlocked: roster,
     efleet: [],          // the regime's standing army — it persists exactly like yours
-    eCredits: Math.round(950 * (mods.enemyIncome || 1)),   // round one is even at tier one
+    /* The regime opens lighter than you do. Round one used to be an even 950 apiece, which sounds
+       fair and is not: the regime's buyer is a solved policy and a person playing their first war
+       is not, so an even budget lost the opening battle about two times in three. The first
+       sortie has to be winnable by someone still learning what beats what. Tiers scale this back
+       up, so the handicap belongs to the beginning of the ladder, not to the whole of it. */
+    eCredits: Math.round(840 * (mods.enemyIncome || 1)),
     enemyTech: [],
     log: [], over: false, won: false, nextUid: 1,
   };
@@ -2011,10 +2018,14 @@ if (typeof module !== 'undefined' && module.exports) {
       } else {
         const cost = upgradeCost(st, s);
         if (cost != null) {
-          const up = el('button', 'btn ghost sm', '▲ ' + cost);
+          /* When the slot cap is what is stopping you, this button IS the game — it is the only
+             way to turn credits into force. It used to read '▲ 270', which told nobody that.
+             Named, and lit up the moment buying another squad stops being possible. */
+          const up = el('button', 'btn ghost sm' + (rankUpUrged() && st.credits >= cost ? ' rankup' : ''),
+            'Rank up ' + cost);
           up.disabled = st.credits < cost;
           up.title = 'Promote to rank ' + RANKS[(s.rank || 0) + 1].name +
-            ' — about a third more hull and damage.';
+            ' — about a third more hull and damage, and it costs no extra field slots.';
           up.onclick = e => { e.stopPropagation(); upgrade(st, s.uid); render(); };
           row.appendChild(up);
         }
@@ -2125,6 +2136,15 @@ if (typeof module !== 'undefined' && module.exports) {
     box.appendChild(stat);
   }
 
+  /* Slots full, credits piling up. The single most expensive thing a player can not know:
+     wars are lost from round 8 onward by sitting on money that could have been ranks. */
+  function rankUpUrged() {
+    if (phase !== 'deploy') return false;
+    const cheapestSquad = Math.min.apply(null, st.unlocked.map(id => U[id].slots || 1));
+    if (slotsUsed(st) + cheapestSquad <= slotCap(st)) return false;      // you can still buy bodies
+    return st.army.some(sq => { const c = upgradeCost(st, sq); return c != null && c <= st.credits; });
+  }
+
   function renderHint() {
     const h = $('#hint');
     if (h.classList.contains('deny')) return;   // a refusal is showing; do not paint over it
@@ -2140,7 +2160,11 @@ if (typeof module !== 'undefined' && module.exports) {
       .sort((a, b) => b.n - a.n)
       .map(x => x.n + '× ' + U[x.id].name + (x.rank ? ' ' + RANKS[x.rank].name : '')).join(', ') || 'nothing';
     h.innerHTML = '<b>Incoming:</b> ' + list +
-      '  <b>·</b>  ' + slotsUsed(st) + ' of ' + slotCap(st) + ' field slots used';
+      '  <b>·</b>  ' + slotsUsed(st) + ' of ' + slotCap(st) + ' field slots used' +
+      (rankUpUrged()
+        ? '  <b>·</b>  <b>Slots full — spend your ' + st.credits + ' credits on RANK UP.</b> ' +
+          'A rank is about a third more hull and damage and costs no slots. This is how the late war is won.'
+        : '');
     h.title = 'Drag a unit from the shop onto a hex to buy and place it. Drag placed squads to rearrange; dropping one on another swaps them.';
   }
 

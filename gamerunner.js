@@ -23,6 +23,16 @@ function buyPolicy(st, enemy, rng) {
     if (!pool.length) break;
     A.buy(st, pool[Math.floor(rng() * pool.length)]);
   }
+  /* Once the slot cap bites, credits can only become force through ranks. A policy that skips
+     this looks fine to round seven and then loses every remaining round of the war — it was
+     reporting a healthy game while sitting on four thousand unspent credits at round ten. */
+  let up = 0;
+  while (up++ < 40) {
+    const cands = st.army.filter(sq => { const c = A.upgradeCost(st, sq); return c != null && c <= st.credits; });
+    if (!cands.length) break;
+    cands.sort((a, b) => A.upgradeCost(st, a) - A.upgradeCost(st, b));
+    if (!A.upgrade(st, cands[0].uid)) break;
+  }
 }
 
 const agg = { won: 0, lost: 0, rounds: 0, roundWins: 0, roundsPlayed: 0, wipes: 0, armyMax: 0, techs: 0 };

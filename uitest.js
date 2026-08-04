@@ -237,6 +237,17 @@ const num = label => {
   }
   check('the intel line names the enemy composition', /incoming/i.test(txt('#hint')), txt('#hint').slice(0, 70));
 
+  /* The single most expensive thing a player can fail to discover: when slots are full, ranks are
+     the only way credits become force. A war where you never rank up wins 0% of round ten. The
+     control used to read '▲ 270', which named nothing. */
+  {
+    const rankBtn = [...d.querySelectorAll('#army .sq button')].find(b => /rank up/i.test(b.textContent));
+    check('squads show a named rank-up control, not a bare glyph', !!rankBtn,
+      rankBtn ? rankBtn.textContent : 'none found');
+    if (rankBtn) check('and it says what the promotion costs', /rank up\s*\d+/i.test(rankBtn.textContent),
+      rankBtn.textContent);
+  }
+
   // stance: the one order you give
   const stanceBtn = [...d.querySelectorAll('#army .sq button')].find(b => /hold|charge/i.test(b.textContent));
   check('every squad has a stance control', !!stanceBtn, stanceBtn ? stanceBtn.textContent : 'none');
