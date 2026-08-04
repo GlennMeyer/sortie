@@ -210,10 +210,19 @@ console.log('\n--- charging ---');
 {
   const st = A.newGame(1);
   const mk = (id, stance) => Object.assign(A.spec(st, id), { stance });
+  /* Compare at equal spend. These matchups are only meaningful if both sides cost about the same;
+     two Lancer squads against three artillery pieces is 980 credits against 2420, and once the
+     tuner repriced siege it became unwinnable either way — which reads as "charging does nothing"
+     when the truth is "this army was never going to win". Count is chosen to match the foe's bill. */
+  const bill = squads => squads.reduce((a, s) => a + A.U[s.id ? s.id : s].cost, 0);
   const run = (id, stance, foe, n) => {
-    const N = n || 40;
+    const N = 120;
+    const count = n || Math.max(1, Math.round(bill(foe.map(f => f.id)) / A.U[id].cost));
     let w = 0;
-    for (let s = 1; s <= N; s++) if (B.simulateBattle([mk(id, stance), mk(id, stance)], foe, s, { noFrames: true }).won) w++;
+    for (let s = 1; s <= N; s++) {
+      const mine = Array.from({ length: count }, () => mk(id, stance));
+      if (B.simulateBattle(mine, foe, s, { noFrames: true }).won) w++;
+    }
     return w / N;
   };
   /* Charging is for catching things that want to keep away from you. Before pathing was fixed it
@@ -224,8 +233,8 @@ console.log('\n--- charging ---');
      volleys rather than the difference between catching them and never catching them at all.
      The edge is real but small, so it needs the seeds to see it: at 40 it sat inside the noise. */
   const siegeLine = ['siege', 'siege', 'missile'].map(i => A.spec(st, i));
-  const h1 = run('lancers', 'hold', siegeLine, 120), c1 = run('lancers', 'charge', siegeLine, 120);
-  ok(c1 > h1 + 0.03, 'charging closes on an artillery line that would otherwise shell you',
+  const h1 = run('lancers', 'hold', siegeLine), c1 = run('lancers', 'charge', siegeLine);
+  ok(c1 > h1 + 0.06, 'charging closes on an artillery line that would otherwise shell you',
     Math.round(h1 * 100) + '% -> ' + Math.round(c1 * 100) + '%');
 
   const fast = ['skirm', 'skirm', 'skirm'].map(i => A.spec(st, i));
@@ -235,7 +244,7 @@ console.log('\n--- charging ---');
 
   // for a unit that wanted to shoot from distance, giving up its return fire buys nothing
   const massed = ['line', 'line', 'line', 'pods'].map(i => A.spec(st, i));
-  const hs = run('skirm', 'hold', massed, 60), cs = run('skirm', 'charge', massed, 60);
+  const hs = run('skirm', 'hold', massed), cs = run('skirm', 'charge', massed);
   ok(cs <= hs + 0.02, 'but buys a ranged unit nothing at all',
     Math.round(hs * 100) + '% -> ' + Math.round(cs * 100) + '%');
 

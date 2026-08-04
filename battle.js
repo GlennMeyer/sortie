@@ -103,16 +103,75 @@ function applyDamage(q, dmg, splash, ev) {
 }
 
 /* Deterministic placement, exposed so the shop screen can show you exactly where the enemy
-   will stand before you spend a credit. Counter-picking is the game; blind counter-picking is not. */
+   will stand before you spend a credit. Counter-picking is the game; blind counter-picking is not.
+
+   This used to walk the zone in roster order and drop squads at even intervals, which meant the
+   regime fielded a tactically arbitrary army — artillery in the front rank, melee at the back,
+   everything in a neat line for the splash. It also decided the player's unplaced squads, so a
+   round you did not hand-place was a round nobody positioned.
+
+   The policy: depth by reach, ground by role, and never bunch up.
+     - Artillery and anything long-ranged holds the back edge, and wants high ground, because a
+       ridge sees over the rubble between it and the enemy.
+     - Short-ranged machines start forward so they spend fewer turns walking.
+     - Cover is worth taking; marsh is worth avoiding if you have to cross it.
+     - Squads spread out, because overkill is wasted and splash is not.
+   Ties break on the lowest hex index, so the same army always deploys the same way. */
+function placementScore(map, sp, h, placed, side) {
+  const depth = side === 'p' ? (map.ROWS - 1 - H.rowOf(h)) : H.rowOf(h);   // 0 = own back edge
+  const t = map.terrain(h);
+  const longRanged = sp.emplaced || sp.maxR >= 6;
+  const shortRanged = sp.maxR <= 2;
+  const wantDepth = longRanged ? 0 : shortRanged ? 2 : 1;
+
+  let v = Math.abs(depth - wantDepth) * 3;
+  v -= t.cover * 4;                                  // a hole or a wreck is worth standing in
+  if (longRanged && t.high) v -= 3;                  // shoot over what is in the way
+  if (shortRanged && t.cost >= 3) v += 2;            // do not start a sprint in the mud
+  if (sp.emplaced && t.cost >= 3) v += 1;
+
+  for (const p of placed) {                          // do not hand them a splash target
+    const d = map.d(h, p.hex);
+    if (d === 0) return Infinity;
+    if (d === 1) v += 2.2;
+    else if (d === 2) v += 0.6;
+    if (H.colOf(h) === H.colOf(p.hex)) v += 0.5;     // and hold the width of the board
+  }
+  return v;
+}
+
 function deployArmy(map, specs, side) {
   const zone = (side === 'p' ? map.deployZone : map.enemyZone).filter(h => !map.terrain(h).blocks);
-  const used = new Set(), out = [];
+  const inZone = new Set(zone);
+  const out = new Array(specs.length).fill(-1);
+  const placed = [];
+
+  // anything the player put down by hand stays exactly where they put it
   specs.forEach((sp, i) => {
-    if (sp.hex != null && sp.hex >= 0 && zone.includes(sp.hex) && !used.has(sp.hex)) { used.add(sp.hex); out.push(sp.hex); return; }
-    let h = zone[Math.floor((i + 1) * zone.length / (specs.length + 1))], guard = 0;
-    while (used.has(h) && guard++ < zone.length) h = zone[(zone.indexOf(h) + 1) % zone.length];
-    used.add(h); out.push(h);
+    if (sp.hex != null && sp.hex >= 0 && inZone.has(sp.hex) && !placed.some(p => p.hex === sp.hex)) {
+      out[i] = sp.hex; placed.push({ hex: sp.hex });
+    }
   });
+
+  /* Artillery chooses first: there are few hexes that suit it and many that suit a brawler. */
+  const order = specs.map((sp, i) => i)
+    .filter(i => out[i] < 0)
+    .sort((a, b) => {
+      const rank = sp => (sp.emplaced ? 0 : sp.maxR >= 6 ? 1 : sp.maxR <= 2 ? 2 : 3);
+      return rank(specs[a]) - rank(specs[b]) || a - b;
+    });
+
+  for (const i of order) {
+    let best = -1, bestV = Infinity;
+    for (const h of zone) {
+      if (placed.some(p => p.hex === h)) continue;
+      const v = placementScore(map, specs[i], h, placed, side);
+      if (v < bestV) { bestV = v; best = h; }
+    }
+    if (best < 0) best = zone.find(h => !placed.some(p => p.hex === h));
+    if (best == null || best < 0) break;             // zone genuinely full
+    out[i] = best; placed.push({ hex: best });
+  }
   return out;
 }
 
@@ -124,18 +183,12 @@ function simulateBattle(playerSquads, enemySquads, seed, opts = {}) {
   playerSquads.forEach((s, i) => squads.push(makeSquad(s, 'p', 'p' + i)));
   enemySquads.forEach((s, i) => squads.push(makeSquad(s, 'e', 'e' + i)));
 
-  // deployment: anything unplaced gets spread across its own zone
+  /* Deployment runs through the same policy the shop screen previews, so what you are shown is
+     exactly what forms up — and so an unplaced squad is positioned rather than merely parked. */
   for (const side of ['p', 'e']) {
-    const zone = (side === 'p' ? map.deployZone : map.enemyZone).filter(h => !map.terrain(h).blocks);
     const mine = squads.filter(q => q.side === side);
-    const used = new Set(mine.filter(q => q.hex >= 0 && zone.includes(q.hex)).map(q => q.hex));
-    mine.forEach((q, i) => {
-      if (q.hex >= 0 && zone.includes(q.hex) && !map.terrain(q.hex).blocks) return;
-      let h = zone[Math.floor((i + 1) * zone.length / (mine.length + 1))];
-      let guard = 0;
-      while (used.has(h) && guard++ < zone.length) h = zone[(zone.indexOf(h) + 1) % zone.length];
-      q.hex = h; used.add(h);
-    });
+    const hexes = deployArmy(map, mine.map(q => Object.assign({}, q.s, { hex: q.hex })), side);
+    mine.forEach((q, i) => { if (hexes[i] >= 0) q.hex = hexes[i]; });
   }
 
   let t = 0, result = null, quiet = 0;
