@@ -457,6 +457,51 @@ and checked *before* adding a squad, so by the last round it took the field with
 your 18 — 17 squads against 12.6. Both sides now get the same eighteen, enforced after the fact. It
 still fields more *squads* than you, but only because it buys cheap one-slot units; the slots match.
 
+## The war that could not be won
+
+Every balance figure in this document came from bots playing bots, and they all said the game was
+healthy. The first human to play it said he lost constantly. He was right, and the tools could not
+see it.
+
+Once the eighteen-slot cap bites, credits can only become force through ranks. The regime's buyer
+does this automatically — `enemyArmy` has done it from the start, under a comment reading "spend
+them on quality, exactly as you can". The player was never told "as you can". The control read
+`▲ 270`.
+
+Same buying, same placement, the only variable being whether the player ranks up:
+
+| | r6 | r7 | r8 | r9 | r10 | wars |
+|---|---|---|---|---|---|---|
+| never ranking up | 69% | 61% | 35% | 13% | 0% | 56% |
+| ranking up when slots are full | 77% | 79% | 71% | 58% | 58% | 72% |
+
+By round seven the un-ranked army flatlines around 11,000 hull holding 4,326 unspent credits,
+while the regime climbs past 14,000. The last third of every war was a scripted loss.
+
+The war record hid it twice over. Wars are decided on supply attrition and often end by round six,
+so the headline said 56% while every late round actually played was a defeat. And `health.js`
+measured a bot that ranks up — it was reporting on a player who already knew the secret.
+
+Two fixes, and the second is the general one:
+
+- The control is named (`Rank up 230`), lights up the moment buying another squad becomes
+  impossible, and the hint bar states the whole rule outright when slots are full.
+- `gamerunner.js` models ranking up, and `naive.js` exists to play the game as someone who does
+  *not* know the mechanics — buys sensibly, never counter-picks, never merges, never ranks up.
+  Where its round-by-round curve diverges from the expert policy's is a mechanic the interface is
+  failing to teach. A bot policy encodes knowledge the player has not been given; measuring only
+  expert play makes a discoverability failure look like balance.
+
+## The opening battle
+
+Round one gave both sides 950 credits. That sounds like fairness and is not: the regime's buyer is
+a solved policy and a person playing their first war is not, so an even budget lost the opening
+battle about two times in three. First impressions are not the place to be even-handed.
+
+The regime now opens on 840, which puts the first sortie at 67% for a player who buys sensibly and
+knows no counters. The handicap belongs to the bottom of the ladder — tier scaling multiplies the
+regime's income and takes it straight back.
+
 ## Known problems
 
 - **Battles themselves are decisive, even when the war is not.** 78% end with the loser under 10%
