@@ -23,4 +23,8 @@ fs.writeFileSync('prototype.html',
 // Parse-check the combined script exactly as the browser will see it.
 const script = body.slice(body.indexOf('<script>') + 8, body.lastIndexOf('</script>'));
 new Function(script);
-console.log('built  artifact.html ' + (body.length / 1024).toFixed(1) + 'kb   script parsed clean');
+/* The same file twice: artifact.html is what gets published to claude.ai, index.html is what
+   GitHub Pages serves at glennmeyer.github.io/sortie. Writing both here means a build can never
+   leave one of them a version behind. */
+fs.writeFileSync('index.html', body);
+console.log('built  artifact.html + index.html ' + (body.length / 1024).toFixed(1) + 'kb   script parsed clean');
