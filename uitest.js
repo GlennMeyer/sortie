@@ -214,15 +214,22 @@ const num = label => {
       for (const gy of [0.10, 0.16, 0.22, 0.86, 0.92]) {
         move(rc.width * gx, rc.height * gy);
         const box = q('#inspect');
-        if (box.hidden) continue;
+        if (box.className === 'idle') continue;
         if (box.className === 'foe') sawFoe = true; else sawMine = true;
       }
     }
     check('hovering an enemy squad tells you what it is', sawFoe);
     check('and hovering your own does too', sawMine);
+    /* The readout must never be added to or removed from the layout. It shares a flex column with
+       the canvas, so toggling it resized the board and the grid jumped under the cursor on every
+       hover. It is always in the flow; only its contents change. */
     move(rc.width * 0.5, rc.height * 0.5);
+    const idleBox = q('#inspect');
+    check('the readout keeps its place when you are pointing at nothing',
+      !idleBox.hidden && idleBox.className === 'idle' && idleBox.textContent.length > 0,
+      idleBox.textContent.slice(0, 40));
     const shown = q('#inspect');
-    if (!shown.hidden) {
+    if (shown.className !== 'idle') {
       check('the readout carries the numbers you need to counter it',
         /hull/.test(shown.textContent) && /dmg/.test(shown.textContent) && /range/.test(shown.textContent),
         shown.textContent.slice(0, 70));

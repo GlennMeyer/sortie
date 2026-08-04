@@ -102,8 +102,15 @@ h1{font-family:var(--grot);font-weight:800;font-size:clamp(32px,6.5vw,58px);lett
 .hint{padding:8px 11px;border:1px solid var(--accent);border-radius:var(--r);background:#241a13;color:var(--ink);font-size:11px}
 .hint b{color:var(--accent);font-weight:400}
 .hint.deny{border-color:var(--crit);background:#2a1412;color:var(--crit)}
-#inspect{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--line);
+/* This row must never change size. It sits in the board column's flex flow, so showing and
+   hiding it resized the canvas underneath the cursor — the grid visibly jumped every time you
+   pointed at a squad and again when you pointed away. It is always present now, with a prompt
+   when nothing is under the cursor, fixed height, and no wrapping. */
+#inspect{display:flex;align-items:center;gap:9px;flex:0 0 auto;flex-wrap:nowrap;overflow:hidden;
+  min-height:31px;height:31px;border:1px solid var(--line);
   border-radius:var(--r);background:var(--panel-2);padding:6px 10px;margin:0 8px;font-size:10px}
+#inspect.idle{border-color:transparent;background:transparent}
+#inspect .prompt{color:var(--ink-faint);letter-spacing:.04em}
 #inspect .who{font-size:11px;letter-spacing:.08em;color:var(--ink)}
 #inspect.foe{border-color:#5a1c17}
 #inspect.foe .who{color:var(--crit)}
@@ -256,7 +263,7 @@ html,body{height:100%;overflow:hidden}
     <section class="panel board-col">
       <div class="phead"><h2 id="mainTitle">Deployment</h2><span class="sub" id="viewTag">Place your squads</span></div>
       <div id="hint" class="hint"></div>
-      <div id="inspect" hidden></div>
+      <div id="inspect" class="idle"></div>
       <div class="boardfit"><canvas id="board" width="900" height="620"></canvas></div>
       <div id="playbar" hidden>
         <button class="btn ghost sm" id="pbPlay">Pause</button>
@@ -2066,10 +2073,13 @@ if (typeof module !== 'undefined' && module.exports) {
   function renderInspect() {
     const box = $('#inspect');
     const found = squadAtHex(hoverHex);
-    if (!found) { box.hidden = true; return; }
-    box.hidden = false;
-    box.className = found.side === 'e' ? 'foe' : '';
     box.textContent = '';
+    if (!found) {
+      box.className = 'idle';
+      box.appendChild(el('span', 'prompt', 'Point at any squad to read its loadout.'));
+      return;
+    }
+    box.className = found.side === 'e' ? 'foe' : '';
     const sp = found.spec;
     box.appendChild(el('div', 'who', (found.side === 'e' ? 'REGIME · ' : '') + sp.name));
     if (found.rank != null) {
