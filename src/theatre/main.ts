@@ -88,7 +88,7 @@ const eraBar = document.getElementById('eras') as HTMLElement;
 const atlas = buildAtlas(ERAS);
 const batch = new Batcher(cv, atlas.canvas);
 const script = demoScript();
-let era = eraById('mobilesuit');
+let era = eraById(new URLSearchParams(location.search).get('era') ?? 'mobilesuit');
 const theatre = new Theatre(script, era, atlas, batch);
 
 if (!batch.ok) {

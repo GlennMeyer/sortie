@@ -90,66 +90,136 @@ function skeleton(spec: RigSpec, p: Pose): Record<string, Joint> {
   };
 }
 
-function limb(ctx: CanvasRenderingContext2D, a: Joint, b: Joint, w: number, colour: string) {
-  ctx.strokeStyle = colour;
-  ctx.lineWidth = w;
-  ctx.lineCap = 'round';
+/* Machines are plated, not tubular.
+   Round-capped strokes between joints give you a stick man every time — the silhouette that
+   results is a tube with a ball on top, and no amount of colour rescues it. Everything here is
+   drawn as a tapered quad between two joints, with a darker edge, so limbs read as armour panels
+   and the outline has corners. Accent colour goes on pauldrons and the visor; a stripe down the
+   chest just reads as a heat map. */
+
+function plate(ctx: CanvasRenderingContext2D, a: Joint, b: Joint, wa: number, wb: number,
+               fill: string, edge?: string) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len;
   ctx.beginPath();
-  ctx.moveTo(a.x, a.y);
-  ctx.lineTo(b.x, b.y);
-  ctx.stroke();
+  ctx.moveTo(a.x + nx * wa, a.y + ny * wa);
+  ctx.lineTo(b.x + nx * wb, b.y + ny * wb);
+  ctx.lineTo(b.x - nx * wb, b.y - ny * wb);
+  ctx.lineTo(a.x - nx * wa, a.y - ny * wa);
+  ctx.closePath();
+  ctx.fillStyle = fill; ctx.fill();
+  if (edge) { ctx.strokeStyle = edge; ctx.lineWidth = 1; ctx.stroke(); }
 }
 
-function drawFigure(ctx: CanvasRenderingContext2D, skin: EraSkin, arch: Archetype, p: Pose, tint: string) {
+function box(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number,
+             rot: number, fill: string, edge?: string) {
+  ctx.save();
+  ctx.translate(cx, cy); ctx.rotate(rot);
+  ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h);
+  ctx.fillStyle = fill; ctx.fill();
+  if (edge) { ctx.strokeStyle = edge; ctx.lineWidth = 1; ctx.stroke(); }
+  ctx.restore();
+}
+
+const shade = (hex: string, k: number) => {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (v: number) => Math.max(0, Math.min(255, Math.round(v * k)));
+  return `rgb(${f((n >> 16) & 255)},${f((n >> 8) & 255)},${f(n & 255)})`;
+};
+
+/** The weapon in the right hand, drawn along the forearm. Returns the muzzle or blade tip. */
+function drawWeapon(ctx: CanvasRenderingContext2D, elbow: Joint, hand: Joint,
+                    cls: 'gun' | 'edge' | 'none', reach: number, metal: string, accent: string): Joint {
+  const dx = hand.x - elbow.x, dy = hand.y - elbow.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  const tip: Joint = { x: hand.x + ux * reach, y: hand.y + uy * reach };
+  const ang = Math.atan2(uy, ux);
+  if (cls === 'gun') {
+    box(ctx, hand.x + ux * reach * 0.30, hand.y + uy * reach * 0.30,
+      reach * 0.62, reach * 0.30, ang, shade(metal, 0.55), shade(metal, 0.35));
+    plate(ctx, hand, tip, reach * 0.10, reach * 0.055, shade(metal, 0.8));
+  } else if (cls === 'edge') {
+    box(ctx, hand.x + ux * reach * 0.14, hand.y + uy * reach * 0.14,
+      reach * 0.24, reach * 0.20, ang, shade(metal, 0.5));
+    plate(ctx, hand, tip, reach * 0.09, reach * 0.02, accent);
+  }
+  return tip;
+}
+
+function drawFigure(ctx: CanvasRenderingContext2D, skin: EraSkin, arch: Archetype, p: Pose,
+                    tint: string, weapon: 'gun' | 'edge' | 'none'): Joint {
   const spec = skin.rig(arch);
   const s = skeleton(spec, p);
   const px = CELL * 0.62 / spec.height;
-  // narrow enough that torso, arms and legs stay separate shapes at stage size
-  const thick = Math.max(2.2, spec.breadth * spec.height * px * 0.34 * spec.limb);
+  /* plate() and box() take half-widths, so every panel drawn from `unit` comes out twice this
+     wide. Sized so a shoulder is about a quarter of the figure's height — armour, not a barrel. */
+  const unit = spec.breadth * spec.height * px * spec.limb * 0.55;
+  const metal = skin.palette.metal;
+  const dark = shade(metal, 0.52);
+  const edge = shade(metal, 0.34);
 
-  // legs and the far arm sit behind the torso
-  limb(ctx, s.hip!, s.kneeL!, thick * 0.9, skin.palette.shadow);
-  limb(ctx, s.kneeL!, s.footL!, thick * 0.75, skin.palette.shadow);
-  limb(ctx, s.shoulder!, s.elbowL!, thick * 0.7, skin.palette.shadow);
-  limb(ctx, s.elbowL!, s.handL!, thick * 0.6, skin.palette.shadow);
-
-  limb(ctx, s.hip!, s.kneeR!, thick, skin.palette.metal);
-  limb(ctx, s.kneeR!, s.footR!, thick * 0.82, skin.palette.metal);
-
-  // torso, with the squad's colour down the front so sides read at a glance
-  limb(ctx, s.hip!, s.shoulder!, thick * 1.5, skin.palette.metal);
-  limb(ctx, s.hip!, s.shoulder!, thick * 0.55, tint);
-
-  // head
-  const headR = Math.max(2.2, spec.head * spec.height * px * 0.72);
-  ctx.fillStyle = skin.palette.metal;
-  ctx.beginPath(); ctx.arc(s.head!.x, s.head!.y, headR, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = tint;
-  ctx.beginPath();
-  ctx.arc(s.head!.x + headR * 0.35, s.head!.y - headR * 0.1, headR * 0.34, 0, Math.PI * 2);
-  ctx.fill();
-
-  // weapon arm last, over the top
-  limb(ctx, s.shoulder!, s.elbowR!, thick * 0.85, skin.palette.metal);
-  limb(ctx, s.elbowR!, s.handR!, thick * 0.7, skin.palette.metal);
+  // far side limbs, darkened so the near side reads in front
+  plate(ctx, s.hip!, s.kneeL!, unit * 0.42, unit * 0.34, dark);
+  plate(ctx, s.kneeL!, s.footL!, unit * 0.32, unit * 0.24, dark);
+  box(ctx, s.footL!.x + unit * 0.12, s.footL!.y, unit * 0.66, unit * 0.28, 0, dark);
+  plate(ctx, s.shoulder!, s.elbowL!, unit * 0.32, unit * 0.26, dark);
+  plate(ctx, s.elbowL!, s.handL!, unit * 0.26, unit * 0.20, dark);
 
   if (spec.thrusters) {
-    ctx.fillStyle = skin.palette.metal;
-    const back = { x: s.shoulder!.x - Math.cos(p.lean) * thick * 1.4, y: s.shoulder!.y + Math.sin(p.lean) * thick * 1.4 };
-    ctx.fillRect(back.x - thick * 0.5, back.y, thick, thick * 2.2);
+    const bx = s.shoulder!.x - Math.cos(p.lean) * unit * 0.9;
+    const by = s.shoulder!.y + Math.sin(p.lean) * unit * 0.9 + unit * 0.5;
+    box(ctx, bx, by, unit * 0.75, unit * 1.5, p.lean, shade(metal, 0.62), edge);
   }
+
+  // near leg
+  plate(ctx, s.hip!, s.kneeR!, unit * 0.52, unit * 0.40, metal, edge);
+  plate(ctx, s.kneeR!, s.footR!, unit * 0.38, unit * 0.28, metal, edge);
+  box(ctx, s.footR!.x + unit * 0.14, s.footR!.y, unit * 0.80, unit * 0.32, 0, shade(metal, 0.75), edge);
+  box(ctx, s.kneeR!.x, s.kneeR!.y, unit * 0.44, unit * 0.34, 0, tint);      // knee guard
+
+  // waist and chest as separate blocks, chest wider at the shoulders
+  const waist = { x: (s.hip!.x * 2 + s.shoulder!.x) / 3, y: (s.hip!.y * 2 + s.shoulder!.y) / 3 };
+  plate(ctx, s.hip!, waist, unit * 0.62, unit * 0.70, shade(metal, 0.7), edge);
+  plate(ctx, waist, s.shoulder!, unit * 0.78, unit * 1.02, metal, edge);
+  // a vent block on the chest, not a stripe
+  box(ctx, (waist.x + s.shoulder!.x) / 2, (waist.y + s.shoulder!.y) / 2,
+    unit * 0.62, unit * 0.46, p.lean, shade(metal, 0.62), edge);
+
+  // pauldrons — the widest thing on the machine, and where the colour lives
+  box(ctx, s.shoulder!.x + unit * 0.30, s.shoulder!.y, unit * 0.86, unit * 0.62, p.lean, tint, edge);
+  box(ctx, s.shoulder!.x - unit * 0.42, s.shoulder!.y, unit * 0.70, unit * 0.54, p.lean, shade(metal, 0.6), edge);
+
+  // head: a small angular block with a lit visor
+  const hr = Math.max(2.2, spec.head * spec.height * px * 0.62);
+  box(ctx, s.head!.x, s.head!.y, hr * 1.5, hr * 1.7, p.lean, shade(metal, 0.85), edge);
+  box(ctx, s.head!.x + hr * 0.34, s.head!.y - hr * 0.12, hr * 0.80, hr * 0.32, p.lean, tint);
+
+  // weapon arm over the top
+  plate(ctx, s.shoulder!, s.elbowR!, unit * 0.40, unit * 0.32, metal, edge);
+  plate(ctx, s.elbowR!, s.handR!, unit * 0.32, unit * 0.26, metal, edge);
+  return drawWeapon(ctx, s.elbowR!, s.handR!, weapon, spec.height * px * 0.28, metal, tint);
 }
 
 export interface Atlas {
   canvas: HTMLCanvasElement;
   /** era id -> archetype -> pose -> cell */
   cell(era: string, arch: Archetype, pose: PoseName, side: 'p' | 'e'): Cell;
-  /** Where the weapon hand sits inside a cell, so muzzles and blades attach correctly. */
-  hand(era: string, arch: Archetype, pose: PoseName): { x: number; y: number };
+  /** Where the shot actually leaves the machine — muzzle or blade tip, in cell pixels. Firing
+      from the hand put beams out at hip height; they leave the weapon, not the fist. */
+  muzzle(era: string, arch: Archetype, pose: PoseName): { x: number; y: number };
   cellSize: number;
+  /** Height of a drawn figure in cell pixels, so the stage can convert to metres. */
+  figureHeight: number;
 }
 
 const ARCHES: Archetype[] = ['grunt', 'brawler', 'heavy', 'artillery', 'ace'];
+
+/** What each archetype carries. Brawlers and aces close; everything else shoots. */
+const CARRIES: Record<Archetype, 'gun' | 'edge'> = {
+  grunt: 'gun', brawler: 'edge', heavy: 'gun', artillery: 'gun', ace: 'edge',
+};
 
 /** Draw every era x archetype x pose x side once, into one texture. */
 export function buildAtlas(skins: EraSkin[]): Atlas {
@@ -162,7 +232,7 @@ export function buildAtlas(skins: EraSkin[]): Atlas {
   const ctx = canvas.getContext('2d')!;
 
   const cells = new Map<string, Cell>();
-  const hands = new Map<string, { x: number; y: number }>();
+  const muzzles = new Map<string, { x: number; y: number }>();
   const key = (e: string, a: Archetype, p: PoseName, s?: string) => `${e}|${a}|${p}${s ? '|' + s : ''}`;
 
   let row = 0;
@@ -175,13 +245,13 @@ export function buildAtlas(skins: EraSkin[]): Atlas {
           ctx.save();
           ctx.translate(x, y);
           ctx.beginPath(); ctx.rect(0, 0, CELL, CELL); ctx.clip();
-          drawFigure(ctx, skin, arch, POSES[pose], side === 'p' ? skin.palette.player : skin.palette.foe);
+          const tip = drawFigure(ctx, skin, arch, POSES[pose],
+            side === 'p' ? skin.palette.player : skin.palette.foe, CARRIES[arch]);
           ctx.restore();
+          if (side === 'p') muzzles.set(key(skin.id, arch, pose), tip);
           cells.set(key(skin.id, arch, pose, side), { x, y, w: CELL, h: CELL });
           col++;
         }
-        const s = skeleton(skin.rig(arch), POSES[pose]);
-        hands.set(key(skin.id, arch, pose), { x: s.handR!.x, y: s.handR!.y });
       }
       row++;
     }
@@ -190,7 +260,8 @@ export function buildAtlas(skins: EraSkin[]): Atlas {
   return {
     canvas,
     cellSize: CELL,
+    figureHeight: GROUND_Y,
     cell: (e, a, p, s) => cells.get(key(e, a, p, s)) ?? { x: 0, y: 0, w: CELL, h: CELL },
-    hand: (e, a, p) => hands.get(key(e, a, p)) ?? { x: CELL / 2, y: CELL / 2 },
+    muzzle: (e, a, p) => muzzles.get(key(e, a, p)) ?? { x: CELL / 2, y: CELL / 2 },
   };
 }

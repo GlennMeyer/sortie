@@ -48,6 +48,10 @@ interface Spark {
 }
 
 const GRAVITY = 42;
+/* The two numbers that tie atlas pixels to world metres. Kept together because they only make
+   sense as a pair: a sprite draws CELL * SPRITE_SCALE * k tall, a metre is PX_PER_METRE * k. */
+const PX_PER_METRE = 30;
+const SPRITE_SCALE = 1.55;
 
 export class Theatre {
   private puppets = new Map<ActorId, Puppet>();
@@ -129,17 +133,17 @@ export class Theatre {
         p.facing = tgt.x >= p.x ? 1 : -1;
         p.pose = 'recoil'; p.hold = 0.26;
         const look = this.skin.look(b.weapon);
-        const hand = this.handWorld(p);
+        const muzzle = this.muzzleWorld(p);
         for (let i = 0; i < Math.max(1, Math.min(b.shots, 6)); i++) {
           const spread = (i - b.shots / 2) * 0.35;
           this.shots.push({
-            x: hand.x, y: hand.y, z: p.z,
+            x: muzzle.x, y: muzzle.y, z: p.z,
             tx: tgt.x + spread, ty: -tgt.actor.scale * 1.1, tz: tgt.z,
             t: -i * 0.06, dur: Math.max(0.09, Math.hypot(tgt.x - p.x, tgt.z - p.z) / look.speed),
             colour: look.colour, width: look.width, kind: look.kind, trail: look.trail,
           });
         }
-        this.burst(hand.x, hand.y, p.z, look.colour, look.flash / 6, 0.9);
+        this.burst(muzzle.x, muzzle.y, p.z, look.colour, look.flash / 6, 0.9);
         this.shake = Math.max(this.shake, b.weapon === 'cannon' ? 0.9 : 0.28);
         break;
       }
@@ -179,14 +183,18 @@ export class Theatre {
     }
   }
 
-  private handWorld(p: Puppet) {
+  /* Where a shot leaves the machine, in world metres.
+     This was wrong twice over: it used the hand rather than the weapon, and it converted atlas
+     pixels to metres with a figure height that did not match the one actually drawn on stage —
+     so beams left the fist at roughly hip height. A sprite is drawn CELL * SPRITE_SCALE * k
+     pixels tall while a metre is PX_PER_METRE * k pixels, which fixes the conversion exactly. */
+  private muzzleWorld(p: Puppet) {
     const cell = this.atlas.cellSize;
-    const hand = this.atlas.hand(this.skin.id, p.actor.archetype, p.pose);
-    // atlas pixels -> metres, relative to the figure's feet
-    const mPerPx = (p.actor.scale * 2.2) / cell;
+    const m = this.atlas.muzzle(this.skin.id, p.actor.archetype, p.pose);
+    const mPerPx = (p.actor.scale * SPRITE_SCALE) / PX_PER_METRE;
     return {
-      x: p.x + (hand.x - cell / 2) * mPerPx * p.facing,
-      y: -(cell - hand.y) * mPerPx - p.y,
+      x: p.x + (m.x - cell / 2) * mPerPx * p.facing,
+      y: -(this.atlas.figureHeight - m.y) * mPerPx - p.y,
     };
   }
 
@@ -243,7 +251,7 @@ export class Theatre {
   /** World (x metres, y metres up, z depth) -> screen pixels. */
   private project(x: number, y: number, z: number, w: number, h: number) {
     const depth = 1 / (1 + z * 0.045);
-    const px = 30 * this.camScale;
+    const px = PX_PER_METRE * this.camScale;
     const horizon = h * 0.44;
     const sx = w / 2 + (x - this.camX) * px * depth;
     const sy = horizon + (h * 0.40 - z * 4.0) * depth + y * px * depth;
@@ -284,7 +292,7 @@ export class Theatre {
     for (const p of order) {
       const n = Math.min(5, Math.max(1, p.count));
       for (let i = n - 1; i >= 0; i--) {
-        const off = i * 2.1;
+        const off = i * 3.3;
         const g = this.project(p.x + ox / 20 - p.facing * off * 1.15, 0, p.z + off, w, h);
         const sw = 30 * p.actor.scale * g.k * (1 - Math.min(0.6, p.y * 0.08));
         b.quad(g.sx, g.sy, sw, sw * 0.34, 0, [0, 0, 0, 0.34]);
@@ -296,9 +304,9 @@ export class Theatre {
       // a file of machines: the squad is drawn as up to five figures stepped back in depth
       const n = Math.min(5, Math.max(1, p.count));
       for (let i = n - 1; i >= 0; i--) {
-        const off = i * 2.1;
+        const off = i * 3.3;
         const gi = this.project(p.x + ox / 20 - p.facing * off * 1.15, -p.y, p.z + off, w, h);
-        const sc = (p.actor.scale * 1.55) * gi.k;
+        const sc = (p.actor.scale * SPRITE_SCALE) * gi.k;
         b.sprite(cell, this.atlas.canvas.width, this.atlas.canvas.height,
           gi.sx, gi.sy - cell.h * sc * 0.5, sc, 0,
           [1, 1, 1, i === 0 ? 1 : 0.82 - i * 0.09], 'normal', p.facing < 0);
