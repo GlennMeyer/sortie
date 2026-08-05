@@ -216,6 +216,14 @@ html,body{height:100%;overflow:hidden}
 .board-col{padding:0}
 .board-col .hint{flex:0 0 auto;margin:8px 8px 0;font-size:10px;padding:6px 9px}
 .boardfit{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px;background:#0E1319}
+/* The 2D canvas keeps every pointer handler and its place in the layout; the GL surface sits on
+   top of it and only ever shows pixels. When the optics are on, the source is composited at zero
+   opacity — still hit-testable, just not the thing you are looking at. */
+.boardstack{position:relative;line-height:0}
+.boardstack>#glboard{position:absolute;left:0;top:0;pointer-events:none;display:none}
+.boardstack.gl>#board{opacity:0}
+.boardstack.gl>#glboard{display:block}
+.phead .fxtoggle{margin-left:auto}
 #board{display:block;touch-action:none;cursor:crosshair}
 #playbar{flex:0 0 auto;margin:0 8px 6px;border-radius:var(--r)}
 .board-col .actions{flex:0 0 auto;padding:0 8px 8px}
@@ -266,10 +274,13 @@ html,body{height:100%;overflow:hidden}
     </section>
 
     <section class="panel board-col">
-      <div class="phead"><h2 id="mainTitle">Deployment</h2><span class="sub" id="viewTag">Place your squads</span></div>
+      <div class="phead"><h2 id="mainTitle">Deployment</h2><span class="sub" id="viewTag">Place your squads</span><button class="btn ghost sm fxtoggle" id="btnFx" title="Optics: bloom, aberration and scanlines over the tactical display.">Optics on</button></div>
       <div id="hint" class="hint"></div>
       <div id="inspect" class="idle"></div>
-      <div class="boardfit"><canvas id="board" width="900" height="620"></canvas></div>
+      <div class="boardfit"><div class="boardstack">
+        <canvas id="board" width="900" height="620"></canvas>
+        <canvas id="glboard" aria-hidden="true"></canvas>
+      </div></div>
       <div id="playbar" hidden>
         <button class="btn ghost sm" id="pbPlay">Pause</button>
         <button class="btn ghost sm" id="pbStep">Step</button>
@@ -1635,6 +1646,176 @@ if (typeof module !== 'undefined' && module.exports) {
 
   /* ---------- board ---------- */
   const cv = $('#board'), ctx = cv.getContext('2d');
+
+  /* ---------- optics ----------
+     The board is drawn in 2D exactly as before, then the finished frame is pushed through GL as a
+     texture. Nothing about how hexes or machines are drawn changes; this only decides how the
+     result looks coming off a mobile suit's display.
+
+       bright pass -> horizontal blur -> vertical blur -> composite
+
+     Bloom is what sells beam fire: tracers and crit flashes are already the brightest pixels on
+     the board, so a threshold pass picks them out for free and no drawing code has to know. The
+     composite adds a radial chromatic split, scanlines, grain and a vignette on top.
+
+     It degrades honestly. No WebGL, a failed compile, or a lost context and the 2D canvas is
+     simply left visible — the game is identical, just flatter. */
+  const GLFX = (function () {
+    const glc = $('#glboard'), stack = glc.parentElement;
+    let gl = null, ok = false, prog = {}, fbo = {}, tex = {}, quad = null, w = 0, h = 0, t0 = performance.now();
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const VERT =
+      'attribute vec2 p; varying vec2 uv;' +
+      'void main(){ uv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }';
+
+    // keep only what is already glowing, at half resolution — the blur is cheap there
+    const BRIGHT =
+      'precision mediump float; varying vec2 uv; uniform sampler2D src;' +
+      'void main(){' +
+      '  vec3 c = texture2D(src, uv).rgb;' +
+      '  float l = dot(c, vec3(0.299, 0.587, 0.114));' +
+      '  float k = smoothstep(0.34, 0.90, l);' +
+      '  gl_FragColor = vec4(c * k, 1.0);' +
+      '}';
+
+    const BLUR =
+      'precision mediump float; varying vec2 uv; uniform sampler2D src; uniform vec2 dir;' +
+      'void main(){' +
+      '  vec3 c = texture2D(src, uv).rgb * 0.2270270270;' +
+      '  c += texture2D(src, uv + dir * 1.3846153846).rgb * 0.3162162162;' +
+      '  c += texture2D(src, uv - dir * 1.3846153846).rgb * 0.3162162162;' +
+      '  c += texture2D(src, uv + dir * 3.2307692308).rgb * 0.0702702703;' +
+      '  c += texture2D(src, uv - dir * 3.2307692308).rgb * 0.0702702703;' +
+      '  gl_FragColor = vec4(c, 1.0);' +
+      '}';
+
+    const COMP =
+      'precision mediump float; varying vec2 uv;' +
+      'uniform sampler2D src; uniform sampler2D bloom; uniform vec2 res; uniform float time; uniform float motion;' +
+      'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }' +
+      'void main(){' +
+      '  vec2 c = uv - 0.5;' +
+      '  float r2 = dot(c, c);' +
+      // the split grows toward the edges, so the middle of the board stays crisp to read
+      '  vec2 ab = c * r2 * 0.016;' +
+      '  vec3 col;' +
+      '  col.r = texture2D(src, uv + ab).r;' +
+      '  col.g = texture2D(src, uv).g;' +
+      '  col.b = texture2D(src, uv - ab).b;' +
+      '  col += texture2D(bloom, uv).rgb * 1.30;' +
+      // a phosphor line pair, and a scan bar that drifts down the display
+      '  float scan = 0.94 + 0.06 * sin(uv.y * res.y * 1.55);' +
+      '  float bar = 0.035 * smoothstep(0.90, 1.0, fract(uv.y * 0.5 - time * 0.045)) * motion;' +
+      '  col *= scan; col += bar * vec3(0.35, 0.55, 0.75);' +
+      // grain, then the tube falls off at the corners
+      '  col += (hash(uv * res + time * motion) - 0.5) * 0.022;' +
+      '  col *= 1.0 - r2 * 0.42;' +
+      '  gl_FragColor = vec4(col, 1.0);' +
+      '}';
+
+    function shader(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src); gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+      return s;
+    }
+    function program(fs) {
+      const p = gl.createProgram();
+      gl.attachShader(p, shader(gl.VERTEX_SHADER, VERT));
+      gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
+      gl.bindAttribLocation(p, 0, 'p');
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      return p;
+    }
+    function target(tw, th) {
+      const t = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tw, th, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      const f = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+      return { t, f, w: tw, h: th };
+    }
+
+    function init() {
+      try {
+        gl = glc.getContext('webgl', { alpha: false, antialias: false, depth: false, premultipliedAlpha: false })
+          || glc.getContext('experimental-webgl');
+        if (!gl) return false;
+        prog.bright = program(BRIGHT); prog.blur = program(BLUR); prog.comp = program(COMP);
+        quad = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        tex.src = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex.src);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        glc.addEventListener('webglcontextlost', e => { e.preventDefault(); ok = false; stack.classList.remove('gl'); });
+        ok = true;
+        return true;
+      } catch (e) { ok = false; return false; }
+    }
+
+    function resize(pxW, pxH, cssW, cssH) {
+      if (!ok) return;
+      w = pxW; h = pxH;
+      glc.width = pxW; glc.height = pxH;
+      glc.style.width = cssW + 'px'; glc.style.height = cssH + 'px';
+      const hw = Math.max(1, pxW >> 1), hh = Math.max(1, pxH >> 1);
+      for (const k of ['a', 'b']) {
+        if (fbo[k]) { gl.deleteTexture(fbo[k].t); gl.deleteFramebuffer(fbo[k].f); }
+        fbo[k] = target(hw, hh);
+      }
+    }
+
+    function pass(p, target, binds, uniforms) {
+      gl.useProgram(p);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.f : null);
+      gl.viewport(0, 0, target ? target.w : w, target ? target.h : h);
+      binds.forEach((t, i) => {
+        gl.activeTexture(gl.TEXTURE0 + i);
+        gl.bindTexture(gl.TEXTURE_2D, t);
+      });
+      for (const [name, set] of uniforms) set(gl.getUniformLocation(p, name));
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    function present() {
+      if (!ok || !w) return;
+      try {
+        gl.bindTexture(gl.TEXTURE_2D, tex.src);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+        pass(prog.bright, fbo.a, [tex.src], [['src', l => gl.uniform1i(l, 0)]]);
+        pass(prog.blur, fbo.b, [fbo.a.t], [['src', l => gl.uniform1i(l, 0)],
+          ['dir', l => gl.uniform2f(l, 1 / fbo.a.w, 0)]]);
+        pass(prog.blur, fbo.a, [fbo.b.t], [['src', l => gl.uniform1i(l, 0)],
+          ['dir', l => gl.uniform2f(l, 0, 1 / fbo.b.h)]]);
+        pass(prog.comp, null, [tex.src, fbo.a.t], [
+          ['src', l => gl.uniform1i(l, 0)], ['bloom', l => gl.uniform1i(l, 1)],
+          ['res', l => gl.uniform2f(l, w, h)],
+          ['time', l => gl.uniform1f(l, (performance.now() - t0) / 1000)],
+          ['motion', l => gl.uniform1f(l, reduced ? 0 : 1)]]);
+      } catch (e) { ok = false; stack.classList.remove('gl'); }
+    }
+
+    return {
+      get available() { return ok; },
+      init, resize, present,
+      set on(v) { stack.classList.toggle('gl', !!(v && ok)); },
+      get on() { return stack.classList.contains('gl'); },
+    };
+  })();
   const R = 25, SQ = Math.sqrt(3) * R, PAD = 14;
   const BW = Math.round(SQ * (COLS + 0.5) + PAD * 2), BH = Math.round(R * 1.5 * (ROWS - 1) + R * 2 + PAD * 2);
   function fitCanvas() {
@@ -1642,17 +1823,18 @@ if (typeof module !== 'undefined' && module.exports) {
     cv.width = BW * dpr; cv.height = BH * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // letterbox into whatever the column leaves us — max-width alone only ever shrinks
-    const box = cv.parentElement;
+    const box = $('.boardfit');
     const cw = box.clientWidth - 16, ch = box.clientHeight - 16;
     if (cw > 0 && ch > 0) {
       const scale = Math.min(cw / BW, ch / BH);
       cv.style.width = Math.round(BW * scale) + 'px';
       cv.style.height = Math.round(BH * scale) + 'px';
     }
+    GLFX.resize(cv.width, cv.height, parseInt(cv.style.width, 10) || BW, parseInt(cv.style.height, 10) || BH);
   }
   fitCanvas();
   window.addEventListener('resize', fitCanvas);
-  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe(cv.parentElement);
+  if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe($('.boardfit'));
   const centre = i => ({ x: SQ * ((i % COLS) + 0.5 * (((i / COLS) | 0) & 1)) + SQ / 2 + PAD, y: R * 1.5 * ((i / COLS) | 0) + R + PAD });
   function hexPath(x, y, rad) {
     ctx.beginPath();
@@ -1834,7 +2016,20 @@ if (typeof module !== 'undefined' && module.exports) {
       }
     }
   }
-  (function loop() { drawBoard(); requestAnimationFrame(loop); })();
+  /* Optics default on where the hardware allows it, and the choice is remembered. */
+  (function setupOptics() {
+    const btn = $('#btnFx');
+    if (!GLFX.init()) { btn.disabled = true; btn.textContent = 'Optics n/a';
+      btn.title = 'This browser has no WebGL, so the board is drawn flat. Everything else is unchanged.'; return; }
+    fitCanvas();
+    let want = localStorage.getItem('sortie.fx');
+    want = want == null ? true : want === '1';
+    const apply = () => { GLFX.on = want; btn.textContent = want ? 'Optics on' : 'Optics off'; };
+    apply();
+    btn.onclick = () => { want = !want; localStorage.setItem('sortie.fx', want ? '1' : '0'); apply(); };
+  })();
+
+  (function loop() { drawBoard(); if (GLFX.on) GLFX.present(); requestAnimationFrame(loop); })();
 
   const at = ev => {
     const r = cv.getBoundingClientRect();

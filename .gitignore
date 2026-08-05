@@ -1,2 +1,5 @@
 node_modules/
 *.log
+shot*.png
+fx_*.png
+_shot_*.html

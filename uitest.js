@@ -204,6 +204,19 @@ const num = label => {
       n0 + ' -> ' + all('#army .sq').length + ' squads');
   }
 
+  /* Optics are a post-process over the 2D board, and jsdom has no WebGL — so this run exercises
+     the fallback, which is the path that must never break the game: the source canvas stays
+     visible and every pointer handler stays on it. */
+  {
+    const fxBtn = q('#btnFx'), stack = q('.boardstack');
+    check('there is an optics control', !!fxBtn, fxBtn ? fxBtn.textContent : 'missing');
+    check('the board is still drawn with no WebGL available',
+      !!q('#board') && !stack.classList.contains('gl'),
+      'stack classes: "' + stack.className + '"');
+    check('and the optics control says so rather than pretending', /n\/a/i.test(fxBtn.textContent),
+      fxBtn.textContent);
+  }
+
   // inspecting what you are up against
   {
     const cvx = q('#board'), rc = cvx.getBoundingClientRect();
