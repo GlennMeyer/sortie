@@ -1,5 +1,8 @@
 node_modules/
+dist/
 *.log
 shot*.png
 fx_*.png
+th*.png
+t_*.png
 _shot_*.html

@@ -1,5 +1,34 @@
 {
   "dependencies": {
     "jsdom": "^30.0.1"
-  }
+  },
+  "name": "sortie",
+  "version": "1.0.0",
+  "description": "A mobile-suit auto-battler on a hex grid. You buy machines, place them, and watch the battle resolve itself \u2014 then spend what you salvaged before the regime's next wave.",
+  "main": "army.js",
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.0",
+    "vite-plugin-singlefile": "^2.3.3"
+  },
+  "scripts": {
+    "test": "node test.js && node uitest.js",
+    "typecheck": "tsc --noEmit",
+    "theatre": "vite build && node -e \"require('fs').copyFileSync('dist/theatre.html','theatre.html')\"",
+    "theatre:dev": "vite",
+    "build": "node build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GlennMeyer/sortie.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/GlennMeyer/sortie/issues"
+  },
+  "homepage": "https://github.com/GlennMeyer/sortie#readme"
 }
