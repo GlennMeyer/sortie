@@ -113,6 +113,10 @@ export class Batcher {
     return t;
   }
 
+  /** The context, so a post-process pass can share it. */
+  get context(): WebGLRenderingContext { return this.gl; }
+  get size(): [number, number] { return [this.canvas.width, this.canvas.height]; }
+
   begin(w: number, h: number, clear: [number, number, number]) {
     const gl = this.gl;
     this.canvas.width = w; this.canvas.height = h;

@@ -10,6 +10,7 @@ import type { Beat, Script } from './script';
 import { ERAS, eraById } from './era';
 import { buildAtlas } from './rig';
 import { Batcher } from './gl';
+import { Post } from './post';
 import { Theatre } from './theatre';
 
 function demoScript(): Script {
@@ -18,9 +19,9 @@ function demoScript(): Script {
 
   // two files of grunts, a brawler apiece, and something heavy on the far side
   const actors: Script['actors'] = [
-    { id: 'p1', side: 'p', archetype: 'grunt',   count: 5, countMax: 5, scale: 1.0, at: { x: -11, z: 1 },  name: 'LINE SUITS' },
-    { id: 'p2', side: 'p', archetype: 'brawler', count: 3, countMax: 3, scale: 1.05, at: { x: -14, z: 5 }, name: 'LANCERS' },
-    { id: 'p3', side: 'p', archetype: 'artillery', count: 2, countMax: 2, scale: 1.2, at: { x: -17, z: 9 }, name: 'SIEGE WALKERS' },
+    { id: 'p1', side: 'p', archetype: 'grunt',   count: 5, countMax: 5, scale: 1.0, at: { x: -9, z: 0 },  name: 'LINE SUITS' },
+    { id: 'p2', side: 'p', archetype: 'brawler', count: 3, countMax: 3, scale: 1.05, at: { x: -16, z: 6 }, name: 'LANCERS' },
+    { id: 'p3', side: 'p', archetype: 'artillery', count: 2, countMax: 2, scale: 1.2, at: { x: -23, z: 13 }, name: 'SIEGE WALKERS' },
     { id: 'e1', side: 'e', archetype: 'grunt',   count: 5, countMax: 5, scale: 1.0, at: { x: 11, z: 2 },  name: 'LINE SUITS' },
     { id: 'e2', side: 'e', archetype: 'heavy',   count: 1, countMax: 1, scale: 1.5, at: { x: 14, z: 6 }, name: 'COLOSSUS' },
     { id: 'e3', side: 'e', archetype: 'ace',     count: 1, countMax: 1, scale: 1.1, at: { x: 16, z: 10 }, name: 'ACE FRAME' },
@@ -90,6 +91,8 @@ const batch = new Batcher(cv, atlas.canvas);
 const script = demoScript();
 let era = eraById(new URLSearchParams(location.search).get('era') ?? 'mobilesuit');
 const theatre = new Theatre(script, era, atlas, batch);
+const noPost = new URLSearchParams(location.search).has('nopost');
+const post = batch.ok && !noPost ? new Post(batch.context) : null;
 
 if (!batch.ok) {
   status.textContent = 'This browser has no WebGL, so the theatre cannot draw.';
@@ -130,7 +133,18 @@ if (!batch.ok) {
     }
     const rect = cv.getBoundingClientRect();
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    theatre.draw(Math.max(1, Math.round(rect.width * dpr)), Math.max(1, Math.round(rect.height * dpr)));
+    const pw = Math.max(1, Math.round(rect.width * dpr));
+    const ph = Math.max(1, Math.round(rect.height * dpr));
+    /* The stage draws into a texture; the bloom pass puts it on the screen. Without that a beam
+       is a coloured bar rather than something emitting light. */
+    if (post && post.ok) {
+      batch.begin(pw, ph, [0, 0, 0]);
+      post.bindScene(pw, ph);
+      theatre.draw(pw, ph, true);
+      post.present(now / 1000, theatre.flashLevel);
+    } else {
+      theatre.draw(pw, ph);
+    }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

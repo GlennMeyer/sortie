@@ -212,6 +212,11 @@ export interface Atlas {
   cellSize: number;
   /** Height of a drawn figure in cell pixels, so the stage can convert to metres. */
   figureHeight: number;
+  /** A soft radial falloff. Every spark, flash, flame and sun in the scene samples this — square
+      quads are what made the first pass look like confetti. */
+  glow: Cell;
+  /** A horizontally tapered streak, for beam cores and sabre trails. */
+  streak: Cell;
 }
 
 const ARCHES: Archetype[] = ['grunt', 'brawler', 'heavy', 'artillery', 'ace'];
@@ -228,7 +233,7 @@ export function buildAtlas(skins: EraSkin[]): Atlas {
   const rows = skins.length * ARCHES.length;
   const canvas = document.createElement('canvas');
   canvas.width = cols * CELL;
-  canvas.height = rows * CELL;
+  canvas.height = (rows + 1) * CELL;          // one spare row for the light sprites
   const ctx = canvas.getContext('2d')!;
 
   const cells = new Map<string, Cell>();
@@ -257,8 +262,48 @@ export function buildAtlas(skins: EraSkin[]): Atlas {
     }
   }
 
+  /* The light sprites, on the spare row. Every glow in the scene samples these — hard-edged
+     quads are what made the first pass read as confetti rather than sparks. */
+  const glowCell: Cell = { x: 0, y: rows * CELL, w: CELL, h: CELL };
+  {
+    const g = ctx.createRadialGradient(glowCell.x + CELL / 2, glowCell.y + CELL / 2, 0,
+      glowCell.x + CELL / 2, glowCell.y + CELL / 2, CELL / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.25, 'rgba(255,255,255,0.6)');
+    g.addColorStop(0.6, 'rgba(255,255,255,0.13)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(glowCell.x, glowCell.y, CELL, CELL);
+  }
+  const streakCell: Cell = { x: CELL, y: rows * CELL, w: CELL, h: CELL };
+  {
+    /* Composed on its own canvas and then stamped in. 'destination-in' is a WHOLE-CANVAS
+       operation — masking the streak directly on the atlas zeroed the alpha of every figure and
+       the glow with it, and the entire sheet sampled as nothing. */
+    const tmp = document.createElement('canvas');
+    tmp.width = CELL; tmp.height = CELL;
+    const tc = tmp.getContext('2d')!;
+    const along = tc.createLinearGradient(0, 0, CELL, 0);
+    along.addColorStop(0, 'rgba(255,255,255,0)');
+    along.addColorStop(0.5, 'rgba(255,255,255,1)');
+    along.addColorStop(1, 'rgba(255,255,255,0)');
+    tc.fillStyle = along;
+    tc.fillRect(0, 0, CELL, CELL);
+    // taper across as well, so a beam ends in a point rather than a flat bar
+    const across = tc.createLinearGradient(0, 0, 0, CELL);
+    across.addColorStop(0, 'rgba(255,255,255,0)');
+    across.addColorStop(0.5, 'rgba(255,255,255,1)');
+    across.addColorStop(1, 'rgba(255,255,255,0)');
+    tc.globalCompositeOperation = 'destination-in';
+    tc.fillStyle = across;
+    tc.fillRect(0, 0, CELL, CELL);
+    ctx.drawImage(tmp, streakCell.x, streakCell.y);
+  }
+
   return {
     canvas,
+    glow: glowCell,
+    streak: streakCell,
     cellSize: CELL,
     figureHeight: GROUND_Y,
     cell: (e, a, p, s) => cells.get(key(e, a, p, s)) ?? { x: 0, y: 0, w: CELL, h: CELL },

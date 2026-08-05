@@ -32,6 +32,8 @@ interface Puppet {
   count: number;
   down: boolean;
   flash: number;
+  /** Seconds of thruster burn left, for the flame behind a boosting machine. */
+  burn: number;
 }
 
 interface Shot {
@@ -62,6 +64,13 @@ export class Theatre {
   /** Metres either side of the centre line that the camera is trying to hold. */
   private camX = 0;
   private camScale = 1;
+  /** Whites the frame out briefly on a heavy hit; handed to the bloom composite. */
+  private flash = 0;
+  /** Seconds of slow motion left. A crit that lands at full speed is just a number changing. */
+  private slow = 0;
+  /** A brief camera punch-in on impact. */
+  private punch = 0;
+  private ridges = makeRidges();
 
   constructor(
     private script: Script,
@@ -83,19 +92,24 @@ export class Theatre {
       this.puppets.set(a.id, {
         actor: a, x: a.at.x, z: a.at.z, tx: a.at.x, tz: a.at.z, speed: 6,
         facing: a.side === 'p' ? 1 : -1, pose: 'idle', hold: 0, gait: Math.random() * 6,
-        vx: 0, y: 0, vy: 0, count: a.count, down: false, flash: 0,
+        vx: 0, y: 0, vy: 0, count: a.count, down: false, flash: 0, burn: 0,
       });
     }
   }
 
-  /** Jump the clock, replaying nothing — used by the scrubber. */
+  /** Jump the clock, replaying nothing — used by the scrubber. Runs without the cinematic
+      time-scaling, or seeking to 6.8s would not land on 6.8s. */
   seek(t: number) {
     this.reset();
     const step = 1 / 30;
-    for (let c = 0; c < t; c += step) this.advance(Math.min(step, t - c));
+    for (let c = 0; c < t; c += step) this.advance(Math.min(step, t - c), false);
   }
 
-  advance(dt: number) {
+  advance(dt: number, cinematic = true) {
+    // decay the cinematic state on real time, not story time, or slow motion never ends
+    this.flash = Math.max(0, this.flash - dt * 2.6);
+    this.punch = Math.max(0, this.punch - dt * 2.2);
+    if (cinematic && this.slow > 0) { this.slow = Math.max(0, this.slow - dt); dt *= 0.34; }
     const from = this.clock;
     this.clock = Math.min(this.duration, this.clock + dt);
     for (const b of beatsBetween(this.script, from, this.clock)) this.apply(b);
@@ -124,7 +138,7 @@ export class Theatre {
       case 'move':
         p.tx = b.to.x; p.tz = b.to.z;
         p.speed = b.style === 'boost' ? 26 : 7;
-        if (b.style === 'boost') { p.pose = 'boost'; p.hold = 0.5; p.vy = 9; }
+        if (b.style === 'boost') { p.pose = 'boost'; p.hold = 0.5; p.vy = 9; p.burn = 0.55; }
         p.facing = b.to.x >= p.x ? 1 : -1;
         break;
       case 'shoot': {
@@ -153,8 +167,10 @@ export class Theatre {
         p.facing = tgt.x >= p.x ? 1 : -1;
         p.pose = 'swing'; p.hold = 0.34;
         const look = this.skin.look(b.weapon);
-        this.burst(tgt.x, -tgt.actor.scale, tgt.z, look.colour, 10 + b.crit * 6, 1.6);
+        this.burst(tgt.x, -tgt.actor.scale, tgt.z, look.colour, 14 + b.crit * 8, 1.6);
         this.shake = Math.max(this.shake, 0.7 + b.crit * 0.3);
+        this.punch = Math.max(this.punch, 0.6 + b.crit * 0.2);
+        if (b.crit >= 2) { this.slow = Math.max(this.slow, 0.45); this.flash = Math.max(this.flash, 0.5); }
         break;
       }
       case 'evade':
@@ -165,7 +181,7 @@ export class Theatre {
         p.pose = 'struck'; p.hold = 0.24;
         p.flash = 1;
         p.vx += -p.facing * (5 + b.share * 26);
-        if (b.crit) { p.vy = 8; this.shake = Math.max(this.shake, 1.1); }
+        if (b.crit) { p.vy = 8; this.shake = Math.max(this.shake, 1.1); this.flash = Math.max(this.flash, 0.55); }
         this.burst(p.x, -p.actor.scale * 1.1, p.z,
           b.crit ? '#FFF0C0' : this.skin.palette.metal, b.splash ? 16 : 8, b.crit ? 1.7 : 1.1);
         break;
@@ -177,8 +193,9 @@ export class Theatre {
         break;
       case 'down':
         p.down = true; p.pose = 'down'; p.hold = 999;
-        this.burst(p.x, -p.actor.scale, p.z, '#FFC24B', 34, 2.8);
-        this.shake = 1.5;
+        this.burst(p.x, -p.actor.scale, p.z, '#FFC24B', 46, 3.0);
+        this.burst(p.x, -p.actor.scale, p.z, '#FFFFFF', 16, 1.6);
+        this.shake = 1.5; this.flash = 1; this.slow = Math.max(this.slow, 0.55); this.punch = 1;
         break;
     }
   }
@@ -229,6 +246,7 @@ export class Theatre {
     if (p.y > 0) p.vy -= GRAVITY * dt;
     p.hold = Math.max(0, p.hold - dt);
     p.flash = Math.max(0, p.flash - dt * 5);
+    p.burn = Math.max(0, p.burn - dt);
   }
 
   private stepShots(dt: number) {
@@ -251,93 +269,140 @@ export class Theatre {
   /** World (x metres, y metres up, z depth) -> screen pixels. */
   private project(x: number, y: number, z: number, w: number, h: number) {
     const depth = 1 / (1 + z * 0.045);
-    const px = PX_PER_METRE * this.camScale;
+    const px = PX_PER_METRE * this.camScale * (1 + this.punch * 0.16);
     const horizon = h * 0.44;
     const sx = w / 2 + (x - this.camX) * px * depth;
     const sy = horizon + (h * 0.40 - z * 4.0) * depth + y * px * depth;
-    return { sx, sy, k: depth * this.camScale };
+    return { sx, sy, k: depth * this.camScale * (1 + this.punch * 0.16) };
   }
 
-  draw(w: number, h: number) {
+  /** The white-out level, for the bloom composite. */
+  get flashLevel() { return this.flash; }
+
+  private light(x: number, y: number, size: number, colour: string, alpha: number) {
+    this.batch.sprite(this.atlas.glow, this.atlas.canvas.width, this.atlas.canvas.height,
+      x, y, size / this.atlas.cellSize, 0, rgba(colour, alpha), 'add');
+  }
+
+  /** `intoTarget` means the caller has already sized the batch and bound an offscreen target,
+      so this must not clear or resize out from under it. */
+  draw(w: number, h: number, intoTarget = false) {
     const pal = this.skin.palette;
     const b = this.batch;
-    b.begin(w, h, [0, 0, 0]);
+    if (!intoTarget) b.begin(w, h, [0, 0, 0]);
 
-    const jitter = this.shake * 6;
+    const jitter = this.shake * 7;
     const ox = (Math.random() - 0.5) * jitter, oy = (Math.random() - 0.5) * jitter;
+    const horizon = h * 0.44 + oy;
 
-    // sky, in bands, and a haze along the horizon so the ground has something to meet
-    const horizon = h * 0.46 + oy;
-    const bands = 14;
+    // sky
+    const bands = 18;
     for (let i = 0; i < bands; i++) {
-      const t = i / (bands - 1);
-      const y0 = (horizon / bands) * i;
-      b.quad(w / 2, y0 + horizon / bands / 2, w, horizon / bands + 1, 0,
+      const t = Math.pow(i / (bands - 1), 0.8);
+      b.quad(w / 2, (horizon / bands) * (i + 0.5), w, horizon / bands + 1, 0,
         mix(rgba(pal.sky[0]), rgba(pal.sky[1]), t));
     }
-    b.quad(w / 2, horizon, w, h * 0.10, 0, rgba(pal.haze, 0.30), 'add');
 
-    // ground, receding
-    const gb = 16;
+    // a low sun sitting in the haze, which is what gives the sky a direction
+    const sunX = w * 0.68, sunY = horizon - h * 0.02;
+    this.light(sunX, sunY, h * 0.62, pal.haze, 0.34);
+    this.light(sunX, sunY, h * 0.16, '#FFFFFF', 0.30);
+
+    /* Parallax ridges. Three layers of column quads from a fixed heightfield: the far ones barely
+       move with the camera, the near ones slide, and that difference is the only thing telling
+       you the battlefield has depth beyond the actors. */
+    for (let layer = 0; layer < 3; layer++) {
+      const par = 0.06 + layer * 0.10;
+      const amp = h * (0.045 + layer * 0.030);
+      const base = horizon + layer * h * 0.012;
+      const tint = mix(rgba(pal.haze), rgba(pal.ground[1]), 0.35 + layer * 0.28);
+      tint[3] = 1;
+      const cols = 64;
+      for (let i = 0; i <= cols; i++) {
+        const u = i / cols;
+        const wx = u * w;
+        const n = this.ridges[(layer * 97 + i) % this.ridges.length]!;
+        const shift = -this.camX * par * PX_PER_METRE * 0.10;
+        const hgt = amp * (0.35 + n);
+        b.quad(wx + shift, base - hgt / 2, w / cols + 2, hgt, 0, tint);
+      }
+    }
+
+    // haze band over the join, so ridges sit in air rather than on a line
+    b.quad(w / 2, horizon, w, h * 0.09, 0, rgba(pal.haze, 0.26), 'add');
+
+    // ground
+    const gb = 20;
     for (let i = 0; i < gb; i++) {
-      const t = i / (gb - 1);
-      const y0 = horizon + ((h - horizon) / gb) * i;
-      b.quad(w / 2, y0 + (h - horizon) / gb / 2, w, (h - horizon) / gb + 1, 0,
+      const t = Math.pow(i / (gb - 1), 0.7);
+      b.quad(w / 2, horizon + ((h - horizon) / gb) * (i + 0.5), w, (h - horizon) / gb + 1, 0,
         mix(rgba(pal.ground[0]), rgba(pal.ground[1]), t));
     }
 
     const order = [...this.puppets.values()].sort((a, c) => c.z - a.z);
 
-    // shadows first, so nothing casts over a machine in front of it
+    // shadows, one per machine
     for (const p of order) {
       const n = Math.min(5, Math.max(1, p.count));
       for (let i = n - 1; i >= 0; i--) {
         const off = i * 3.3;
         const g = this.project(p.x + ox / 20 - p.facing * off * 1.15, 0, p.z + off, w, h);
         const sw = 30 * p.actor.scale * g.k * (1 - Math.min(0.6, p.y * 0.08));
-        b.quad(g.sx, g.sy, sw, sw * 0.34, 0, [0, 0, 0, 0.34]);
+        b.quad(g.sx, g.sy, sw, sw * 0.34, 0, [0, 0, 0, 0.36]);
       }
     }
 
     for (const p of order) {
       const cell = this.atlas.cell(this.skin.id, p.actor.archetype, p.pose, p.actor.side);
-      // a file of machines: the squad is drawn as up to five figures stepped back in depth
       const n = Math.min(5, Math.max(1, p.count));
       for (let i = n - 1; i >= 0; i--) {
         const off = i * 3.3;
         const gi = this.project(p.x + ox / 20 - p.facing * off * 1.15, -p.y, p.z + off, w, h);
         const sc = (p.actor.scale * SPRITE_SCALE) * gi.k;
+        // thruster flame, behind the machine and only while it is burning
+        if (p.burn > 0) {
+          const fx = gi.sx - p.facing * 16 * sc, fy = gi.sy - cell.h * sc * 0.34;
+          this.light(fx, fy, 46 * sc * (0.7 + Math.random() * 0.5), '#9FD8FF', 0.55 * p.burn);
+          this.light(fx, fy, 22 * sc, '#FFFFFF', 0.5 * p.burn);
+        }
         b.sprite(cell, this.atlas.canvas.width, this.atlas.canvas.height,
           gi.sx, gi.sy - cell.h * sc * 0.5, sc, 0,
-          [1, 1, 1, i === 0 ? 1 : 0.82 - i * 0.09], 'normal', p.facing < 0);
+          [1, 1, 1, i === 0 ? 1 : 0.84 - i * 0.08], 'normal', p.facing < 0);
+        if (p.flash > 0 && i === 0) {
+          this.light(gi.sx, gi.sy - cell.h * sc * 0.45, 60 * sc, '#FFE8C0', p.flash * 0.38);
+        }
       }
-      /* No hit-flash quad here: an additive rectangle over a figure reads as a white box, not as
-         a hit. The spark burst already carries the impact. */
     }
 
-    // fire, over everything, additively
+    // fire
     for (const s of this.shots) {
       if (s.t < 0) continue;
       const u = Math.min(1, s.t / s.dur);
+      const arcLift = s.kind === 'arc' ? -Math.sin(u * Math.PI) * 6 : 0;
       const hx = s.x + (s.tx - s.x) * u;
-      const hy = s.y + (s.ty - s.y) * u + (s.kind === 'arc' ? -Math.sin(u * Math.PI) * 6 : 0);
+      const hy = s.y + (s.ty - s.y) * u + arcLift;
       const hz = s.z + (s.tz - s.z) * u;
       const head = this.project(hx, hy, hz, w, h);
-      const tailU = Math.max(0, u - (s.trail ? 0.26 : 0.06));
-      const tx = s.x + (s.tx - s.x) * tailU;
-      const ty = s.y + (s.ty - s.y) * tailU + (s.kind === 'arc' ? -Math.sin(tailU * Math.PI) * 6 : 0);
-      const tz = s.z + (s.tz - s.z) * tailU;
-      const tail = this.project(tx, ty, tz, w, h);
-      const fade = u >= 1 ? Math.max(0, 1 - (s.t - s.dur) * 8) : 1;
-      const col = rgba(s.colour, fade);
-      b.line(tail.sx, tail.sy, head.sx, head.sy, s.width * head.k * 2.2, col, 'add');
-      b.line(tail.sx, tail.sy, head.sx, head.sy, s.width * head.k * 0.8, [1, 1, 1, fade * 0.9], 'add');
+      const tailU = Math.max(0, u - (s.trail ? 0.30 : 0.08));
+      const tArc = s.kind === 'arc' ? -Math.sin(tailU * Math.PI) * 6 : 0;
+      const tail = this.project(s.x + (s.tx - s.x) * tailU,
+        s.y + (s.ty - s.y) * tailU + tArc, s.z + (s.tz - s.z) * tailU, w, h);
+      const fade = u >= 1 ? Math.max(0, 1 - (s.t - s.dur) * 7) : 1;
+      const wide = s.width * head.k * 2.6;
+      b.line(tail.sx, tail.sy, head.sx, head.sy, wide, rgba(s.colour, fade * 0.85), 'add');
+      b.line(tail.sx, tail.sy, head.sx, head.sy, wide * 0.34, [1, 1, 1, fade * 0.95], 'add');
+      this.light(head.sx, head.sy, 26 * head.k * s.width * 0.6, s.colour, fade * 0.8);
+      if (u >= 1) {
+        // arrival: a bright bloom where it lands
+        this.light(head.sx, head.sy, 90 * head.k * fade, s.colour, fade * 0.9);
+        this.light(head.sx, head.sy, 36 * head.k * fade, '#FFFFFF', fade * 0.8);
+      }
     }
 
     for (const s of this.sparks) {
       const f = 1 - s.life / s.max;
       const g = this.project(s.x, s.y, s.z, w, h);
-      b.quad(g.sx, g.sy, s.size * g.k * 3.2, s.size * g.k * 3.2, 0, rgba(s.colour, f * 0.9), 'add');
+      this.light(g.sx, g.sy, s.size * g.k * 9, s.colour, f * 0.85);
     }
 
     b.end();
@@ -352,3 +417,22 @@ function mix(a: [number, number, number, number], c: [number, number, number, nu
 
 export { POSES };
 export type { WeaponClass, Actor, Script };
+
+/* A fixed heightfield for the parallax ridges. Fixed on purpose: the horizon should not reshuffle
+   itself every time the page loads or the scrubber moves. */
+function makeRidges(): number[] {
+  const out: number[] = [];
+  let seed = 0x5f3759df;
+  for (let i = 0; i < 512; i++) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const a = (seed >>> 16) / 65535;
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const b = (seed >>> 16) / 65535;
+    out.push((a * 0.65 + b * 0.35));
+  }
+  // smooth it, or the ridge line is noise rather than terrain
+  for (let pass = 0; pass < 3; pass++) {
+    for (let i = 1; i < out.length - 1; i++) out[i] = (out[i - 1]! + out[i]! * 2 + out[i + 1]!) / 4;
+  }
+  return out;
+}
