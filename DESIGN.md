@@ -627,6 +627,40 @@ The general point: **marginal value and roster reach ask different questions.** 
 priced right", the other is "does anybody ever field it", and they can disagree. When they do, the
 reach number is the one describing the game a person actually plays. Run both.
 
+## Noise, made in code
+
+Same constraint as the machines: no audio file ever arrives, so every sound is synthesised from
+oscillators and filtered noise at the moment it is needed. That is not a limitation being worked
+around — it is what lets a shot sound like the age that fired it without shipping three sample
+libraries. An era is a filter cutoff and an envelope, the same way it is a silhouette.
+
+| | Weapon | Impact | Melee |
+|---|---|---|---|
+| **Early** | air, then a dull wooden knock — nothing here contains a reaction | a low thud | shaft against shaft |
+| **Developed** | a hard crack over a chamber that rings | a sharper, brighter hit | steel on steel, two tones beating |
+| **Advanced** | a rising charge, then a discharge | a deep filtered collapse | a sabre's sustained edge |
+
+The report fires when the weapon does and the impact lands when the bolt does — playing both on the
+same frame is what makes a battle sound like a rattle instead of an exchange.
+
+A tick can emit a dozen weapons. Everything goes through one compressor, voices are capped per
+tick, and the same sound repeated inside 40ms is dropped rather than stacked — twelve rifle cracks
+in phase is one very loud rifle, not twelve rifles.
+
+**Testing audio needs more than "it did not throw."** An envelope that ramps only to the silence
+floor raises no exception and outputs nothing, which is exactly the failure that ships unheard. So
+`uitest.js` installs a recording `AudioContext` that captures the peak gain every sound *schedules*,
+and asserts that all 27 sounds (nine kinds across three ages) are audible, that the three ages do
+not fire the same weapon, and that muting really schedules nothing.
+
+## localStorage throws
+
+Worth stating on its own because it has now bitten twice. In a sandboxed frame — which is exactly
+what a Claude artifact is — reading `localStorage` **throws** rather than returning null, and an
+unguarded read takes the whole script down with it. `army.js` guards the save file. The Optics and
+Sound toggles did not, so any browser with WebGL and no storage would have got a blank game. Both
+now go through one `pref()` / `setPref()` pair that swallows it. Never touch `localStorage` bare.
+
 ## Known problems
 
 - **Battles themselves are decisive, even when the war is not.** 78% end with the loser under 10%

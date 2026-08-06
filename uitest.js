@@ -25,9 +25,45 @@ function stubCanvas(win) {
     ({ left: 0, top: 0, width: 900, height: 620, right: 900, bottom: 620 });
 }
 
+/* A recording AudioContext.
+ *
+ * jsdom has no Web Audio, so without this the sound module correctly decides it is unavailable
+ * and every check below passes by doing nothing. This stub records what each sound *schedules* —
+ * specifically the peak gain any envelope ramps to — which is the thing that actually distinguishes
+ * a working sound from a silent one. A bad envelope throws no exception and outputs silence, and
+ * that is exactly the failure that would otherwise ship unheard. */
+const audio = { peaks: [], nodes: 0 };
+function stubAudio(win) {
+  const param = () => ({
+    value: 0,
+    setValueAtTime() { return this; },
+    exponentialRampToValueAtTime(v) { audio.peaks.push(v); return this; },
+    linearRampToValueAtTime(v) { audio.peaks.push(v); return this; },
+  });
+  const node = extra => Object.assign({
+    connect() {}, disconnect() {}, start() {}, stop() {},
+  }, extra);
+  class Ctx {
+    constructor() { this.currentTime = 0; this.sampleRate = 44100; this.state = 'running'; this.destination = node(); }
+    resume() { this.state = 'running'; return Promise.resolve(); }
+    suspend() { this.state = 'suspended'; return Promise.resolve(); }
+    createGain() { audio.nodes++; return node({ gain: param() }); }
+    createOscillator() { audio.nodes++; return node({ type: 'sine', frequency: param(), detune: param() }); }
+    createBiquadFilter() { audio.nodes++; return node({ type: 'bandpass', frequency: param(), Q: param() }); }
+    createDynamicsCompressor() {
+      audio.nodes++;
+      return node({ threshold: param(), knee: param(), ratio: param(), attack: param(), release: param() });
+    }
+    createBufferSource() { audio.nodes++; return node({ buffer: null, loop: false, playbackRate: param() }); }
+    createBuffer(ch, len) { return { getChannelData: () => new Float32Array(len) }; }
+  }
+  win.AudioContext = Ctx;
+}
+
 const dom = new JSDOM('<!doctype html><html><head></head><body>' +
   fs.readFileSync('artifact.html', 'utf8') + '</body></html>',
-  { runScripts: 'dangerously', pretendToBeVisual: true, beforeParse: stubCanvas });
+  { runScripts: 'dangerously', pretendToBeVisual: true,
+    beforeParse: win => { stubCanvas(win); stubAudio(win); } });
 const w = dom.window, d = w.document;
 
 const errors = [];
@@ -202,6 +238,50 @@ const num = label => {
     check('merging three squads leaves one at a higher rank',
       all('#army .sq').length < n0 && all('#army .sq').some(r => r.dataset.rank !== '0'),
       n0 + ' -> ' + all('#army .sq').length + ' squads');
+  }
+
+  /* Sound is synthesised per era, and every sound has to actually be audible.
+     "It did not throw" is a weak claim for audio: an envelope that ramps only to the silence floor
+     raises nothing and outputs nothing. So this asserts on the peak gain each sound schedules, and
+     that the three ages really do produce different sounds rather than one sound three times. */
+  {
+    const sndBtn = q('#btnSnd');
+    check('there is a sound control', !!sndBtn, sndBtn ? sndBtn.textContent : 'missing');
+    check('and it is available, because this run stubs Web Audio',
+      !!sndBtn && !/n\/a/i.test(sndBtn.textContent), sndBtn ? sndBtn.textContent : 'missing');
+
+    const S = w.SortieSound && w.SortieSound.create();
+    check('the sound module is exposed to the page', !!S && S.available);
+    if (S) {
+      S.on = true; S.resume();
+      const FLOOR = 0.0002;               // the module's own "this is silence" value
+      const kinds = ['fire', 'melee', 'impact', 'death', 'boom', 'click', 'deploy', 'win', 'lose'];
+      const silent = [], byEra = {};
+      for (const kind of kinds) {
+        for (const era of [1, 2, 3]) {
+          audio.peaks = [];
+          /* Each play is spaced past the module's own repeat suppressor, which drops the same
+             sound twice inside 40ms — otherwise this measures the throttle, not the synth. */
+          S.ctx && (S.ctx.currentTime += 1);
+          S.play(kind, era, { weight: 1, crit: true });
+          const peak = audio.peaks.reduce((a, b) => Math.max(a, b), 0);
+          if (peak <= FLOOR) silent.push(kind + ' e' + era);
+          if (kind === 'fire') byEra[era] = audio.peaks.join(',');
+        }
+      }
+      check('every sound schedules an audible envelope, in every era',
+        silent.length === 0, silent.length ? 'silent: ' + silent.join(', ') : kinds.length * 3 + ' sounds checked');
+      check('and the three ages do not fire the same weapon',
+        byEra[1] !== byEra[2] && byEra[2] !== byEra[3],
+        byEra[1] === byEra[2] ? 'early and developed are identical' : 'all three differ');
+      check('the audio graph is built rather than stubbed out', audio.nodes > 20, audio.nodes + ' nodes');
+      S.on = false;
+      audio.peaks = [];
+      S.ctx && (S.ctx.currentTime += 1);
+      S.play('fire', 3, {});
+      check('and muting really stops it making any', audio.peaks.length === 0,
+        audio.peaks.length + ' envelopes scheduled while muted');
+    }
   }
 
   /* Optics are a post-process over the 2D board, and jsdom has no WebGL — so this run exercises

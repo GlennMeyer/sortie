@@ -267,7 +267,7 @@ html,body{height:100%;overflow:hidden}
     </section>
 
     <section class="panel board-col">
-      <div class="phead"><h2 id="mainTitle">Deployment</h2><span class="sub" id="viewTag">Place your squads</span><span class="sub zoomhint" id="zoomTag" title="Scroll on the board to zoom. Shift-drag to pan. Double-click to pull back out.">scroll to zoom</span><button class="btn ghost sm fxtoggle" id="btnFx" title="Draw squads as the machines they are, with the weapons they are actually firing. Off falls back to flat tokens.">Machines on</button></div>
+      <div class="phead"><h2 id="mainTitle">Deployment</h2><span class="sub" id="viewTag">Place your squads</span><span class="sub zoomhint" id="zoomTag" title="Scroll on the board to zoom. Shift-drag to pan. Double-click to pull back out.">scroll to zoom</span><button class="btn ghost sm fxtoggle" id="btnSnd" title="Weapons, impacts and losses, synthesised per era. Off silences everything.">Sound on</button><button class="btn ghost sm fxtoggle" id="btnFx" title="Draw squads as the machines they are, with the weapons they are actually firing. Off falls back to flat tokens.">Machines on</button></div>
       <div id="hint" class="hint"></div>
       <div id="inspect" class="idle"></div>
       <div class="boardfit"><div class="boardstack">
@@ -371,12 +371,40 @@ html,body{height:100%;overflow:hidden}
 
      If this browser has no WebGL the object is null, the page keeps drawing the flat tokens it
      always drew, and the game is identical — just flatter. */
+  /* Preferences, safely.
+     army.js already learned this the hard way for the save file: localStorage is not guaranteed
+     in a sandboxed frame and *throws* rather than returning null, which takes the whole script
+     down with it. The toggles below were reading it bare — a browser with WebGL and no storage
+     would have got a blank game. Same guard, one place. */
+  function pref(key, dflt) {
+    try {
+      const v = localStorage.getItem('sortie.' + key);
+      return v == null ? dflt : v === '1';
+    } catch (e) { return dflt; }
+  }
+  function setPref(key, v) {
+    try { localStorage.setItem('sortie.' + key, v ? '1' : '0'); } catch (e) { /* this session only */ }
+  }
+
   const glc = $('#glboard');
   const GLB = (function () {
     const api = window.SortieGL;
     if (!api) return null;
     try { return api.create(glc); } catch (e) { return null; }
   })();
+
+  /* Sound is synthesised, not sampled — same constraint as the machines, and the same payoff: a
+     shot sounds like the age that fired it without shipping three sample libraries. Browsers will
+     not start audio without a gesture, so the context opens on the first real click. */
+  const SND = (function () {
+    const api = window.SortieSound;
+    if (!api) return null;
+    try { const s = api.create(); return s.available ? s : null; } catch (e) { return null; }
+  })();
+  if (SND) {
+    const wake = () => { SND.resume(); window.removeEventListener('pointerdown', wake); };
+    window.addEventListener('pointerdown', wake);
+  }
 
   /* The camera. Board coordinates in, screen coordinates out — the only thing in the game that
      knows about zoom, so that everything else can keep working in hexes. */
@@ -681,6 +709,22 @@ html,body{height:100%;overflow:hidden}
     }
   }
   /* Optics default on where the hardware allows it, and the choice is remembered. */
+  (function setupSound() {
+    const btn = $('#btnSnd');
+    if (!SND) {
+      btn.disabled = true; btn.textContent = 'Sound n/a';
+      btn.title = 'This browser has no Web Audio, so the game is silent. Nothing else changes.';
+      return;
+    }
+    let want = pref('snd', true);
+    const apply = () => { SND.on = want; btn.textContent = want ? 'Sound on' : 'Sound off'; };
+    apply();
+    btn.onclick = () => {
+      want = !want; setPref('snd', want); apply();
+      if (want) SND.play('click');            // so the button proves itself the moment you press it
+    };
+  })();
+
   /* The renderer is on by default wherever the hardware allows it, and the choice is remembered.
      Off falls back to the flat tokens, which is also what happens with no WebGL at all — so the
      toggle and the fallback are the same code path and neither can rot unnoticed. */
@@ -692,15 +736,14 @@ html,body{height:100%;overflow:hidden}
       btn.title = 'This browser has no WebGL, so squads are drawn as flat tokens. The game is unchanged.';
       return;
     }
-    let want = localStorage.getItem('sortie.fx');
-    want = want == null ? true : want === '1';
+    let want = pref('fx', true);
     const apply = () => {
       glOn = want;
       glc.style.display = want ? 'block' : 'none';
       btn.textContent = want ? 'Machines on' : 'Machines off';
     };
     apply();
-    btn.onclick = () => { want = !want; localStorage.setItem('sortie.fx', want ? '1' : '0'); apply(); };
+    btn.onclick = () => { want = !want; setPref('fx', want); apply(); };
   })();
 
   /** Everything the renderer needs to draw this instant, derived from the frame the page is on. */
@@ -763,6 +806,7 @@ html,body{height:100%;overflow:hidden}
     const other = st.army.find(s => s.hex === h && s.uid !== uid);
     if (other) other.hex = me.hex;                       // swap rather than refuse
     me.hex = h;
+    if (SND) SND.play('deploy');
     return true;
   }
 
@@ -1184,15 +1228,31 @@ html,body{height:100%;overflow:hidden}
     if (withFx !== false) {
       const now = performance.now();
       for (const e of f.ev) {
-        if (e.from != null) fx.push({ from: e.from, to: e.to, side: e.side, splash: e.splash,
-          melee: e.melee, indirect: e.indirect, killed: e.killed, crits: e.crits, role: e.role,
-          era: e.era, uid: e.uid, tuid: e.tuid, born: now });
-        if (e.at != null) fx.push({ boom: true, at: e.at, born: now });
+        if (e.from != null) {
+          fx.push({ from: e.from, to: e.to, side: e.side, splash: e.splash,
+            melee: e.melee, indirect: e.indirect, killed: e.killed, crits: e.crits, role: e.role,
+            era: e.era, uid: e.uid, tuid: e.tuid, born: now });
+          if (SND) {
+            /* The report fires now; the impact lands when the bolt does. Playing both on the same
+               frame is what makes a battle sound like a rattle instead of an exchange. */
+            SND.play(e.melee ? 'melee' : 'fire', e.era, { weight: weightOf(e), crit: e.crits > 0 });
+            if (e.hits) setTimeout(() => SND.play('impact', e.era, { weight: weightOf(e) }), e.melee ? 90 : 340);
+            if (e.killed) setTimeout(() => SND.play('death', e.era, { weight: Math.min(1.6, 0.8 + e.killed * 0.2) }), e.melee ? 150 : 420);
+          }
+        }
+        if (e.at != null) { fx.push({ boom: true, at: e.at, born: now }); if (SND) SND.play('boom'); }
       }
     }
     $('#viewTag').textContent = 'tick ' + f.t + ' · ' +
       f.squads.filter(q => q.side === 'p').length + ' v ' + f.squads.filter(q => q.side === 'e').length + ' squads';
   }
+  /* Weight is the difference between a Scrap Pod's sidearm and a Colossus's cannon. Squad size
+     stands in for calibre: eight machines firing together is a volley, one is a gun. */
+  function weightOf(e) {
+    const heavy = e.role === 'heavy' || e.role === 'siege' || e.role === 'ace';
+    return (heavy ? 1.35 : 1) * (e.shots > 5 ? 1.15 : e.shots <= 2 ? 0.8 : 1);
+  }
+
   function logFrame(f) { for (const e of f.ev) if (e.s) logLine(f.t, e.k, e.s, e.detail); }
   function rebuildLog(n) { logBox.textContent = ''; for (let i = 0; i < n; i++) logFrame(run.frames[i]); }
   function updatePlaybar() {
@@ -1232,6 +1292,7 @@ html,body{height:100%;overflow:hidden}
 
   function finish() {
     stopTimer(); phase = 'summary'; paused = true;
+    if (SND && run) SND.play(run.won ? 'win' : 'lose');
     let report = { lost: [], bite: run.bite };
     if (!resolved) {
       // battle uid "p3" refers to the third squad in the army we sent

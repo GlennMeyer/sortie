@@ -9,11 +9,16 @@
 
 import { createBoardRenderer, BoardRenderer } from './board';
 import type { Scene, SquadView, ShotView, BoomView } from './board';
+import { createSound, Sound } from './sound';
 
-export type { Scene, SquadView, ShotView, BoomView, BoardRenderer };
+export type { Scene, SquadView, ShotView, BoomView, BoardRenderer, Sound };
 
 declare global {
-  interface Window { SortieGL?: { create: typeof createBoardRenderer } }
+  interface Window {
+    SortieGL?: { create: typeof createBoardRenderer };
+    SortieSound?: { create: typeof createSound };
+  }
 }
 
 window.SortieGL = { create: createBoardRenderer };
+window.SortieSound = { create: createSound };
