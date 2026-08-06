@@ -59,6 +59,23 @@ const COMP =
   '  gl_FragColor = vec4(col, 1.0);' +
   '}';
 
+/* The overlay composite.
+ *
+ * On the tactical display this pass is not grading a photograph — the board underneath is the
+ * photograph, and this layer only holds the machines and what they are shooting at each other.
+ * So: no vignette, no grain, no aberration, and alpha is carried through so the grid shows between
+ * the feet. Bloom is the entire point of running it at all. */
+const COMP_OVERLAY =
+  'precision mediump float; varying vec2 uv;' +
+  'uniform sampler2D src; uniform sampler2D bloom;' +
+  'void main(){' +
+  '  vec4 s = texture2D(src, uv);' +
+  '  vec3 bl = texture2D(bloom, uv).rgb;' +
+  '  vec3 col = s.rgb + bl * 1.25;' +
+  '  float bloomA = clamp(dot(bl, vec3(0.299, 0.587, 0.114)) * 2.2, 0.0, 1.0);' +
+  '  gl_FragColor = vec4(col, clamp(max(s.a, bloomA), 0.0, 1.0));' +
+  '}';
+
 interface Target { tex: WebGLTexture; fbo: WebGLFramebuffer; w: number; h: number }
 
 export class Post {
@@ -72,11 +89,11 @@ export class Post {
   private w = 0; private h = 0;
   readonly ok: boolean;
 
-  constructor(private gl: WebGLRenderingContext) {
+  constructor(private gl: WebGLRenderingContext, private mode: 'scene' | 'overlay' = 'scene') {
     try {
       this.bright = this.link(BRIGHT);
       this.blur = this.link(BLUR);
-      this.comp = this.link(COMP);
+      this.comp = this.link(mode === 'overlay' ? COMP_OVERLAY : COMP);
       this.quad = gl.createBuffer()!;
       gl.bindBuffer(gl.ARRAY_BUFFER, this.quad);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -135,7 +152,7 @@ export class Post {
     const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.scene.fbo);
     gl.viewport(0, 0, w, h);
-    gl.clearColor(0, 0, 0, 1);
+    gl.clearColor(0, 0, 0, this.mode === 'overlay' ? 0 : 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
   }
 
@@ -170,9 +187,11 @@ export class Post {
     });
     this.pass(this.comp, null, [this.scene.tex, this.a.tex], l => {
       gl.uniform1i(l('src'), 0); gl.uniform1i(l('bloom'), 1);
-      gl.uniform2f(l('res'), this.w, this.h);
-      gl.uniform1f(l('time'), time);
-      gl.uniform1f(l('flash'), flash);
+      if (this.mode === 'scene') {
+        gl.uniform2f(l('res'), this.w, this.h);
+        gl.uniform1f(l('time'), time);
+        gl.uniform1f(l('flash'), flash);
+      }
     });
   }
 }

@@ -13,6 +13,6 @@ export default defineConfig({
     emptyOutDir: true,
     assetsInlineLimit: 100_000_000,
     chunkSizeWarningLimit: 4000,
-    rollupOptions: { input: resolve(__dirname, 'src/theatre.html') },
+    rollupOptions: { input: resolve(import.meta.dirname, 'src/theatre.html') },
   },
 });

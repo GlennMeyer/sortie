@@ -315,8 +315,14 @@ function simulateBattle(playerSquads, enemySquads, seed, opts = {}) {
       q.kills += killed;
       q.cd = Math.max(0, Math.round((q.s.cycle || 1) - 1));
 
+      /* The renderer needs to know who fired, not just from where: a hex holds one squad but the
+         performance poses machines, and two squads trading fire across the same pair of hexes
+         must not be mistaken for one. `melee` tells it to swing rather than shoot — a Lancer at
+         reach 1 is not firing anything. */
       ev.push({ k: q.side === 'p' ? 'pfire' : 'efire', from: q.hex, to: tgt.hex,
         splash: q.s.splash, killed, side: q.side,
+        uid: q.uid, tuid: tgt.uid, shots, hits, crits,
+        melee: d <= 1 && q.s.maxR <= 2, indirect: !!q.s.indirect, role: q.s.role,
         s: (impact ? 'IMPACT! ' : '') + (crits ? 'CRIT×' + crits + ' ' : '') + (pointBlank ? 'POINT BLANK ' : '') +
            `${q.s.name} → ${tgt.s.name}: ${shots} shots, needs ${th.need}+, ${hits} hit` +
            (saved ? `, ${saved} saved` : '') + (killed ? ` — ${killed} destroyed` : ''),
@@ -327,7 +333,7 @@ function simulateBattle(playerSquads, enemySquads, seed, opts = {}) {
         applyDamage(q, back, 0, ev);
         ev.push({ k: 'boom', at: q.hex, s: `${tgt.s.name} detonate — ${back} back into ${q.s.name}` });
       }
-      if (!alive(tgt)) ev.push({ k: 'wipe', at: tgt.hex, s: `${tgt.s.name} wiped out` });
+      if (!alive(tgt)) ev.push({ k: 'wipe', at: tgt.hex, uid: tgt.uid, s: `${tgt.s.name} wiped out` });
     }
 
     /* Stalemate: a Siege Walker hugged by Pods cannot fire and cannot escape, and neither side

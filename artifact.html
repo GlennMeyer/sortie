@@ -213,10 +213,10 @@ html,body{height:100%;overflow:hidden}
    top of it and only ever shows pixels. When the optics are on, the source is composited at zero
    opacity — still hit-testable, just not the thing you are looking at. */
 .boardstack{position:relative;line-height:0}
+.zoomhint{margin-left:auto;opacity:.55;letter-spacing:.08em}
 .boardstack>#glboard{position:absolute;left:0;top:0;pointer-events:none;display:none}
-.boardstack.gl>#board{opacity:0}
-.boardstack.gl>#glboard{display:block}
-.phead .fxtoggle{margin-left:auto}
+.boardstack>#board{touch-action:none}
+.phead .fxtoggle{margin-left:10px}
 #board{display:block;touch-action:none;cursor:crosshair}
 #playbar{flex:0 0 auto;margin:0 8px 6px;border-radius:var(--r)}
 .board-col .actions{flex:0 0 auto;padding:0 8px 8px}
@@ -267,7 +267,7 @@ html,body{height:100%;overflow:hidden}
     </section>
 
     <section class="panel board-col">
-      <div class="phead"><h2 id="mainTitle">Deployment</h2><span class="sub" id="viewTag">Place your squads</span><button class="btn ghost sm fxtoggle" id="btnFx" title="Optics: bloom, aberration and scanlines over the tactical display.">Optics on</button></div>
+      <div class="phead"><h2 id="mainTitle">Deployment</h2><span class="sub" id="viewTag">Place your squads</span><span class="sub zoomhint" id="zoomTag" title="Scroll on the board to zoom. Shift-drag to pan. Double-click to pull back out.">scroll to zoom</span><button class="btn ghost sm fxtoggle" id="btnFx" title="Draw squads as the machines they are, with the weapons they are actually firing. Off falls back to flat tokens.">Machines on</button></div>
       <div id="hint" class="hint"></div>
       <div id="inspect" class="idle"></div>
       <div class="boardfit"><div class="boardstack">
@@ -334,6 +334,28 @@ html,body{height:100%;overflow:hidden}
     </section>
   </main>
 </div>
+
+<script>(function(){var e=e=>{switch(e){case`grunt`:return{height:1.8,breadth:.26,head:.13,thrusters:!1,limb:.9};case`brawler`:return{height:2,breadth:.3,head:.13,thrusters:!0,limb:1};case`heavy`:return{height:2.6,breadth:.42,head:.11,thrusters:!1,limb:1.5};case`artillery`:return{height:2.1,breadth:.38,head:.1,thrusters:!1,limb:1.2};case`ace`:return{height:2.1,breadth:.28,head:.12,thrusters:!0,limb:.95}}},t={id:`stone`,name:`THE LONG WAR`,blurb:`Bronze and bone. Nothing here travels faster than an arm can throw it.`,palette:{sky:[`#2A2016`,`#6B4A2A`],haze:`#8A6A44`,ground:[`#3A2E20`,`#241B12`],player:`#C8A15E`,foe:`#8E4B3A`,metal:`#B9A98A`,shadow:`rgba(10,6,2,.5)`},look(e){switch(e){case`sidearm`:return{kind:`arc`,colour:`#D8C08A`,width:2,flash:0,speed:22,trail:!1};case`rifle`:return{kind:`arc`,colour:`#E4D2A2`,width:2,flash:0,speed:34,trail:!1};case`cannon`:return{kind:`arc`,colour:`#9C8B6A`,width:5,flash:0,speed:18,trail:!1};case`lobbed`:return{kind:`arc`,colour:`#8C7A56`,width:4,flash:0,speed:14,trail:!1};case`blade`:return{kind:`edge`,colour:`#E8DCC0`,width:3,flash:0,speed:0,trail:!1};case`polearm`:return{kind:`edge`,colour:`#D6C39A`,width:3,flash:0,speed:0,trail:!1}}},rig(t){let n=e(t);return{...n,height:n.height*.72,thrusters:!1,limb:n.limb*.85}}},n={id:`industrial`,name:`THE FOUNDRY WARS`,blurb:`Powder, plate and smoke. Range starts to mean something.`,palette:{sky:[`#1B2026`,`#4A5560`],haze:`#6E7A85`,ground:[`#2E3339`,`#1A1E22`],player:`#C7752F`,foe:`#9E3A32`,metal:`#8E9AA6`,shadow:`rgba(4,8,12,.5)`},look(e){switch(e){case`sidearm`:return{kind:`slug`,colour:`#FFC77A`,width:2,flash:10,speed:120,trail:!1};case`rifle`:return{kind:`slug`,colour:`#FFD089`,width:2,flash:14,speed:190,trail:!0};case`cannon`:return{kind:`slug`,colour:`#FFB05A`,width:5,flash:26,speed:150,trail:!0};case`lobbed`:return{kind:`arc`,colour:`#C6C0B0`,width:4,flash:12,speed:40,trail:!0};case`blade`:return{kind:`edge`,colour:`#DCE6F0`,width:3,flash:0,speed:0,trail:!1};case`polearm`:return{kind:`edge`,colour:`#C8D2DC`,width:3,flash:0,speed:0,trail:!1}}},rig(t){let n=e(t);return{...n,height:n.height*.85}}},r={id:`mobilesuit`,name:`THE SORTIE`,blurb:`Beam and thrust. Everything on this field can kill everything else.`,palette:{sky:[`#0B1017`,`#16283C`],haze:`#2B4A6B`,ground:[`#1B222B`,`#0E1319`],player:`#FF6A1F`,foe:`#FF4438`,metal:`#8CA0B4`,shadow:`rgba(0,4,10,.55)`},look(e){switch(e){case`sidearm`:return{kind:`beam`,colour:`#FFB84D`,width:2,flash:14,speed:320,trail:!0};case`rifle`:return{kind:`beam`,colour:`#FF8A3D`,width:3,flash:22,speed:420,trail:!0};case`cannon`:return{kind:`beam`,colour:`#FF5A2A`,width:6,flash:40,speed:380,trail:!0};case`lobbed`:return{kind:`arc`,colour:`#7FE3F5`,width:4,flash:18,speed:70,trail:!0};case`blade`:return{kind:`edge`,colour:`#7FE3F5`,width:5,flash:30,speed:0,trail:!0};case`polearm`:return{kind:`edge`,colour:`#A7F0FF`,width:4,flash:26,speed:0,trail:!0}}},rig(t){return e(t)}},i=[t,n,r],a=e=>{var t;return(t=i.find(t=>t.id===e))==null?r:t},o={idle:{lean:.02,armR:.25,armL:-.18,legR:.06,legL:-.06,crouch:.05},walkA:{lean:.06,armR:.2,armL:-.4,legR:.45,legL:-.35,crouch:.1},walkB:{lean:.06,armR:.4,armL:-.2,legR:-.35,legL:.45,crouch:.1},aim:{lean:-.04,armR:1.5,armL:.65,legR:.14,legL:-.2,crouch:.14},recoil:{lean:-.16,armR:1.66,armL:.7,legR:.18,legL:-.26,crouch:.22},windup:{lean:-.3,armR:-.95,armL:-.3,legR:-.3,legL:.34,crouch:.26},swing:{lean:.42,armR:1.95,armL:.3,legR:.55,legL:-.34,crouch:.18},boost:{lean:.55,armR:-.3,armL:-.55,legR:-.42,legL:-.22,crouch:0},evade:{lean:-.4,armR:-.2,armL:.8,legR:-.55,legL:.3,crouch:.3},struck:{lean:-.5,armR:-.7,armL:-.95,legR:-.2,legL:.22,crouch:.34},down:{lean:1.45,armR:-1.2,armL:-1.4,legR:.9,legL:-.7,crouch:.85}},s=Object.keys(o),c=96,l=88;function u(e,t){let n=c*.62/e.height,r=l-e.height*n*.48,i=c*.5,a=t.lean,o=e.height*n*.42,s={x:i+Math.sin(a)*o,y:r-Math.cos(a)*o+t.crouch*5},u={x:i,y:r+t.crouch*7},d=e.head*e.height*n*.72,f={x:s.x+Math.sin(a)*d*1.25,y:s.y-Math.cos(a)*d*1.25},p=e.height*n*.34,m=e.height*n*.5,h=(e,t,n)=>({x:e.x+Math.sin(t)*n,y:e.y+Math.cos(t)*n});return{hip:u,shoulder:s,head:f,handR:h(s,t.armR,p),handL:h(s,t.armL,p),footR:h(u,t.legR,m),footL:h(u,t.legL,m),elbowR:h(s,t.armR,p*.55),elbowL:h(s,t.armL,p*.55),kneeR:h(u,t.legR,m*.55),kneeL:h(u,t.legL,m*.55)}}function d(e,t,n,r,i,a,o){let s=n.x-t.x,c=n.y-t.y,l=Math.hypot(s,c)||1,u=-c/l,d=s/l;e.beginPath(),e.moveTo(t.x+u*r,t.y+d*r),e.lineTo(n.x+u*i,n.y+d*i),e.lineTo(n.x-u*i,n.y-d*i),e.lineTo(t.x-u*r,t.y-d*r),e.closePath(),e.fillStyle=a,e.fill(),o&&(e.strokeStyle=o,e.lineWidth=1,e.stroke())}function f(e,t,n,r,i,a,o,s){e.save(),e.translate(t,n),e.rotate(a),e.beginPath(),e.rect(-r/2,-i/2,r,i),e.fillStyle=o,e.fill(),s&&(e.strokeStyle=s,e.lineWidth=1,e.stroke()),e.restore()}var p=(e,t)=>{let n=parseInt(e.slice(1),16),r=e=>Math.max(0,Math.min(255,Math.round(e*t)));return`rgb(${r(n>>16&255)},${r(n>>8&255)},${r(n&255)})`};function m(e,t,n,r,i,a,o){let s=n.x-t.x,c=n.y-t.y,l=Math.hypot(s,c)||1,u=s/l,m=c/l,h={x:n.x+u*i,y:n.y+m*i},g=Math.atan2(m,u);return r===`gun`?(f(e,n.x+u*i*.3,n.y+m*i*.3,i*.62,i*.3,g,p(a,.55),p(a,.35)),d(e,n,h,i*.1,i*.055,p(a,.8))):r===`edge`&&(f(e,n.x+u*i*.14,n.y+m*i*.14,i*.24,i*.2,g,p(a,.5)),d(e,n,h,i*.09,i*.02,o)),h}function h(e,t,n,r,i,a){let o=t.rig(n),s=u(o,r),l=c*.62/o.height,h=o.breadth*o.height*l*o.limb*.55,g=t.palette.metal,_=p(g,.52),v=p(g,.34);d(e,s.hip,s.kneeL,h*.42,h*.34,_),d(e,s.kneeL,s.footL,h*.32,h*.24,_),f(e,s.footL.x+h*.12,s.footL.y,h*.66,h*.28,0,_),d(e,s.shoulder,s.elbowL,h*.32,h*.26,_),d(e,s.elbowL,s.handL,h*.26,h*.2,_),o.thrusters&&f(e,s.shoulder.x-Math.cos(r.lean)*h*.9,s.shoulder.y+Math.sin(r.lean)*h*.9+h*.5,h*.75,h*1.5,r.lean,p(g,.62),v),d(e,s.hip,s.kneeR,h*.52,h*.4,g,v),d(e,s.kneeR,s.footR,h*.38,h*.28,g,v),f(e,s.footR.x+h*.14,s.footR.y,h*.8,h*.32,0,p(g,.75),v),f(e,s.kneeR.x,s.kneeR.y,h*.44,h*.34,0,i);let y={x:(s.hip.x*2+s.shoulder.x)/3,y:(s.hip.y*2+s.shoulder.y)/3};d(e,s.hip,y,h*.62,h*.7,p(g,.7),v),d(e,y,s.shoulder,h*.78,h*1.02,g,v),f(e,(y.x+s.shoulder.x)/2,(y.y+s.shoulder.y)/2,h*.62,h*.46,r.lean,p(g,.62),v),f(e,s.shoulder.x+h*.3,s.shoulder.y,h*.86,h*.62,r.lean,i,v),f(e,s.shoulder.x-h*.42,s.shoulder.y,h*.7,h*.54,r.lean,p(g,.6),v);let b=Math.max(2.2,o.head*o.height*l*.62);return f(e,s.head.x,s.head.y,b*1.5,b*1.7,r.lean,p(g,.85),v),f(e,s.head.x+b*.34,s.head.y-b*.12,b*.8,b*.32,r.lean,i),d(e,s.shoulder,s.elbowR,h*.4,h*.32,g,v),d(e,s.elbowR,s.handR,h*.32,h*.26,g,v),m(e,s.elbowR,s.handR,a,o.height*l*.28,g,i)}var g=[`grunt`,`brawler`,`heavy`,`artillery`,`ace`],_={grunt:`gun`,brawler:`edge`,heavy:`gun`,artillery:`gun`,ace:`edge`};function v(e){let t=[`p`,`e`],n=s.length*t.length,r=e.length*g.length,i=document.createElement(`canvas`);i.width=n*c,i.height=(r+1)*c;let a=i.getContext(`2d`),u=new Map,d=new Map,f=(e,t,n,r)=>`${e}|${t}|${n}${r?`|`+r:``}`,p=0;for(let n of e)for(let e of g){let r=0;for(let i of s)for(let s of t){let t=r*c,l=p*c;a.save(),a.translate(t,l),a.beginPath(),a.rect(0,0,c,c),a.clip();let m=h(a,n,e,o[i],s===`p`?n.palette.player:n.palette.foe,_[e]);a.restore(),s===`p`&&d.set(f(n.id,e,i),m),u.set(f(n.id,e,i,s),{x:t,y:l,w:c,h:c}),r++}p++}let m={x:0,y:r*c,w:c,h:c};{let e=a.createRadialGradient(m.x+c/2,m.y+c/2,0,m.x+c/2,m.y+c/2,c/2);e.addColorStop(0,`rgba(255,255,255,1)`),e.addColorStop(.25,`rgba(255,255,255,0.6)`),e.addColorStop(.6,`rgba(255,255,255,0.13)`),e.addColorStop(1,`rgba(255,255,255,0)`),a.fillStyle=e,a.fillRect(m.x,m.y,c,c)}let v={x:c,y:r*c,w:c,h:c};{let e=document.createElement(`canvas`);e.width=c,e.height=c;let t=e.getContext(`2d`),n=t.createLinearGradient(0,0,c,0);n.addColorStop(0,`rgba(255,255,255,0)`),n.addColorStop(.5,`rgba(255,255,255,1)`),n.addColorStop(1,`rgba(255,255,255,0)`),t.fillStyle=n,t.fillRect(0,0,c,c);let r=t.createLinearGradient(0,0,0,c);r.addColorStop(0,`rgba(255,255,255,0)`),r.addColorStop(.5,`rgba(255,255,255,1)`),r.addColorStop(1,`rgba(255,255,255,0)`),t.globalCompositeOperation=`destination-in`,t.fillStyle=r,t.fillRect(0,0,c,c),a.drawImage(e,v.x,v.y)}return{canvas:i,glow:m,streak:v,cellSize:c,figureHeight:l,cell:(e,t,n,r)=>{var i;return(i=u.get(f(e,t,n,r)))==null?{x:0,y:0,w:c,h:c}:i},muzzle:(e,t,n)=>{var r;return(r=d.get(f(e,t,n)))==null?{x:c/2,y:c/2}:r}}}var y=`
+attribute vec2 aPos;
+attribute vec2 aUV;
+attribute vec4 aTint;
+uniform vec2 uRes;
+varying vec2 vUV;
+varying vec4 vTint;
+void main() {
+  vUV = aUV;
+  vTint = aTint;
+  vec2 clip = (aPos / uRes) * 2.0 - 1.0;
+  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+}`,b=`
+precision mediump float;
+varying vec2 vUV;
+varying vec4 vTint;
+uniform sampler2D uTex;
+void main() {
+  vec4 t = texture2D(uTex, vUV);
+  gl_FragColor = t * vTint;
+}`,x=8,S=4096,C=class{constructor(e,t,n=!1){this.canvas=e,this.quads=0,this.batches=[],this.cur=null,this.ok=!1;let r=e.getContext(`webgl`,{alpha:n,antialias:!0,depth:!1,premultipliedAlpha:!1});if(!r){this.gl=null,this.prog=null,this.buf=null,this.data=new Float32Array,this.atlasTex=null,this.whiteTex=null,this.uRes=null,this.uTex=null;return}this.gl=r,this.prog=this.link(y,b),this.data=new Float32Array(S*6*x),this.buf=r.createBuffer(),this.atlasTex=this.texFrom(t),this.whiteTex=this.white(),this.uRes=r.getUniformLocation(this.prog,`uRes`),this.uTex=r.getUniformLocation(this.prog,`uTex`),r.enable(r.BLEND),this.ok=!0}link(e,t){var n;let r=this.gl,i=(e,t)=>{var n;let i=r.createShader(e);if(r.shaderSource(i,t),r.compileShader(i),!r.getShaderParameter(i,r.COMPILE_STATUS))throw Error((n=r.getShaderInfoLog(i))==null?`shader`:n);return i},a=r.createProgram();if(r.attachShader(a,i(r.VERTEX_SHADER,e)),r.attachShader(a,i(r.FRAGMENT_SHADER,t)),r.bindAttribLocation(a,0,`aPos`),r.bindAttribLocation(a,1,`aUV`),r.bindAttribLocation(a,2,`aTint`),r.linkProgram(a),!r.getProgramParameter(a,r.LINK_STATUS))throw Error((n=r.getProgramInfoLog(a))==null?`link`:n);return a}texFrom(e){let t=this.gl,n=t.createTexture();return t.bindTexture(t.TEXTURE_2D,n),t.texImage2D(t.TEXTURE_2D,0,t.RGBA,t.RGBA,t.UNSIGNED_BYTE,e),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_MIN_FILTER,t.LINEAR),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_MAG_FILTER,t.LINEAR),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_WRAP_S,t.CLAMP_TO_EDGE),t.texParameteri(t.TEXTURE_2D,t.TEXTURE_WRAP_T,t.CLAMP_TO_EDGE),n}white(){let e=this.gl,t=e.createTexture();return e.bindTexture(e.TEXTURE_2D,t),e.texImage2D(e.TEXTURE_2D,0,e.RGBA,1,1,0,e.RGBA,e.UNSIGNED_BYTE,new Uint8Array([255,255,255,255])),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_MIN_FILTER,e.NEAREST),e.texParameteri(e.TEXTURE_2D,e.TEXTURE_MAG_FILTER,e.NEAREST),t}get context(){return this.gl}get size(){return[this.canvas.width,this.canvas.height]}replaceAtlas(e){this.ok&&(this.gl.deleteTexture(this.atlasTex),this.atlasTex=this.texFrom(e))}begin(e,t,n,r=1){let i=this.gl;(this.canvas.width!==e||this.canvas.height!==t)&&(this.canvas.width=e,this.canvas.height=t),i.viewport(0,0,e,t),i.clearColor(n[0],n[1],n[2],r),i.clear(i.COLOR_BUFFER_BIT),this.quads=0,this.batches=[],this.cur=null}push(e,t,n,r,i){if(this.quads>=S)return;(!this.cur||this.cur.blend!==t||this.cur.tex!==e)&&(this.cur={blend:t,tex:e,start:this.quads*6,count:0},this.batches.push(this.cur));let a=this.quads*6*x,o=[0,1,2,0,2,3];for(let e=0;e<6;e++){let t=o[e],s=n[t],c=r[t],l=a+e*x;this.data[l]=s[0],this.data[l+1]=s[1],this.data[l+2]=c[0],this.data[l+3]=c[1],this.data[l+4]=i[0],this.data[l+5]=i[1],this.data[l+6]=i[2],this.data[l+7]=i[3]}this.quads++,this.cur.count+=6}sprite(e,t,n,r,i,a,o,s,c=`normal`,l=!1){let u=e.w*a*.5,d=e.h*a*.5,f=Math.cos(o),p=Math.sin(o),m=(e,t)=>[r+e*f-t*p,i+e*p+t*f],h=e.x/t,g=(e.x+e.w)/t,_=e.y/n,v=(e.y+e.h)/n;if(l){let e=h;h=g,g=e}this.push(0,c,[m(-u,-d),m(u,-d),m(u,d),m(-u,d)],[[h,_],[g,_],[g,v],[h,v]],s)}stretched(e,t,n,r,i,a,o,s,c,l=`normal`){let u=a*.5,d=o*.5,f=Math.cos(s),p=Math.sin(s),m=(e,t)=>[r+e*f-t*p,i+e*p+t*f],h=e.x/t,g=(e.x+e.w)/t,_=e.y/n,v=(e.y+e.h)/n;this.push(0,l,[m(-u,-d),m(u,-d),m(u,d),m(-u,d)],[[h,_],[g,_],[g,v],[h,v]],c)}quad(e,t,n,r,i,a,o=`normal`){let s=n*.5,c=r*.5,l=Math.cos(i),u=Math.sin(i),d=(n,r)=>[e+n*l-r*u,t+n*u+r*l];this.push(1,o,[d(-s,-c),d(s,-c),d(s,c),d(-s,c)],[[0,0],[1,0],[1,1],[0,1]],a)}line(e,t,n,r,i,a,o=`add`){let s=n-e,c=r-t,l=Math.hypot(s,c);l<.01||this.quad((e+n)/2,(t+r)/2,l,i,Math.atan2(c,s),a,o)}end(){if(!this.ok)return;let e=this.gl;e.useProgram(this.prog),e.bindBuffer(e.ARRAY_BUFFER,this.buf),e.bufferData(e.ARRAY_BUFFER,this.data.subarray(0,this.quads*6*x),e.DYNAMIC_DRAW),e.enableVertexAttribArray(0),e.vertexAttribPointer(0,2,e.FLOAT,!1,32,0),e.enableVertexAttribArray(1),e.vertexAttribPointer(1,2,e.FLOAT,!1,32,8),e.enableVertexAttribArray(2),e.vertexAttribPointer(2,4,e.FLOAT,!1,32,16),e.uniform2f(this.uRes,this.canvas.width,this.canvas.height),e.uniform1i(this.uTex,0);for(let t of this.batches)e.blendFunc(e.SRC_ALPHA,t.blend===`add`?e.ONE:e.ONE_MINUS_SRC_ALPHA),e.activeTexture(e.TEXTURE0),e.bindTexture(e.TEXTURE_2D,t.tex===0?this.atlasTex:this.whiteTex),e.drawArrays(e.TRIANGLES,t.start,t.count)}};function w(e,t=1){let n=parseInt(e.slice(1),16);return[(n>>16&255)/255,(n>>8&255)/255,(n&255)/255,t]}var T=`attribute vec2 p; varying vec2 uv;void main(){ uv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }`,E=`precision mediump float; varying vec2 uv; uniform sampler2D src;void main(){  vec3 c = texture2D(src, uv).rgb;  float l = dot(c, vec3(0.299, 0.587, 0.114));  gl_FragColor = vec4(c * smoothstep(0.48, 0.95, l), 1.0);}`,D=`precision mediump float; varying vec2 uv; uniform sampler2D src; uniform vec2 dir;void main(){  vec3 c = texture2D(src, uv).rgb * 0.2270270270;  c += texture2D(src, uv + dir * 1.3846153846).rgb * 0.3162162162;  c += texture2D(src, uv - dir * 1.3846153846).rgb * 0.3162162162;  c += texture2D(src, uv + dir * 3.2307692308).rgb * 0.0702702703;  c += texture2D(src, uv - dir * 3.2307692308).rgb * 0.0702702703;  gl_FragColor = vec4(c, 1.0);}`,O=`precision mediump float; varying vec2 uv;uniform sampler2D src; uniform sampler2D bloom;uniform vec2 res; uniform float time; uniform float flash;float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }void main(){  vec2 c = uv - 0.5;  float r2 = dot(c, c);  vec2 ab = c * r2 * 0.012;  vec3 col;  col.r = texture2D(src, uv + ab).r;  col.g = texture2D(src, uv).g;  col.b = texture2D(src, uv - ab).b;  vec3 bl = texture2D(bloom, uv).rgb;  col += bl * 1.35;  col += bl * flash * 1.05;  col = mix(col, col * vec3(0.94, 0.99, 1.10), 0.35);  col += (hash(uv * res + time) - 0.5) * 0.020;  col *= 1.0 - r2 * 0.50;  gl_FragColor = vec4(col, 1.0);}`,k=`precision mediump float; varying vec2 uv;uniform sampler2D src; uniform sampler2D bloom;void main(){  vec4 s = texture2D(src, uv);  vec3 bl = texture2D(bloom, uv).rgb;  vec3 col = s.rgb + bl * 1.25;  float bloomA = clamp(dot(bl, vec3(0.299, 0.587, 0.114)) * 2.2, 0.0, 1.0);  gl_FragColor = vec4(col, clamp(max(s.a, bloomA), 0.0, 1.0));}`,A=class{constructor(e,t=`scene`){this.gl=e,this.mode=t,this.w=0,this.h=0;try{this.bright=this.link(E),this.blur=this.link(D),this.comp=this.link(t===`overlay`?k:O),this.quad=e.createBuffer(),e.bindBuffer(e.ARRAY_BUFFER,this.quad),e.bufferData(e.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),e.STATIC_DRAW),this.ok=!0}catch(e){this.ok=!1}}link(e){var t;let n=this.gl,r=(e,t)=>{var r;let i=n.createShader(e);if(n.shaderSource(i,t),n.compileShader(i),!n.getShaderParameter(i,n.COMPILE_STATUS))throw Error((r=n.getShaderInfoLog(i))==null?``:r);return i},i=n.createProgram();if(n.attachShader(i,r(n.VERTEX_SHADER,T)),n.attachShader(i,r(n.FRAGMENT_SHADER,e)),n.bindAttribLocation(i,0,`p`),n.linkProgram(i),!n.getProgramParameter(i,n.LINK_STATUS))throw Error((t=n.getProgramInfoLog(i))==null?``:t);return i}target(e,t){let n=this.gl,r=n.createTexture();n.bindTexture(n.TEXTURE_2D,r),n.texImage2D(n.TEXTURE_2D,0,n.RGBA,e,t,0,n.RGBA,n.UNSIGNED_BYTE,null),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_MIN_FILTER,n.LINEAR),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_MAG_FILTER,n.LINEAR),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_WRAP_S,n.CLAMP_TO_EDGE),n.texParameteri(n.TEXTURE_2D,n.TEXTURE_WRAP_T,n.CLAMP_TO_EDGE);let i=n.createFramebuffer();return n.bindFramebuffer(n.FRAMEBUFFER,i),n.framebufferTexture2D(n.FRAMEBUFFER,n.COLOR_ATTACHMENT0,n.TEXTURE_2D,r,0),{tex:r,fbo:i,w:e,h:t}}resize(e,t){if(e===this.w&&t===this.h)return;let n=this.gl;for(let e of[this.scene,this.a,this.b])e&&(n.deleteTexture(e.tex),n.deleteFramebuffer(e.fbo));this.scene=this.target(e,t),this.a=this.target(Math.max(1,e>>1),Math.max(1,t>>1)),this.b=this.target(Math.max(1,e>>1),Math.max(1,t>>1)),this.w=e,this.h=t}bindScene(e,t){if(!this.ok)return;this.resize(e,t);let n=this.gl;n.bindFramebuffer(n.FRAMEBUFFER,this.scene.fbo),n.viewport(0,0,e,t),n.clearColor(0,0,0,this.mode===`overlay`?0:1),n.clear(n.COLOR_BUFFER_BIT)}pass(e,t,n,r){let i=this.gl;i.useProgram(e),i.bindFramebuffer(i.FRAMEBUFFER,t?t.fbo:null),i.viewport(0,0,t?t.w:this.w,t?t.h:this.h),i.bindBuffer(i.ARRAY_BUFFER,this.quad),i.enableVertexAttribArray(0),i.vertexAttribPointer(0,2,i.FLOAT,!1,0,0),i.disableVertexAttribArray(1),i.disableVertexAttribArray(2),n.forEach((e,t)=>{i.activeTexture(i.TEXTURE0+t),i.bindTexture(i.TEXTURE_2D,e)}),r(t=>i.getUniformLocation(e,t)),i.disable(i.BLEND),i.drawArrays(i.TRIANGLES,0,3),i.enable(i.BLEND)}present(e,t){if(!this.ok)return;let n=this.gl;this.pass(this.bright,this.a,[this.scene.tex],e=>n.uniform1i(e(`src`),0)),this.pass(this.blur,this.b,[this.a.tex],e=>{n.uniform1i(e(`src`),0),n.uniform2f(e(`dir`),1/this.a.w,0)}),this.pass(this.blur,this.a,[this.b.tex],e=>{n.uniform1i(e(`src`),0),n.uniform2f(e(`dir`),0,1/this.b.h)}),this.pass(this.comp,null,[this.scene.tex,this.a.tex],r=>{n.uniform1i(r(`src`),0),n.uniform1i(r(`bloom`),1),this.mode===`scene`&&(n.uniform2f(r(`res`),this.w,this.h),n.uniform1f(r(`time`),e),n.uniform1f(r(`flash`),t))})}},j={swarm:`grunt`,line:`grunt`,fast:`brawler`,siege:`artillery`,heavy:`heavy`,ace:`ace`},M={swarm:`sidearm`,line:`rifle`,fast:`blade`,siege:`lobbed`,heavy:`cannon`,ace:`blade`},N={p:[1.15,.8,.52],e:[.92,.52,.52]},P=.42,F=.34,I=.3,L=.7,R=3,z=.34,B=.55,V=class{constructor(e,t=`mobilesuit`){this.squads=new Map,this.stamp=0,this.last=0,this.rand=1,this.era=a(t),this.atlas=v([this.era]),this.batch=new C(e,this.atlas.canvas,!0),this.ok=this.batch.ok,this.post=this.ok?new A(this.batch.context,`overlay`):null,this.post&&!this.post.ok&&(this.post=null)}setEra(e){let t=a(e);t.id!==this.era.id&&(this.era=t,this.atlas=v([t]),this.batch.replaceAtlas(this.atlas.canvas))}noise(){return this.rand=this.rand*1664525+1013904223>>>0,this.rand/4294967296}squadOf(e){let t=this.squads.get(e.key);return t||(t={key:e.key,x:e.x,y:e.y,tx:e.x,ty:e.y,px:e.x,py:e.y,moveT:I,facing:e.side===`p`?1:-1,fireT:99,struckT:99,meleeT:99,aimX:e.x,aimY:e.y,bodies:[],n:e.n,side:e.side,role:e.role,seen:this.stamp},this.squads.set(e.key,t)),t}fitBodies(e,t){for(;e.bodies.length<t;){let t=e.bodies.length,n=t===0?0:1+Math.floor((t-1)/4),r=t*2.399+n,i=n*.55;e.bodies.push({ox:Math.cos(r)*i+(this.noise()-.5)*.12,oy:Math.sin(r)*i*.58+(this.noise()-.5)*.1,phase:this.noise()*Math.PI*2,dying:-1})}let n=0;for(let t of e.bodies)t.dying<0&&n++;for(let r=e.bodies.length-1;r>=0&&n>t;r--){let t=e.bodies[r];t.dying<0&&(t.dying=0,n--)}e.bodies=e.bodies.filter(e=>e.dying<0||e.dying<1.25);let r=0;for(let t=e.bodies.length-1;t>=0;t--)e.bodies[t].dying<0||++r>R&&e.bodies.splice(t,1)}draw(e){if(!this.ok)return;let t=performance.now()/1e3,n=this.last?Math.min(.05,t-this.last):.016;this.last=t,this.stamp++;let r=Math.max(1,Math.round(e.w*e.dpr)),i=Math.max(1,Math.round(e.h*e.dpr));this.advance(e,n);let a=()=>this.paint(e,t);this.post?(this.batch.begin(r,i,[0,0,0],0),this.post.bindScene(r,i),a(),this.batch.end(),this.post.present(t,0)):(this.batch.begin(r,i,[0,0,0],0),a(),this.batch.end())}advance(e,t){let n=performance.now();for(let n of e.squads){let e=this.squadOf(n);e.seen=this.stamp,e.side=n.side,e.role=n.role,e.n=n.n,(n.x!==e.tx||n.y!==e.ty)&&(e.px=e.x,e.py=e.y,e.tx=n.x,e.ty=n.y,e.moveT=0,Math.abs(n.x-e.px)>1&&(e.facing=n.x>e.px?1:-1)),e.moveT=Math.min(I,e.moveT+t);let r=e.moveT/I,i=r*r*(3-2*r);e.x=e.px+(e.tx-e.px)*i,e.y=e.py+(e.ty-e.py)*i,e.fireT+=t,e.struckT+=t,e.meleeT+=t,this.fitBodies(e,Math.max(0,Math.min(n.n,H(n))));for(let n of e.bodies)n.dying>=0&&(n.dying+=t)}for(let[e,t]of this.squads)t.seen<this.stamp-2&&this.squads.delete(e);for(let t of e.shots){let e=(n-t.born)/1e3;if(e>.62)continue;let r=t.uid==null?null:this.squads.get(t.uid);r&&(t.melee?r.meleeT=Math.min(r.meleeT,e):r.fireT=Math.min(r.fireT,e),r.aimX=t.to.x,r.aimY=t.to.y,Math.abs(t.to.x-r.x)>2&&(r.facing=t.to.x>r.x?1:-1));let i=t.tuid==null?null:this.squads.get(t.tuid);i&&e>z&&(i.struckT=Math.min(i.struckT,e-z))}}paint(e,t){let n=e.camera,r=e.dpr,i=t=>(t-n.x)*n.zoom*r+e.w*r/2,a=t=>(t-n.y)*n.zoom*r+e.h*r/2,o=n.zoom*r,s=e.R*o,[c,l]=[this.atlas.canvas.width,this.atlas.canvas.height],u=performance.now(),d=[...e.squads].sort((e,t)=>e.y-t.y);for(let t of d){let n=this.squads.get(t.key);if(!n)continue;let r=U(t)*s/this.atlas.cellSize;for(let o of n.bodies){var f,p;let u=i(n.x+o.ox*e.R),d=a(n.y+o.oy*e.R),m=o.dying>=0?Math.max(0,1-o.dying/1.7):1;this.batch.sprite(this.atlas.glow,c,l,u,d+s*.3,r*.55,0,[0,0,.02,.42*m*((f=t.alpha)==null?1:f)],`normal`);let h=t.side===`p`?this.era.palette.player:this.era.palette.foe;this.batch.sprite(this.atlas.glow,c,l,u,d+s*.31,r*.4,0,w(h,.3*m*((p=t.alpha)==null?1:p)),`add`)}}for(let n of d){let r=this.squads.get(n.key);r&&this.paintSquad(e,r,n,i,a,s,c,l,t)}for(let t of e.shots)this.paintShot(e,t,i,a,o,c,l,u);for(let t of e.booms)this.paintBoom(t,i,a,o,c,l,u)}paintSquad(e,t,n,r,i,a,o,s,c){var l,u;let d=(l=j[n.role])==null?`grunt`:l,f=U(n)*a/this.atlas.cellSize,p=t.moveT<I,m=(u=n.alpha)==null?1:u,h=n.side===`p`?this.era.palette.player:this.era.palette.foe;for(let l of t.bodies){let u=r(t.x+l.ox*e.R),g=l.dying>=0?0:Math.sin(c*2.1+l.phase)*a*.012,_=i(t.y+l.oy*e.R)+g,v=N[n.side],y=`idle`,b=0,x=0,S=[v[0],v[1],v[2],m];if(l.dying>=0){let e=Math.min(1,l.dying/L);y=e<.35?`struck`:`down`,b=e*.42*-t.facing,x=e*a*.1;let n=Math.max(0,1-Math.max(0,l.dying-L)/1);S=[v[0],v[1]*(.55+.45*(1-e)),v[2]*(.4+.6*(1-e)),n*m]}else if(t.struckT<F){let e=t.struckT/F;y=`struck`;let n=(1-e)*.55;S=[v[0]+n*1,v[1]+n*.5,v[2]+n*.25,m],b=(1-e)*.16*-t.facing}else t.meleeT<P?y=t.meleeT/P<.35?`windup`:`swing`:t.fireT<P?y=t.fireT<.13?`recoil`:`aim`:p?y=Math.floor(c*7+l.phase)&1?`walkA`:`walkB`:n.charging?(y=`boost`,x=Math.abs(Math.sin(c*5+l.phase))*a*.06):e.fighting&&(y=Math.sin(c*1.4+l.phase)>.7?`aim`:`idle`);let C=this.atlas.cell(this.era.id,d,y,n.side),T=this.atlas.cellSize*f*.42,E=u+Math.sin(b)*T,D=_-x+T*(1-Math.cos(b));if(this.batch.sprite(C,o,s,E,D,f,b,S,`normal`,t.facing<0),(n.charging||p&&d===`brawler`)&&l.dying<0){let e=.55+Math.abs(Math.sin(c*22+l.phase))*.45;for(let t of[-.11,.11])this.batch.sprite(this.atlas.glow,o,s,u+t*a,_+a*.24,f*.42*e,0,w(h,.72*m),`add`)}}n.selected&&this.batch.sprite(this.atlas.glow,o,s,r(t.x),i(t.y)+a*.32,a*2.4/this.atlas.cellSize,0,w(`#56D2E4`,.34),`add`)}paintShot(e,t,n,r,i,a,o,s){var c,l;let u=(s-t.born)/1e3,d=this.era.look((c=M[(l=t.role)==null?`line`:l])==null?`rifle`:c),f=d.colour,p=e.R*i,m=t.uid==null?null:this.squads.get(t.uid),h=n(m?m.x:t.from.x),g=r(m?m.y:t.from.y)-p*.3,_=t.tuid==null?null:this.squads.get(t.tuid),v=n(_?_.x:t.to.x),y=r(_?_.y:t.to.y)-p*.26;if(t.melee){var b;if(u>.42)return;let e=u/.42,n=h+(v-h)*.72,r=g+(y-g)*.72,i=-.9+e*2.4,s=p*1.15*Math.sin(Math.min(1,e*1.6)*Math.PI);this.batch.stretched(this.atlas.streak,a,o,n,r,s,Math.max(2.5,p*.1),i,w(f,(1-e)*.95),`add`),this.batch.sprite(this.atlas.glow,a,o,n,r,p*.9/this.atlas.cellSize*(.6+e),0,w(f,(1-e)*.55),`add`),e>.45&&this.sparks(n,r,p,f,(e-.45)/.55,a,o,(b=t.crits)==null?0:b);return}let x=Math.min(1,u/z);if(u<.11&&d.flash>0){let e=1-u/.11;this.batch.sprite(this.atlas.glow,a,o,h,g,p*.75/this.atlas.cellSize*e,0,w(f,.75*e),`add`)}if(x<1){let e={x0:h,y0:g,x1:v,y1:y,t:x,age:u,ev:t};this.paintFlight(e,d.kind===`arc`||!!t.indirect,f,d.width,p,a,o)}let S=u-z;if(S>=0&&S<B){var C,T;let e=S/B,n=((C=t.killed)==null?0:C)>0,r=(t.splash?1.5:.85)*(n?1.4:1);this.batch.sprite(this.atlas.glow,a,o,v,y,p*r/this.atlas.cellSize*(.35+e*1.5),0,w(n?`#FFD9A0`:f,(1-e)*(n?.8:.5)),`add`),e<.6&&this.sparks(v,y,p,f,e/.6,a,o,((T=t.crits)==null?0:T)+(n?3:0))}}paintFlight(e,t,n,r,i,a,o){let s=e.t,c=Math.max(0,e.t-.22),l=n=>{let r=e.x0+(e.x1-e.x0)*n,a=e.y0+(e.y1-e.y0)*n;return t&&(a-=Math.sin(n*Math.PI)*i*1.35),[r,a]},[u,d]=l(c),[f,p]=l(s),m=f-u,h=p-d,g=Math.hypot(m,h);if(g<.5)return;let _=Math.atan2(h,m),v=r*i*.035;this.batch.stretched(this.atlas.streak,a,o,(u+f)/2,(d+p)/2,g,Math.max(2.5,v*3),_,w(n,.55),`add`),this.batch.stretched(this.atlas.streak,a,o,(u+f)/2,(d+p)/2,g,Math.max(1.2,v),_,[1,1,1,.9],`add`),this.batch.sprite(this.atlas.glow,a,o,f,p,i*.34/this.atlas.cellSize,0,w(n,.7),`add`)}sparks(e,t,n,r,i,a,o,s){let c=5+Math.min(8,s*2);for(let s=0;s<c;s++){let c=s*2.399,l=n*(.25+1.15*i)*(.6+s%3*.22),u=e+Math.cos(c)*l,d=t+Math.sin(c)*l*.7+n*i*i*.5;this.batch.sprite(this.atlas.glow,a,o,u,d,n*.2/this.atlas.cellSize*(1-i),0,w(r,(1-i)*.85),`add`)}}paintBoom(e,t,n,r,i,a,o){let s=(o-e.born)/1e3;if(s>.75)return;let c=s/.75,l=25*r,u=t(e.x),d=n(e.y)-l*.2;this.batch.sprite(this.atlas.glow,i,a,u,d,l*3.2/this.atlas.cellSize*(.3+c*1.6),0,w(`#FFB05A`,(1-c)*.9),`add`),this.sparks(u,d,l,`#FFD9A0`,c,i,a,6)}};function H(e){return Math.min(e.n,e.nMax>6?6:e.nMax)}function U(e){let t=H(e)>=5?.82:H(e)>=3?.92:1,n=e.role===`heavy`?1.55:e.role===`ace`?1.2:e.role===`siege`?1.15:e.role===`swarm`?.8:1;return 1.35*t*n}function W(e,t){try{let n=new V(e,t);return n.ok?n:null}catch(e){return null}}window.SortieGL={create:W}})();</script>
 
 <script>
 'use strict';
@@ -1530,8 +1552,14 @@ function simulateBattle(playerSquads, enemySquads, seed, opts = {}) {
       q.kills += killed;
       q.cd = Math.max(0, Math.round((q.s.cycle || 1) - 1));
 
+      /* The renderer needs to know who fired, not just from where: a hex holds one squad but the
+         performance poses machines, and two squads trading fire across the same pair of hexes
+         must not be mistaken for one. `melee` tells it to swing rather than shoot — a Lancer at
+         reach 1 is not firing anything. */
       ev.push({ k: q.side === 'p' ? 'pfire' : 'efire', from: q.hex, to: tgt.hex,
         splash: q.s.splash, killed, side: q.side,
+        uid: q.uid, tuid: tgt.uid, shots, hits, crits,
+        melee: d <= 1 && q.s.maxR <= 2, indirect: !!q.s.indirect, role: q.s.role,
         s: (impact ? 'IMPACT! ' : '') + (crits ? 'CRIT×' + crits + ' ' : '') + (pointBlank ? 'POINT BLANK ' : '') +
            `${q.s.name} → ${tgt.s.name}: ${shots} shots, needs ${th.need}+, ${hits} hit` +
            (saved ? `, ${saved} saved` : '') + (killed ? ` — ${killed} destroyed` : ''),
@@ -1542,7 +1570,7 @@ function simulateBattle(playerSquads, enemySquads, seed, opts = {}) {
         applyDamage(q, back, 0, ev);
         ev.push({ k: 'boom', at: q.hex, s: `${tgt.s.name} detonate — ${back} back into ${q.s.name}` });
       }
-      if (!alive(tgt)) ev.push({ k: 'wipe', at: tgt.hex, s: `${tgt.s.name} wiped out` });
+      if (!alive(tgt)) ev.push({ k: 'wipe', at: tgt.hex, uid: tgt.uid, s: `${tgt.s.name} wiped out` });
     }
 
     /* Stalemate: a Siege Walker hugged by Pods cannot fire and cannot escape, and neither side
@@ -1640,181 +1668,35 @@ if (typeof module !== 'undefined' && module.exports) {
   /* ---------- board ---------- */
   const cv = $('#board'), ctx = cv.getContext('2d');
 
-  /* ---------- optics ----------
-     The board is drawn in 2D exactly as before, then the finished frame is pushed through GL as a
-     texture. Nothing about how hexes or machines are drawn changes; this only decides how the
-     result looks coming off a mobile suit's display.
+  /* ---------- the renderer ----------
+     The 2D canvas below draws the grid, the deploy overlays, the labels and everything you point
+     at. This draws the machines on top of it: real figures, walking between hexes, firing weapons
+     that leave a muzzle and land on something, falling over when they die.
 
-       bright pass -> horizontal blur -> vertical blur -> composite
+     It is a separate canvas rather than more 2D drawing because a squad is a dozen sprites and a
+     battle is a few hundred of them plus bloom, which is a GPU's job. It composites over the board
+     with a transparent background, so the two layers agree on where a hex is and nothing else.
 
-     Bloom is what sells beam fire: tracers and crit flashes are already the brightest pixels on
-     the board, so a threshold pass picks them out for free and no drawing code has to know. The
-     composite adds a radial chromatic split, scanlines, grain and a vignette on top.
-
-     It degrades honestly. No WebGL, a failed compile, or a lost context and the 2D canvas is
-     simply left visible — the game is identical, just flatter. */
-  const GLFX = (function () {
-    const glc = $('#glboard'), stack = glc.parentElement;
-    let gl = null, ok = false, prog = {}, fbo = {}, tex = {}, quad = null, w = 0, h = 0, t0 = performance.now();
-    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    const VERT =
-      'attribute vec2 p; varying vec2 uv;' +
-      'void main(){ uv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }';
-
-    // keep only what is already glowing, at half resolution — the blur is cheap there
-    const BRIGHT =
-      'precision mediump float; varying vec2 uv; uniform sampler2D src;' +
-      'void main(){' +
-      '  vec3 c = texture2D(src, uv).rgb;' +
-      '  float l = dot(c, vec3(0.299, 0.587, 0.114));' +
-      '  float k = smoothstep(0.34, 0.90, l);' +
-      '  gl_FragColor = vec4(c * k, 1.0);' +
-      '}';
-
-    const BLUR =
-      'precision mediump float; varying vec2 uv; uniform sampler2D src; uniform vec2 dir;' +
-      'void main(){' +
-      '  vec3 c = texture2D(src, uv).rgb * 0.2270270270;' +
-      '  c += texture2D(src, uv + dir * 1.3846153846).rgb * 0.3162162162;' +
-      '  c += texture2D(src, uv - dir * 1.3846153846).rgb * 0.3162162162;' +
-      '  c += texture2D(src, uv + dir * 3.2307692308).rgb * 0.0702702703;' +
-      '  c += texture2D(src, uv - dir * 3.2307692308).rgb * 0.0702702703;' +
-      '  gl_FragColor = vec4(c, 1.0);' +
-      '}';
-
-    const COMP =
-      'precision mediump float; varying vec2 uv;' +
-      'uniform sampler2D src; uniform sampler2D bloom; uniform vec2 res; uniform float time; uniform float motion;' +
-      'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }' +
-      'void main(){' +
-      '  vec2 c = uv - 0.5;' +
-      '  float r2 = dot(c, c);' +
-      // the split grows toward the edges, so the middle of the board stays crisp to read
-      '  vec2 ab = c * r2 * 0.016;' +
-      '  vec3 col;' +
-      '  col.r = texture2D(src, uv + ab).r;' +
-      '  col.g = texture2D(src, uv).g;' +
-      '  col.b = texture2D(src, uv - ab).b;' +
-      '  col += texture2D(bloom, uv).rgb * 1.30;' +
-      // a phosphor line pair, and a scan bar that drifts down the display
-      '  float scan = 0.94 + 0.06 * sin(uv.y * res.y * 1.55);' +
-      '  float bar = 0.035 * smoothstep(0.90, 1.0, fract(uv.y * 0.5 - time * 0.045)) * motion;' +
-      '  col *= scan; col += bar * vec3(0.35, 0.55, 0.75);' +
-      // grain, then the tube falls off at the corners
-      '  col += (hash(uv * res + time * motion) - 0.5) * 0.022;' +
-      '  col *= 1.0 - r2 * 0.42;' +
-      '  gl_FragColor = vec4(col, 1.0);' +
-      '}';
-
-    function shader(type, src) {
-      const s = gl.createShader(type);
-      gl.shaderSource(s, src); gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
-      return s;
-    }
-    function program(fs) {
-      const p = gl.createProgram();
-      gl.attachShader(p, shader(gl.VERTEX_SHADER, VERT));
-      gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
-      gl.bindAttribLocation(p, 0, 'p');
-      gl.linkProgram(p);
-      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
-      return p;
-    }
-    function target(tw, th) {
-      const t = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, t);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tw, th, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      const f = gl.createFramebuffer();
-      gl.bindFramebuffer(gl.FRAMEBUFFER, f);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
-      return { t, f, w: tw, h: th };
-    }
-
-    function init() {
-      try {
-        gl = glc.getContext('webgl', { alpha: false, antialias: false, depth: false, premultipliedAlpha: false })
-          || glc.getContext('experimental-webgl');
-        if (!gl) return false;
-        prog.bright = program(BRIGHT); prog.blur = program(BLUR); prog.comp = program(COMP);
-        quad = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, quad);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(0);
-        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-        tex.src = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, tex.src);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        glc.addEventListener('webglcontextlost', e => { e.preventDefault(); ok = false; stack.classList.remove('gl'); });
-        ok = true;
-        return true;
-      } catch (e) { ok = false; return false; }
-    }
-
-    function resize(pxW, pxH, cssW, cssH) {
-      if (!ok) return;
-      w = pxW; h = pxH;
-      glc.width = pxW; glc.height = pxH;
-      glc.style.width = cssW + 'px'; glc.style.height = cssH + 'px';
-      const hw = Math.max(1, pxW >> 1), hh = Math.max(1, pxH >> 1);
-      for (const k of ['a', 'b']) {
-        if (fbo[k]) { gl.deleteTexture(fbo[k].t); gl.deleteFramebuffer(fbo[k].f); }
-        fbo[k] = target(hw, hh);
-      }
-    }
-
-    function pass(p, target, binds, uniforms) {
-      gl.useProgram(p);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.f : null);
-      gl.viewport(0, 0, target ? target.w : w, target ? target.h : h);
-      binds.forEach((t, i) => {
-        gl.activeTexture(gl.TEXTURE0 + i);
-        gl.bindTexture(gl.TEXTURE_2D, t);
-      });
-      for (const [name, set] of uniforms) set(gl.getUniformLocation(p, name));
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    }
-
-    function present() {
-      if (!ok || !w) return;
-      try {
-        gl.bindTexture(gl.TEXTURE_2D, tex.src);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
-        pass(prog.bright, fbo.a, [tex.src], [['src', l => gl.uniform1i(l, 0)]]);
-        pass(prog.blur, fbo.b, [fbo.a.t], [['src', l => gl.uniform1i(l, 0)],
-          ['dir', l => gl.uniform2f(l, 1 / fbo.a.w, 0)]]);
-        pass(prog.blur, fbo.a, [fbo.b.t], [['src', l => gl.uniform1i(l, 0)],
-          ['dir', l => gl.uniform2f(l, 0, 1 / fbo.b.h)]]);
-        pass(prog.comp, null, [tex.src, fbo.a.t], [
-          ['src', l => gl.uniform1i(l, 0)], ['bloom', l => gl.uniform1i(l, 1)],
-          ['res', l => gl.uniform2f(l, w, h)],
-          ['time', l => gl.uniform1f(l, (performance.now() - t0) / 1000)],
-          ['motion', l => gl.uniform1f(l, reduced ? 0 : 1)]]);
-      } catch (e) { ok = false; stack.classList.remove('gl'); }
-    }
-
-    return {
-      get available() { return ok; },
-      init, resize, present,
-      set on(v) { stack.classList.toggle('gl', !!(v && ok)); },
-      get on() { return stack.classList.contains('gl'); },
-    };
+     If this browser has no WebGL the object is null, the page keeps drawing the flat tokens it
+     always drew, and the game is identical — just flatter. */
+  const glc = $('#glboard');
+  const GLB = (function () {
+    const api = window.SortieGL;
+    if (!api) return null;
+    try { return api.create(glc); } catch (e) { return null; }
   })();
+
+  /* The camera. Board coordinates in, screen coordinates out — the only thing in the game that
+     knows about zoom, so that everything else can keep working in hexes. */
+  const cam = { x: 0, y: 0, zoom: 1, want: 1, follow: true };
   const R = 25, SQ = Math.sqrt(3) * R, PAD = 14;
   const BW = Math.round(SQ * (COLS + 0.5) + PAD * 2), BH = Math.round(R * 1.5 * (ROWS - 1) + R * 2 + PAD * 2);
+  cam.x = BW / 2; cam.y = BH / 2;
+  let DPR = 1;
   function fitCanvas() {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    cv.width = BW * dpr; cv.height = BH * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = BW * DPR; cv.height = BH * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     // letterbox into whatever the column leaves us — max-width alone only ever shrinks
     const box = $('.boardfit');
     const cw = box.clientWidth - 16, ch = box.clientHeight - 16;
@@ -1822,12 +1704,82 @@ if (typeof module !== 'undefined' && module.exports) {
       const scale = Math.min(cw / BW, ch / BH);
       cv.style.width = Math.round(BW * scale) + 'px';
       cv.style.height = Math.round(BH * scale) + 'px';
+      glc.style.width = cv.style.width; glc.style.height = cv.style.height;
     }
-    GLFX.resize(cv.width, cv.height, parseInt(cv.style.width, 10) || BW, parseInt(cv.style.height, 10) || BH);
   }
   fitCanvas();
   window.addEventListener('resize', fitCanvas);
   if (window.ResizeObserver) new ResizeObserver(fitCanvas).observe($('.boardfit'));
+
+  /* ---------- camera ----------
+     Zoom is the whole reason the machines are worth drawing: at fit-the-board scale a Line Suit is
+     twenty pixels tall and you are reading tokens again. Scroll in and it becomes a battle you can
+     watch. The camera is clamped so the board can never be dragged off the edge of its own canvas,
+     which means there is no way to get lost and no reset button to have to find. */
+  function clampCam() {
+    const halfW = BW / (2 * cam.zoom), halfH = BH / (2 * cam.zoom);
+    cam.x = cam.zoom <= 1 ? BW / 2 : Math.max(halfW, Math.min(BW - halfW, cam.x));
+    cam.y = cam.zoom <= 1 ? BH / 2 : Math.max(halfH, Math.min(BH - halfH, cam.y));
+  }
+  /** Screen point (board pixels, unzoomed canvas space) -> world point. */
+  function unproject(px, py) {
+    return { x: (px - BW / 2) / cam.zoom + cam.x, y: (py - BH / 2) / cam.zoom + cam.y };
+  }
+  cv.addEventListener('wheel', ev => {
+    ev.preventDefault();
+    const r = cv.getBoundingClientRect();
+    const px = (ev.clientX - r.left) * BW / r.width, py = (ev.clientY - r.top) * BH / r.height;
+    const before = unproject(px, py);
+    cam.want = Math.max(1, Math.min(4.5, cam.want * (ev.deltaY < 0 ? 1.18 : 1 / 1.18)));
+    cam.zoom = cam.want;
+    // keep the point under the cursor under the cursor — anything else feels like the board fled
+    const after = unproject(px, py);
+    cam.x += before.x - after.x; cam.y += before.y - after.y;
+    cam.follow = true;
+    clampCam();
+  }, { passive: false });
+  /* Middle-drag pans and takes the camera off auto. Left-drag is placement and must stay so. */
+  let pan = null;
+  cv.addEventListener('pointerdown', ev => {
+    if (ev.button !== 1 && !(ev.button === 0 && ev.shiftKey)) return;
+    ev.preventDefault();
+    pan = { x: ev.clientX, y: ev.clientY }; cam.follow = false;
+    cv.setPointerCapture(ev.pointerId);
+  });
+  cv.addEventListener('pointermove', ev => {
+    if (!pan) return;
+    const r = cv.getBoundingClientRect();
+    cam.x -= (ev.clientX - pan.x) * (BW / r.width) / cam.zoom;
+    cam.y -= (ev.clientY - pan.y) * (BH / r.height) / cam.zoom;
+    pan.x = ev.clientX; pan.y = ev.clientY;
+    clampCam();
+  });
+  addEventListener('pointerup', () => { pan = null; });
+  cv.addEventListener('dblclick', () => { cam.want = cam.zoom = 1; cam.follow = true; clampCam(); });
+
+  /* Zoomed in during a battle, the camera goes where the shooting is. Following the mean of what
+     has fired recently keeps both ends of an exchange on screen; falling back to the centre of the
+     surviving squads stops it drifting into empty map when the field goes quiet. */
+  function trackAction() {
+    if (!cam.follow || cam.zoom <= 1.02) return;
+    let tx = 0, ty = 0, w = 0;
+    const now = performance.now();
+    for (const f of fx) {
+      const age = (now - f.born) / 1000;
+      if (age > 1.6) continue;
+      const k = 1.6 - age;
+      if (f.boom) { const c = centre(f.at); tx += c.x * k; ty += c.y * k; w += k; continue; }
+      const a = centre(f.from), b = centre(f.to);
+      tx += (a.x + b.x) / 2 * k; ty += (a.y + b.y) / 2 * k; w += k;
+    }
+    if (!w && curFrame) {
+      for (const q of curFrame.squads) { const c = centre(q.hex); tx += c.x; ty += c.y; w++; }
+    }
+    if (!w) return;
+    const gx = tx / w, gy = ty / w;
+    cam.x += (gx - cam.x) * 0.055; cam.y += (gy - cam.y) * 0.055;
+    clampCam();
+  }
   const centre = i => ({ x: SQ * ((i % COLS) + 0.5 * (((i / COLS) | 0) & 1)) + SQ / 2 + PAD, y: R * 1.5 * ((i / COLS) | 0) + R + PAD });
   function hexPath(x, y, rad) {
     ctx.beginPath();
@@ -1852,8 +1804,9 @@ if (typeof module !== 'undefined' && module.exports) {
   function poly(pts, s) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0] * s, p[1] * s) : ctx.moveTo(p[0] * s, p[1] * s)); ctx.closePath(); }
 
   /* A squad token: one mech silhouette with the surviving count stamped under it. */
-  function drawSquad(x, y, size, col, role, n, nMax, mine) {
+  function drawSquad(x, y, size, col, role, n, nMax, mine, labelOnly) {
     const dark = shade(col, -50), lit = shade(col, 30);
+    if (labelOnly) { drawCount(x, y, size, n, nMax); return; }
     ctx.save(); ctx.translate(x, y);
     ctx.fillStyle = 'rgba(0,0,0,.45)';
     ctx.beginPath(); ctx.ellipse(0, size * .74, size * .6, size * .16, 0, 0, Math.PI * 2); ctx.fill();
@@ -1885,21 +1838,42 @@ if (typeof module !== 'undefined' && module.exports) {
     }
     ctx.restore();
 
-    if (n != null) {
-      const label = '×' + n;
-      ctx.font = '700 10px ' + getComputedStyle(document.body).fontFamily;
-      ctx.textAlign = 'center';
-      const w = ctx.measureText(label).width + 8;
-      ctx.fillStyle = 'rgba(10,14,19,.85)';
-      ctx.fillRect(x - w / 2, y + size * .78, w, 12);
-      ctx.fillStyle = n < nMax ? '#FFC24B' : '#D8DFE6';
-      ctx.fillText(label, x, y + size * .78 + 9);
-    }
+    drawCount(x, y, size, n, nMax);
+  }
+
+  /* The survivor count stays whichever way the squad is drawn. You can see four machines standing
+     where six stood; you cannot see that the sixth was the one carrying the squad's damage. */
+  function drawCount(x, y, size, n, nMax) {
+    if (n == null) return;
+    const label = '×' + n;
+    /* Counter-scaled by the zoom, so a readout stays a readout. Scaling text with the camera turns
+       an ×5 into a billboard the moment you lean in, and it lands on top of the machines it is
+       supposed to be counting. */
+    ctx.save();
+    ctx.translate(x, y + size * .78 + (glOn && GLB ? R * .30 : 0));
+    ctx.scale(1 / cam.zoom, 1 / cam.zoom);
+    ctx.font = '700 10px ' + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = 'center';
+    const w = ctx.measureText(label).width + 8;
+    ctx.fillStyle = 'rgba(10,14,19,.85)';
+    ctx.fillRect(-w / 2, 0, w, 12);
+    ctx.fillStyle = n < nMax ? '#FFC24B' : '#D8DFE6';
+    ctx.fillText(label, 0, 9);
+    ctx.restore();
   }
 
   function drawBoard() {
+    /* The transform is the camera and nothing else: every coordinate below is a board coordinate,
+       exactly as it was before zoom existed, and the two canvases stay in register because they
+       are given the same camera rather than each deriving one. */
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, BW, BH);
     if (!map) return;
+    const z = cam.zoom;
+    ctx.setTransform(DPR * z, 0, 0, DPR * z, DPR * (BW / 2 - cam.x * z), DPR * (BH / 2 - cam.y * z));
+    /* When the renderer is drawing machines the flat tokens would sit inside them. The page keeps
+       everything you point at — hexes, zones, cursors, counts — and gives up the figures. */
+    const tokens = !(glOn && GLB);
     const now = performance.now();
     for (let i = 0; i < N_HEX; i++) {
       const { x, y } = centre(i), t = map.terrain(i);
@@ -1922,7 +1896,7 @@ if (typeof module !== 'undefined' && module.exports) {
       for (const q of curFrame.squads) {
         const { x, y } = centre(q.hex);
         const col = q.charging ? '#FF4438' : (q.side === 'p' ? '#FF6A1F' : (ROLE_COLOR[q.role] || '#FF4438'));
-        drawSquad(x, y, q.role === 'heavy' || q.role === 'ace' ? 15 : 12, col, q.role, q.n, q.nMax, q.side === 'p');
+        drawSquad(x, y, q.role === 'heavy' || q.role === 'ace' ? 15 : 12, col, q.role, q.n, q.nMax, q.side === 'p', !tokens);
         if (q.charging) {                                  // a chevron for a squad mid-charge
           ctx.strokeStyle = '#FF4438'; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.moveTo(x - 7, y - 20); ctx.lineTo(x, y - 26); ctx.lineTo(x + 7, y - 20); ctx.stroke();
@@ -1933,7 +1907,7 @@ if (typeof module !== 'undefined' && module.exports) {
         const h = enemyHex[i]; if (h == null || h < 0) return;
         const { x, y } = centre(h), u = U[e.id];
         ctx.globalAlpha = .75;
-        drawSquad(x, y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, ROLE_COLOR[u.role] || '#FF4438', u.role, u.n, u.n, false);
+        drawSquad(x, y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, ROLE_COLOR[u.role] || '#FF4438', u.role, u.n, u.n, false, !tokens);
         ctx.globalAlpha = 1;
       });
       if (drag && drag.over != null && drag.over >= 0 &&
@@ -1951,12 +1925,12 @@ if (typeof module !== 'undefined' && module.exports) {
         if (held) {
           const o = centre(s.hex);                       // ghost left behind at the old hex
           ctx.globalAlpha = .28;
-          drawSquad(o.x, o.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true);
+          drawSquad(o.x, o.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true, !tokens);
           ctx.globalAlpha = 1;
         } else if (sel === s.uid) {
           hexPath(p.x, p.y, R - 4); ctx.strokeStyle = '#56D2E4'; ctx.lineWidth = 2; ctx.stroke();
         }
-        drawSquad(p.x, p.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true);
+        drawSquad(p.x, p.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true, !tokens);
       }
     }
 
@@ -1983,13 +1957,18 @@ if (typeof module !== 'undefined' && module.exports) {
         ctx.strokeStyle = '#FF6A1F'; ctx.lineWidth = 2; ctx.stroke();
       }
       ctx.globalAlpha = .9;
-      drawSquad(buyDrag.x, buyDrag.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true);
+      drawSquad(buyDrag.x, buyDrag.y, u.role === 'heavy' || u.role === 'ace' ? 15 : 12, '#FF6A1F', u.role, u.n, u.n, true, !tokens);
       ctx.globalAlpha = 1;
     }
 
-    fx = fx.filter(f => now - f.born < (f.boom ? 480 : 280));
+    /* Events live long enough for the slowest thing that draws them. The renderer needs a shot
+       for its full flight plus its impact; the flat trail only wants a third of that and fades
+       out early rather than holding a stale line on screen. */
+    fx = fx.filter(f => now - f.born < (f.boom ? 900 : 1100));
+    if (!tokens) return;
     for (const f of fx) {
       const age = (now - f.born) / (f.boom ? 480 : 280);
+      if (age > 1) continue;
       if (f.boom) {
         const { x, y } = centre(f.at), rad = 26 * age;
         ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2);
@@ -2010,23 +1989,80 @@ if (typeof module !== 'undefined' && module.exports) {
     }
   }
   /* Optics default on where the hardware allows it, and the choice is remembered. */
-  (function setupOptics() {
+  /* The renderer is on by default wherever the hardware allows it, and the choice is remembered.
+     Off falls back to the flat tokens, which is also what happens with no WebGL at all — so the
+     toggle and the fallback are the same code path and neither can rot unnoticed. */
+  let glOn = false;
+  (function setupRenderer() {
     const btn = $('#btnFx');
-    if (!GLFX.init()) { btn.disabled = true; btn.textContent = 'Optics n/a';
-      btn.title = 'This browser has no WebGL, so the board is drawn flat. Everything else is unchanged.'; return; }
-    fitCanvas();
+    if (!GLB) {
+      btn.disabled = true; btn.textContent = 'Machines n/a';
+      btn.title = 'This browser has no WebGL, so squads are drawn as flat tokens. The game is unchanged.';
+      return;
+    }
     let want = localStorage.getItem('sortie.fx');
     want = want == null ? true : want === '1';
-    const apply = () => { GLFX.on = want; btn.textContent = want ? 'Optics on' : 'Optics off'; };
+    const apply = () => {
+      glOn = want;
+      glc.style.display = want ? 'block' : 'none';
+      btn.textContent = want ? 'Machines on' : 'Machines off';
+    };
     apply();
     btn.onclick = () => { want = !want; localStorage.setItem('sortie.fx', want ? '1' : '0'); apply(); };
   })();
 
-  (function loop() { drawBoard(); if (GLFX.on) GLFX.present(); requestAnimationFrame(loop); })();
+  /** Everything the renderer needs to draw this instant, derived from the frame the page is on. */
+  function scene() {
+    const squads = [], shots = [], booms = [];
+    if (curFrame) {
+      for (const q of curFrame.squads) {
+        const c = centre(q.hex);
+        squads.push({ key: String(q.uid), x: c.x, y: c.y, side: q.side, role: q.role,
+          n: q.n, nMax: q.nMax, charging: !!q.charging });
+      }
+    } else {
+      enemy.forEach((e, i) => {
+        const h = enemyHex[i]; if (h == null || h < 0) return;
+        const c = centre(h), u = U[e.id];
+        squads.push({ key: 'e' + i, x: c.x, y: c.y, side: 'e', role: u.role, n: u.n, nMax: u.n, alpha: 0.85 });
+      });
+      for (const s of st.army) {
+        if (s.hex == null || s.hex < 0) continue;
+        const u = spec(st, s.id);
+        const held = drag && drag.uid === s.uid;
+        const p = held ? { x: drag.x, y: drag.y } : centre(s.hex);
+        squads.push({ key: 'p' + s.uid, x: p.x, y: p.y, side: 'p', role: u.role,
+          n: u.n, nMax: u.n, selected: sel === s.uid });
+      }
+      if (buyDrag && buyDrag.onBoard) {
+        const u = spec(st, buyDrag.id), p = { x: buyDrag.x, y: buyDrag.y };
+        squads.push({ key: 'buy', x: p.x, y: p.y, side: 'p', role: u.role, n: u.n, nMax: u.n, alpha: 0.9 });
+      }
+    }
+    for (const f of fx) {
+      if (f.boom) { const c = centre(f.at); booms.push({ x: c.x, y: c.y, born: f.born }); continue; }
+      const a = centre(f.from), b = centre(f.to);
+      shots.push({ from: a, to: b, side: f.side, splash: f.splash, melee: f.melee,
+        indirect: f.indirect, killed: f.killed, crits: f.crits, role: f.role,
+        uid: f.uid, tuid: f.tuid, born: f.born });
+    }
+    return { w: BW, h: BH, dpr: DPR, R, camera: cam, squads, shots, booms, fighting: phase === 'battle' };
+  }
+
+  let zoomShown = '';
+  (function loop() {
+    trackAction();
+    drawBoard();
+    if (glOn && GLB) GLB.draw(scene());
+    // the label doubles as the readout, so the zoom level is never a thing you have to guess
+    const zt = cam.zoom > 1.02 ? '×' + cam.zoom.toFixed(1) + ' · double-click to pull back' : 'scroll to zoom';
+    if (zt !== zoomShown) { zoomShown = zt; $('#zoomTag').textContent = zt; }
+    requestAnimationFrame(loop);
+  })();
 
   const at = ev => {
     const r = cv.getBoundingClientRect();
-    return { x: (ev.clientX - r.left) * BW / r.width, y: (ev.clientY - r.top) * BH / r.height };
+    return unproject((ev.clientX - r.left) * BW / r.width, (ev.clientY - r.top) * BH / r.height);
   };
   const droppable = h => h >= 0 && map && map.deployZone.includes(h) && !map.terrain(h).blocks;
   function placeAt(uid, h) {
@@ -2104,8 +2140,9 @@ if (typeof module !== 'undefined' && module.exports) {
     const inside = ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
     buyDrag.onBoard = inside;
     if (inside) {
-      buyDrag.x = (ev.clientX - r.left) * BW / r.width;
-      buyDrag.y = (ev.clientY - r.top) * BH / r.height;
+      // world coordinates, like every other pointer position — the camera is inverted once, here
+      const p = unproject((ev.clientX - r.left) * BW / r.width, (ev.clientY - r.top) * BH / r.height);
+      buyDrag.x = p.x; buyDrag.y = p.y;
       buyDrag.over = hexAt(buyDrag.x, buyDrag.y);
     } else buyDrag.over = -1;
   });
@@ -2455,7 +2492,9 @@ if (typeof module !== 'undefined' && module.exports) {
     if (withFx !== false) {
       const now = performance.now();
       for (const e of f.ev) {
-        if (e.from != null) fx.push({ from: e.from, to: e.to, side: e.side, splash: e.splash, born: now });
+        if (e.from != null) fx.push({ from: e.from, to: e.to, side: e.side, splash: e.splash,
+          melee: e.melee, indirect: e.indirect, killed: e.killed, crits: e.crits, role: e.role,
+          uid: e.uid, tuid: e.tuid, born: now });
         if (e.at != null) fx.push({ boom: true, at: e.at, born: now });
       }
     }

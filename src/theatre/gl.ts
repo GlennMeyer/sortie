@@ -54,8 +54,13 @@ export class Batcher {
   private uTex: WebGLUniformLocation;
   readonly ok: boolean = false;
 
-  constructor(private canvas: HTMLCanvasElement, atlas: HTMLCanvasElement) {
-    const gl = canvas.getContext('webgl', { alpha: false, antialias: true, depth: false });
+  /* `transparent` makes this canvas an overlay: it composites onto whatever is drawn beneath it
+     rather than owning the frame. Premultiplied alpha is off because everything here is drawn
+     straight-alpha, and letting the browser assume otherwise fringes every sprite. */
+  constructor(private canvas: HTMLCanvasElement, atlas: HTMLCanvasElement, transparent = false) {
+    const gl = canvas.getContext('webgl', {
+      alpha: transparent, antialias: true, depth: false, premultipliedAlpha: false,
+    });
     if (!gl) { this.gl = null as never; this.prog = null as never; this.buf = null as never;
       this.data = new Float32Array(0); this.atlasTex = null as never; this.whiteTex = null as never;
       this.uRes = null as never; this.uTex = null as never; return; }
@@ -117,11 +122,22 @@ export class Batcher {
   get context(): WebGLRenderingContext { return this.gl; }
   get size(): [number, number] { return [this.canvas.width, this.canvas.height]; }
 
-  begin(w: number, h: number, clear: [number, number, number]) {
+  /** Swap the figure sheet — an era change redraws every machine, so the texture changes with it. */
+  replaceAtlas(atlas: HTMLCanvasElement) {
+    if (!this.ok) return;
+    this.gl.deleteTexture(this.atlasTex);
+    this.atlasTex = this.texFrom(atlas);
+  }
+
+  /* `clearAlpha` is 0 when this canvas is an overlay: the board underneath has to show through
+     everywhere a machine isn't. The theatre clears to 1 because it owns the whole frame. */
+  begin(w: number, h: number, clear: [number, number, number], clearAlpha = 1) {
     const gl = this.gl;
-    this.canvas.width = w; this.canvas.height = h;
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = w; this.canvas.height = h;
+    }
     gl.viewport(0, 0, w, h);
-    gl.clearColor(clear[0], clear[1], clear[2], 1);
+    gl.clearColor(clear[0], clear[1], clear[2], clearAlpha);
     gl.clear(gl.COLOR_BUFFER_BIT);
     this.quads = 0; this.batches = []; this.cur = null;
   }
@@ -159,6 +175,23 @@ export class Batcher {
     let u0 = cell.x / atlasW, u1 = (cell.x + cell.w) / atlasW;
     const v0 = cell.y / atlasH, v1 = (cell.y + cell.h) / atlasH;
     if (flip) { const t = u0; u0 = u1; u1 = t; }      // mirror in place: facing is most of the read
+    this.push(0, blend,
+      [corner(-hw, -hh), corner(hw, -hh), corner(hw, hh), corner(-hw, hh)],
+      [[u0, v0], [u1, v0], [u1, v1], [u0, v1]], tint);
+  }
+
+  /** A sprite given an explicit width and height rather than a uniform scale. Beams need this:
+      a bolt is as long as the gap it is crossing and as thin as its weapon, and those two numbers
+      have nothing to do with each other. */
+  stretched(cell: { x: number; y: number; w: number; h: number }, atlasW: number, atlasH: number,
+            x: number, y: number, w: number, h: number, rot: number,
+            tint: [number, number, number, number], blend: Blend = 'normal') {
+    const hw = w * 0.5, hh = h * 0.5;
+    const c = Math.cos(rot), s = Math.sin(rot);
+    const corner = (dx: number, dy: number): [number, number] =>
+      [x + dx * c - dy * s, y + dx * s + dy * c];
+    const u0 = cell.x / atlasW, u1 = (cell.x + cell.w) / atlasW;
+    const v0 = cell.y / atlasH, v1 = (cell.y + cell.h) / atlasH;
     this.push(0, blend,
       [corner(-hw, -hh), corner(hw, -hh), corner(hw, hh), corner(-hw, hh)],
       [[u0, v0], [u1, v0], [u1, v1], [u0, v1]], tint);

@@ -311,8 +311,11 @@ board constrained to its column, and no long-form sections left in the play area
 | `health.js` | `node health.js [wars]` — one-screen dashboard: roster balance, war arc, roster reach. Run after any change |
 | `test.js` | determinism, counter web, economy, rewards, arms race, attrition, board |
 | `uitest.js` | loads the built page in jsdom and plays a full round |
-| `template.html` | the page, with `/*__HEX__*/`, `/*__ARMY__*/`, `/*__BATTLE__*/` markers |
-| `build.js` | inlines the three modules → `artifact.html` + `prototype.html` |
+| `template.html` | the page, with `/*__HEX__*/`, `/*__ARMY__*/`, `/*__BATTLE__*/`, `/*__RENDER__*/` markers |
+| `build.js` | inlines the modules and the renderer → `artifact.html` + `prototype.html` + `index.html` |
+| `src/game/board.ts` | **the board renderer** — machines, motion, weapons, impacts, light |
+| `src/theatre/` | the pieces it is built from: sprite batcher, procedural rig atlas, era skins, bloom |
+| `render.js` | the compiled renderer, committed. `npm run render` rebuilds it |
 | `legacy/` | the pilot campaign (v0.1–0.4) and its tests |
 
 Run `node build.js`, then `node test.js && node uitest.js`.
@@ -501,6 +504,43 @@ battle about two times in three. First impressions are not the place to be even-
 The regime now opens on 840, which puts the first sortie at 67% for a player who buys sensibly and
 knows no counters. The handicap belongs to the bottom of the ladder — tier scaling multiplies the
 regime's income and takes it straight back.
+
+## The board draws machines
+
+For a long time a squad was a triangle with a number under it, and every shot was a two-pixel line
+between two hex centres. That is a readable abstraction and it was never going to be more than one.
+
+The board now draws the machines. A squad is its surviving members standing in formation, and when
+it loses four of six you watch four machines fall over in the hex where it happened — the count is
+still stamped underneath, but you no longer have to read it to know the flank collapsed. Shots
+leave the weapon, cross, and land: a Line Suit fires a beam, a Siege Walker lobs an arc over the
+ridge it is shooting past, a Lancer swings. Scroll to zoom in; during a battle the camera follows
+whatever is firing.
+
+The split is strict, and it is what keeps this from being a rewrite:
+
+| The page owns | The renderer owns |
+|---|---|
+| terrain, deploy zones, cursors, labels, hit-testing | machines, motion, weapons, impacts, light |
+| every decision | nothing |
+
+So the 2D canvas still draws the grid and everything you point at, and a transparent WebGL canvas
+draws over it. The two agree on where a hex is and on nothing else. Feed the renderer the same
+frame twice and you get the same picture apart from time; it cannot change the outcome of a battle
+because it is never asked.
+
+Machines are drawn in code — a procedural rig posed into a texture atlas at load, one figure per
+era per archetype per pose. There is no artist on this project and there is not going to be one, so
+the constraint is doing real work: a new era costs one object in `era.ts` rather than several
+hundred frames of animation, and a Colossus is a Line Suit with different numbers. That is also
+what makes the era ladder drawable when it arrives — the same beats, ten thousand years apart.
+
+Reactions are *derived* from the event list each frame rather than pushed into state, so scrubbing
+the playbar backwards cannot leave a machine stuck mid-recoil.
+
+It degrades honestly. No WebGL, a failed shader compile, or the Machines toggle off, and the page
+draws the flat tokens it always drew. The fallback and the toggle are the same code path, so
+neither can rot unnoticed.
 
 ## Known problems
 

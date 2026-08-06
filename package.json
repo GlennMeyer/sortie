@@ -4,7 +4,7 @@
   },
   "name": "sortie",
   "version": "1.0.0",
-  "description": "A mobile-suit auto-battler on a hex grid. You buy machines, place them, and watch the battle resolve itself \u2014 then spend what you salvaged before the regime's next wave.",
+  "description": "A mobile-suit auto-battler on a hex grid. You buy machines, place them, and watch the battle resolve itself — then spend what you salvaged before the regime's next wave.",
   "main": "army.js",
   "devDependencies": {
     "@types/node": "^26.1.2",
@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit",
     "theatre": "vite build && node -e \"require('fs').copyFileSync('dist/theatre.html','theatre.html')\"",
     "theatre:dev": "vite",
-    "build": "node build.js"
+    "build": "npm run render && node build.js",
+    "render": "vite build --config vite.game.mts && node -e \"require('fs').copyFileSync('dist/game/sortiegl.js','render.js')\""
   },
   "repository": {
     "type": "git",
