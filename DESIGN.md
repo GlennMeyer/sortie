@@ -661,7 +661,7 @@ unguarded read takes the whole script down with it. `army.js` guards the save fi
 Sound toggles did not, so any browser with WebGL and no storage would have got a blank game. Both
 now go through one `pref()` / `setPref()` pair that swallows it. Never touch `localStorage` bare.
 
-## Three things that do not fix the early war
+## Four things that do not fix the early war
 
 Rounds one to five sit at 72-79% for a competent player and have resisted every numeric fix tried.
 The failures are more informative than a success would have been, so they are recorded here to stop
@@ -695,13 +695,37 @@ deliberately shows enemy intel before the shop — so the player counter-picks a
 complete information while the regime counters the army from last round. Counter-picking is the
 stated heart of the game and only one side currently does it against live information.
 
-An attempt to test that by having the regime hold credits back and spend them after seeing the
-player's army **was thrown out as confounded**: running `enemyArmy()` twice also gives it a second
-tech roll and a second run of six rank-ups, so it measured "two buying passes", not "better
-information". The results were non-monotonic (25% reserve was harsher than 40%), which is the
-signature of a broken experiment rather than a strong effect. Testing this properly means splitting
-purchasing from ranking and teching inside `enemyArmy` first. **The information asymmetry remains
-untested, and is the most promising remaining lead.**
+That was tested properly, once `enemyArmy` grew a `buyOnly` option so a caller can run the
+purchase without also granting a second tech roll and six more rank-ups. (The first attempt did
+grant them, produced non-monotonic results, and was thrown out — a broken experiment looks exactly
+like a strong effect until the monotonicity check fails.)
+
+**The hypothesis is confirmed, and the fix still does not work.** Letting the regime spend a
+quarter of its credits after seeing the player's army pulls rounds two to four from 74/75/75 down
+to 63/57/55 — the only lever tried that moves those rounds at all. It also puts whole wars at 32%.
+
+```
+reserve  0%   wars 60%   r1 74  r2 75  r3 74  r4 75  r5 72
+reserve 25%   wars 32%   r1 72  r2 63  r3 57  r4 55  r5 43
+reserve 40%   wars 32%   r1 75  r2 72  r3 68  r4 61  r5 43
+```
+
+Paying for it out of regime income reverses it, because a *percentage* reserve is small when the
+regime is poor and large when it is rich — backwards, since the broken rounds are the early ones.
+At 15% reserve with income cut to 400, rounds two to four went to 83/85/78: **worse than doing
+nothing.** A flat reserve has the right shape — a fixed reaction force is most of a round-two
+budget and a rounding error in round nine — and still lands whole wars at 24-46% across 200, 320
+and 440 credits held.
+
+So: across two parameter families and nine settings, **any reactive spending strong enough to
+flatten rounds two to four also drops whole wars to 24-46%.** The information advantage compounds
+over the war; there is no setting in this family that buys the early flattening without the late
+collapse.
+
+The lead is still right and the instrument is too blunt. Making it work means a regime reaction
+that is *weaker* than a full counter-buy — reacting by ranking what it already has, or by
+re-deploying, rather than by buying a counter. That is a design exercise rather than a tuning one,
+and it is where the next attempt should start.
 
 ## Known problems
 

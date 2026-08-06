@@ -869,7 +869,7 @@ function buyTech(state, tid) {
 
 /* The enemy buys an army that answers yours. This is the arms race: field a swarm and it
    buys splash; field one giant and it buys armour-piercing. */
-function enemyArmy(state, rng) {
+function enemyArmy(state, rng, opts) {
   /* The regime keeps its army between rounds exactly as you keep yours, and spends an income on
      top. Rebuilding from scratch each round while your force compounded was why the player ran
      away with it — persistence has to be symmetric or the arms race is not one. */
@@ -913,6 +913,12 @@ function enemyArmy(state, rng) {
     state.efleet.push({ id: pick, uid: 10000 + state.nextUid++, hex: -1, rank: (state.mods && state.mods.enemyRank) || 0 });
     state.eCredits -= U[pick].cost;
   }
+
+  /* Ranking and teching are separated from buying so a caller can run the purchase alone.
+     Without this split any "let the regime buy twice" experiment silently also grants it a second
+     tech roll and six more rank-ups, and measures two buying passes rather than better
+     information — which is exactly how one such experiment was wasted. */
+  if (opts && opts.buyOnly) return state.efleet;
 
   // slot-capped and still holding credits? spend them on quality, exactly as you can
   let up = 0;
