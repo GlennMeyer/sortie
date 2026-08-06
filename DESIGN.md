@@ -608,6 +608,25 @@ taught something is an interface failure. Always compare two policies before con
 `late idle` is 83 credits. The unwinnable late war that used to leave 3,600 credits unspent is
 gone under a measurement that was not the one that found it.
 
+## A fair price is not a reachable one
+
+The marginal tuner priced Siege Walkers at 1295 and was right to: that is what the gun measures.
+`health.js` then reported it **first fielded in round ten** of a war that averages nine rounds.
+Correctly valued, never bought — content that does not exist.
+
+Three slots and 1295 credits is a double tax. By the time the credits are there the slots are not,
+and the right play with a full board is to spend on ranks instead. Nothing about its value per
+credit was wrong; the absolute ticket was out of reach of the army that would want it.
+
+So it was **trimmed rather than repriced** — hull and damage down about 19%, cost down 22% to 1010.
+Value per credit lands where the tuner put it, and the ticket lands where a mid-war army can pay
+it. First fielded round 10 -> round 4. Marginal spread widened 11 -> 16, which is inside tolerance
+and worth paying.
+
+The general point: **marginal value and roster reach ask different questions.** One is "is this
+priced right", the other is "does anybody ever field it", and they can disagree. When they do, the
+reach number is the one describing the game a person actually plays. Run both.
+
 ## Known problems
 
 - **Battles themselves are decisive, even when the war is not.** 78% end with the loser under 10%

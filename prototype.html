@@ -704,8 +704,12 @@ const UNITS = [
   { id: 'skirm',  name: 'SKIRMISHERS',  role: 'fast', era: 2, slots: 2,  cost: 430, n: 3, hp: 199, dmg: 44, minR: 1, maxR: 4, br: [2,3,4],
     speed: 1.39, ap: 1, save: 6, splash: 0, acc: 0,
     note: 'Fast enough to choose its range. Hits hardest where nobody is looking.' },
-  { id: 'siege',  name: 'SIEGE WALKERS',role: 'siege', era: 2, slots: 3, cost: 1295, n: 2, hp: 295, dmg: 71, minR: 3, maxR: 9, br: [5,7,9],
+  { id: 'siege',  name: 'SIEGE WALKERS',role: 'siege', era: 2, slots: 3, cost: 1010, n: 2, hp: 240, dmg: 57, minR: 3, maxR: 9, br: [5,7,9],
     speed: 0.32, ap: 1, save: 6, splash: 2, acc: 1, emplaced: true,
+    /* Trimmed rather than repriced. The marginal tuner is right that this gun is worth what it
+       measures, but a fair price is not the same as a reachable one: at 1295 for three slots it
+       was first fielded in round ten of a war that averages nine, so it was correctly valued and
+       never bought. Value per credit is unchanged; the absolute ticket is 22% smaller. */
     note: 'Emplaced: it holds the hex you put it on. Reaches the whole field and splashes two, and cannot fire inside three hexes — so where you set it down is the whole decision.' },
   { id: 'missile',name: 'MISSILE TRACK',role: 'siege', era: 3, slots: 2, cost: 945, n: 3, hp: 144, dmg: 40, minR: 2, maxR: 7, br: [4,6,7],
     speed: 0.65, ap: 0, save: 0, splash: 3, acc: 1, indirect: true, emplaced: true,
