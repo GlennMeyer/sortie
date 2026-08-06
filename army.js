@@ -214,7 +214,17 @@ function enemyArmy(state, rng) {
   if (bigs > 0) want.push('lancers', 'heavy');
   if ((mine.siege || 0) > 0) want.push('skirm', 'lancers');
   want.push('line', 'pods', 'heavy', 'skirm');
-  // it climbs the same ladder — no Colossus in round one, but it does get there
+  /* Era gating is PACING, not power — and it is worth saying because the obvious reading is
+     wrong and I acted on it. The comment here used to claim the regime "climbs the same ladder",
+     and strictly it did not: it ran on a fixed schedule (era 2 at round 4, era 3 at round 7)
+     while your first unlock draft already draws era-two machines, because era one holds three
+     units and all three start unlocked.
+     Making it honest — letting the regime field whatever age you have reached — made the game
+     WORSE, not better: round three went from 77% to 85% in the player's favour. The roster is
+     tuned so every unit is worth what it costs, so a later era is not a stronger credit, and
+     handing an early regime permission to buy 430s and 1010s just buys it fewer machines than
+     the 140s and 235s it would otherwise have massed. Era paces what you *see*, not who wins.
+     So the schedule stays, and the comment is the thing that gets fixed. */
   const m = state.mods || {};
   const eraCap = state.round >= (m.era3 || 7) ? 3 : state.round >= (m.era2 || 4) ? 2 : 1;
   for (const u of UNITS) if (u.era === eraCap && !want.includes(u.id)) want.push(u.id);

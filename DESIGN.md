@@ -661,6 +661,48 @@ unguarded read takes the whole script down with it. `army.js` guards the save fi
 Sound toggles did not, so any browser with WebGL and no storage would have got a blank game. Both
 now go through one `pref()` / `setPref()` pair that swallows it. Never touch `localStorage` bare.
 
+## Three things that do not fix the early war
+
+Rounds one to five sit at 72-79% for a competent player and have resisted every numeric fix tried.
+The failures are more informative than a success would have been, so they are recorded here to stop
+the next attempt repeating them.
+
+**Regime income does not reach it.** Rounds one to four stay at 72-79% at every regime income from
+420 to 520 a round. Raising it far enough to move them puts whole wars at 28-39%, because the same
+credits compound into the late war where the player is already losing.
+
+**Era access does not reach it, and making it "fair" made it worse.** `enemyArmy` claimed in a
+comment to climb the same ladder as the player and did not — it ran on a fixed schedule while the
+player's first unlock draft already draws era-two machines. Letting the regime field the age the
+player had actually reached moved round three from 77% to **85% in the player's favour**. The
+roster is tuned so every unit is worth what it costs, so a later era is not a stronger credit; an
+early regime given permission to buy 430s and 1010s simply fields fewer machines than the 140s and
+235s it would otherwise have massed. **Era is pacing, not power.**
+
+**Tech is not what wins it — refusing tech wins it harder.** Denying the player every tech boon
+*raised* rounds two to four to 85-87%, because the alternative reward is cash and cash buys
+machines now. What tech buys is the late war: round seven is 46% with it and 8% without. Ranks are
+worth only four points of whole wars but are the difference between 11% and 1% at round nine.
+
+```
+baseline          wars 60%   r1 74  r2 75  r3 74  r4 75  r5 72  r6 45  r7 46  r8 26  r9 11  r10  6
+no tech boons     wars 35%   r1 74  r2 85  r3 87  r4 83  r5 51  r6 24  r7  8  r8  6  r9  2  r10  0
+no ranks/merges   wars 56%   r1 74  r2 75  r3 74  r4 75  r5 74  r6 53  r7 37  r8 15  r9  1  r10  1
+```
+
+**What is left is structural.** `enemyArmy()` runs *before* the player buys, and the game
+deliberately shows enemy intel before the shop — so the player counter-picks a finished army with
+complete information while the regime counters the army from last round. Counter-picking is the
+stated heart of the game and only one side currently does it against live information.
+
+An attempt to test that by having the regime hold credits back and spend them after seeing the
+player's army **was thrown out as confounded**: running `enemyArmy()` twice also gives it a second
+tech roll and a second run of six rank-ups, so it measured "two buying passes", not "better
+information". The results were non-monotonic (25% reserve was harsher than 40%), which is the
+signature of a broken experiment rather than a strong effect. Testing this properly means splitting
+purchasing from ranking and teching inside `enemyArmy` first. **The information asymmetry remains
+untested, and is the most promising remaining lead.**
+
 ## Known problems
 
 - **Battles themselves are decisive, even when the war is not.** 78% end with the loser under 10%
