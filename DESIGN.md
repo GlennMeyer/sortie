@@ -542,6 +542,32 @@ It degrades honestly. No WebGL, a failed shader compile, or the Machines toggle 
 draws the flat tokens it always drew. The fallback and the toggle are the same code path, so
 neither can rot unnoticed.
 
+## The ladder is visible
+
+The eras used to be a number on a shop card. `era: 1` meant "unlocked later, costs more", and a
+round-nine battle looked exactly like a round-one battle with bigger numbers.
+
+Every machine now looks like the age it came from, and every age is in the atlas at once — because
+a late war fields all three at the same time. That is the whole point. The Line Suits you have been
+dragging around since round one are still standing on the field in round nine, visibly a generation
+behind the machine next to them, and you can see at a glance which half of your army is obsolete.
+
+The ages are told apart by **silhouette first, colour second**. Colour stops working the moment a
+figure is thirty pixels tall with half of it in shadow; an outline keeps working.
+
+| | Frame | Head | Carries | Shots read as |
+|---|---|---|---|---|
+| **1 — Early** | short, thin, barely armoured | crested helm, no visor | a shield on the off arm | thrown arcs, no flash |
+| **2 — Developed** | broad, short-legged, plated over everything | sealed helm, dark | nothing spare | slugs with muzzle flash |
+| **3 — Advanced** | tall, thin-limbed, huge pauldrons | lit visor | thrusters | beams and trails |
+
+`RigSpec` grew four fields to carry this — `plating`, `shield`, `crest`, `visor` — and the figure
+drawing reads them. Adding a fourth age is still one object in `era.ts`.
+
+The weapon look already came from the era skin, so this fell out for free: an era-1 Lancer throws
+something that arcs, an era-2 Line Suit fires a slug that flashes, an era-3 Missile Track puts a
+beam over the ridge. Same beats, ten thousand years apart.
+
 ## Known problems
 
 - **Battles themselves are decisive, even when the war is not.** 78% end with the loser under 10%

@@ -13,12 +13,18 @@
    the game is any good. */
 const A = require('./army.js'), B = require('./battle.js');
 const RUNS = parseInt(process.argv[2] || '80', 10);
-const SLOPES = (process.argv[3] || '150').split(',').map(Number);
+/* Each argument is base:slope — the regime's income is a line, and both ends of it matter.
+   Sweeping the slope alone could never fix the middle of the war, because a slope by construction
+   does nothing until late; rounds two to six needed the intercept. */
+const PLANS = (process.argv[3] || '420:150').split(',').map(s => {
+  const [b, sl] = s.split(':').map(Number);
+  return { base: b, slope: sl == null ? 150 : sl };
+});
 
-function play(runs, slope, ranksUp) {
+function play(runs, plan, ranksUp) {
   const per = {}; let wars = 0, warWins = 0, unspent = 0, tail = 0;
   for (let run = 1; run <= runs; run++) {
-    const st = A.newGame(run, { enemySlope: slope });
+    const st = A.newGame(run, { enemyBase: plan.base, enemySlope: plan.slope });
     const rng = B.mulberry32(run * 7919);
     let guard = 0;
     while (!st.over && guard++ < 20) {
@@ -61,10 +67,10 @@ function play(runs, slope, ranksUp) {
   return { wars: Math.round(warWins / wars * 100), curve, unspent: tail ? Math.round(unspent / tail) : 0 };
 }
 
-for (const slope of SLOPES) {
-  console.log('\nregime income slope ' + slope + ' per round  (you gain 150)');
+for (const plan of PLANS) {
+  console.log('\nregime income ' + plan.base + ' + ' + plan.slope + '/round  (you get 470 + 150/round)');
   for (const [name, ranksUp] of [['plays properly ', true], ['never ranks up ', false]]) {
-    const r = play(RUNS, slope, ranksUp);
+    const r = play(RUNS, plan, ranksUp);
     console.log('  ' + name + ' wars ' + String(r.wars + '%').padStart(4) + '   ' +
       r.curve.map(c => 'r' + c.r + ' ' + String(c.p).padStart(3) + '%').join(' ') +
       '   late credits idle ' + r.unspent);

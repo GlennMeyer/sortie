@@ -20,7 +20,7 @@
  */
 
 import type { Archetype } from '../theatre/script';
-import { eraById, type EraSkin } from '../theatre/era';
+import { ERAS, eraById, type EraSkin } from '../theatre/era';
 import { buildAtlas, type Atlas, type PoseName } from '../theatre/rig';
 import { Batcher, rgba } from '../theatre/gl';
 import { Post } from '../theatre/post';
@@ -33,6 +33,8 @@ export interface SquadView {
   x: number; y: number;              // hex centre, board coordinates
   side: 'p' | 'e';
   role: string;                      // swarm | line | fast | siege | heavy | ace
+  /** Which age this machine belongs to: 1 primitive, 2 industrial, 3 mobile suit. */
+  era?: number;
   n: number; nMax: number;
   charging?: boolean;
   /** Deploy phase only: a squad being dragged leaves a ghost behind. */
@@ -50,6 +52,7 @@ export interface ShotView {
   killed?: number;
   crits?: number;
   role?: string;
+  era?: number;
   uid?: string; tuid?: string;
   /** performance.now() when the event was played. */
   born: number;
@@ -91,8 +94,8 @@ const WEAPON: Record<string, 'sidearm' | 'rifle' | 'cannon' | 'lobbed' | 'blade'
  * figure is tinted toward its side. Warm for yours, cold iron-red for the regime's: different in
  * value as well as hue, because hue alone fails the moment two squads overlap. */
 const TEAM: Record<'p' | 'e', [number, number, number]> = {
-  p: [1.15, 0.80, 0.52],
-  e: [0.92, 0.52, 0.52],
+  p: [1.12, 0.90, 0.68],
+  e: [1.00, 0.60, 0.56],
 };
 
 /* How long each reaction reads for, in seconds. Short: at four ticks a second during fast
@@ -154,22 +157,23 @@ export class BoardRenderer {
   private rand = 1;
   readonly ok: boolean;
 
+  /* Every age is in the atlas at once, because a late war fields all three at the same time.
+     That is the point: the Line Suits you have been dragging around since round one are still on
+     the field in round nine, visibly a generation behind the machine standing next to them, and
+     you can see at a glance which half of your army is obsolete. The ladder stops being a number
+     in a tooltip and becomes the thing you are looking at. */
   constructor(canvas: HTMLCanvasElement, eraId = 'mobilesuit') {
     this.era = eraById(eraId);
-    this.atlas = buildAtlas([this.era]);
+    this.atlas = buildAtlas(ERAS);
     this.batch = new Batcher(canvas, this.atlas.canvas, true);
     this.ok = this.batch.ok;
     this.post = this.ok ? new Post(this.batch.context, 'overlay') : null;
     if (this.post && !this.post.ok) this.post = null;
   }
 
-  setEra(id: string) {
-    const era = eraById(id);
-    if (era.id === this.era.id) return;
-    this.era = era;
-    // the atlas is one texture for one era; swapping ages means redrawing it
-    this.atlas = buildAtlas([era]);
-    this.batch.replaceAtlas(this.atlas.canvas);
+  /** The age a machine of this tier belongs to. Out-of-range falls back to the newest. */
+  private skin(era: number | undefined): EraSkin {
+    return ERAS[Math.max(0, Math.min(ERAS.length - 1, (era ?? ERAS.length) - 1))] ?? this.era;
   }
 
   /** Deterministic jitter, so a formation looks arranged rather than shuffled every frame. */
@@ -327,9 +331,9 @@ export class BoardRenderer {
           scale * 0.55, 0, [0, 0, 0.02, 0.42 * fade * (v.alpha ?? 1)], 'normal');
         /* and a faint pad in the side's colour under the shadow. It is the only marking that
            still works when two squads are standing on top of each other. */
-        const c = v.side === 'p' ? this.era.palette.player : this.era.palette.foe;
+        const c = v.side === 'p' ? this.skin(v.era).palette.player : this.skin(v.era).palette.foe;
         this.batch.sprite(this.atlas.glow, aw, ah, bx, by + unit * 0.31,
-          scale * 0.40, 0, rgba(c, 0.30 * fade * (v.alpha ?? 1)), 'add');
+          scale * 0.40, 0, rgba(c, 0.42 * fade * (v.alpha ?? 1)), 'add');
       }
     }
 
@@ -350,7 +354,8 @@ export class BoardRenderer {
     const scale = bodyScale(v) * unit / this.atlas.cellSize;
     const walking = s.moveT < WALK_TIME;
     const alpha = v.alpha ?? 1;
-    const accent = v.side === 'p' ? this.era.palette.player : this.era.palette.foe;
+    const skin = this.skin(v.era);
+    const accent = v.side === 'p' ? skin.palette.player : skin.palette.foe;
 
     for (const b of s.bodies) {
       const bx = sx(s.x + b.ox * scene.R);
@@ -395,7 +400,7 @@ export class BoardRenderer {
         pose = Math.sin(now * 1.4 + b.phase) > 0.7 ? 'aim' : 'idle';
       }
 
-      const cell = this.atlas.cell(this.era.id, arch, pose, v.side);
+      const cell = this.atlas.cell(skin.id, arch, pose, v.side);
       /* Rotation is about the sprite's centre, so a machine tipping over swings its feet out from
          under it and reads as floating. Shifting the centre by the arc its feet would travel puts
          the pivot back on the ground where a falling machine's pivot actually is. */
@@ -426,7 +431,7 @@ export class BoardRenderer {
                     sx: (x: number) => number, sy: (y: number) => number,
                     S: number, aw: number, ah: number, nowMs: number) {
     const age = (nowMs - ev.born) / 1000;
-    const look = this.era.look(WEAPON[ev.role ?? 'line'] ?? 'rifle');
+    const look = this.skin(ev.era).look(WEAPON[ev.role ?? 'line'] ?? 'rifle');
     const col = look.colour;
     const unit = scene.R * S;
 

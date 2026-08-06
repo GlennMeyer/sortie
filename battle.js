@@ -322,7 +322,7 @@ function simulateBattle(playerSquads, enemySquads, seed, opts = {}) {
       ev.push({ k: q.side === 'p' ? 'pfire' : 'efire', from: q.hex, to: tgt.hex,
         splash: q.s.splash, killed, side: q.side,
         uid: q.uid, tuid: tgt.uid, shots, hits, crits,
-        melee: d <= 1 && q.s.maxR <= 2, indirect: !!q.s.indirect, role: q.s.role,
+        melee: d <= 1 && q.s.maxR <= 2, indirect: !!q.s.indirect, role: q.s.role, era: q.s.era,
         s: (impact ? 'IMPACT! ' : '') + (crits ? 'CRIT×' + crits + ' ' : '') + (pointBlank ? 'POINT BLANK ' : '') +
            `${q.s.name} → ${tgt.s.name}: ${shots} shots, needs ${th.need}+, ${hits} hit` +
            (saved ? `, ${saved} saved` : '') + (killed ? ` — ${killed} destroyed` : ''),

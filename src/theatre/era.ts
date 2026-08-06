@@ -39,6 +39,17 @@ export interface RigSpec {
   thrusters: boolean;
   /** Bulk of the limbs. Stone-age levies are thin; a Colossus is not. */
   limb: number;
+  /* The four fields below are what make an age recognisable from its outline alone. Colour tells
+     you which age at a glance and stops working the moment the figure is thirty pixels tall and
+     half of it is in shadow; silhouette keeps working. */
+  /** How much armour sits on the frame: 0 is a body with a weapon, 1 is a walking tank. */
+  plating: number;
+  /** A shield on the off arm. The single strongest read for pre-gunpowder warfare. */
+  shield: boolean;
+  /** Helmet crest height, relative to the head. 0 for anything with a sealed cockpit. */
+  crest: number;
+  /** A lit visor. Nothing before electric light has one. */
+  visor: boolean;
 }
 
 export interface Palette {
@@ -62,12 +73,13 @@ export interface EraSkin {
 }
 
 const baseRig = (a: Archetype): RigSpec => {
+  const b = { plating: 1, shield: false, crest: 0, visor: true };
   switch (a) {
-    case 'grunt':     return { height: 1.8, breadth: 0.26, head: 0.13, thrusters: false, limb: 0.9 };
-    case 'brawler':   return { height: 2.0, breadth: 0.30, head: 0.13, thrusters: true,  limb: 1.0 };
-    case 'heavy':     return { height: 2.6, breadth: 0.42, head: 0.11, thrusters: false, limb: 1.5 };
-    case 'artillery': return { height: 2.1, breadth: 0.38, head: 0.10, thrusters: false, limb: 1.2 };
-    case 'ace':       return { height: 2.1, breadth: 0.28, head: 0.12, thrusters: true,  limb: 0.95 };
+    case 'grunt':     return { ...b, height: 1.8, breadth: 0.26, head: 0.13, thrusters: false, limb: 0.9 };
+    case 'brawler':   return { ...b, height: 2.0, breadth: 0.30, head: 0.13, thrusters: true,  limb: 1.0 };
+    case 'heavy':     return { ...b, height: 2.6, breadth: 0.42, head: 0.11, thrusters: false, limb: 1.5 };
+    case 'artillery': return { ...b, height: 2.1, breadth: 0.38, head: 0.10, thrusters: false, limb: 1.2 };
+    case 'ace':       return { ...b, height: 2.1, breadth: 0.28, head: 0.12, thrusters: true,  limb: 0.95 };
   }
 };
 
@@ -94,7 +106,13 @@ const STONE: EraSkin = {
       case 'polearm': return { kind: 'edge', colour: '#D6C39A', width: 3, flash: 0,  speed: 0,  trail: false };
     }
   },
-  rig(a) { const r = baseRig(a); return { ...r, height: r.height * 0.72, thrusters: false, limb: r.limb * 0.85 }; },
+  /* A body carrying a shield and a shaft. Short, thin, crested, and wearing almost nothing —
+     the outline of a man, which is exactly what it should be ten thousand years before a cockpit. */
+  rig(a) {
+    const r = baseRig(a);
+    return { ...r, height: r.height * 0.62, thrusters: false, limb: r.limb * 0.78,
+      breadth: r.breadth * 0.85, plating: 0.22, shield: a !== 'artillery' && a !== 'heavy', crest: 0.9, visor: false };
+  },
 };
 
 /** Powder and plate. Muzzle flash, iron, and the first machines that outweigh their crew. */
@@ -118,7 +136,13 @@ const INDUSTRIAL: EraSkin = {
       case 'polearm': return { kind: 'edge', colour: '#C8D2DC', width: 3, flash: 0,  speed: 0,   trail: false };
     }
   },
-  rig(a) { const r = baseRig(a); return { ...r, height: r.height * 0.85 }; },
+  /* Plate over everything and a sealed helm with no light behind it. Broad in the shoulder and
+     short in the leg — the age when armour got heavier faster than the legs carrying it. */
+  rig(a) {
+    const r = baseRig(a);
+    return { ...r, height: r.height * 0.84, breadth: r.breadth * 1.22, limb: r.limb * 1.15,
+      plating: 0.8, shield: false, crest: 0.25, visor: false };
+  },
 };
 
 /** Mobile suits. Beams, thrusters, and machines that move faster than they have any right to. */
@@ -142,7 +166,13 @@ const MOBILE_SUIT: EraSkin = {
       case 'polearm': return { kind: 'edge', colour: '#A7F0FF', width: 4, flash: 26, speed: 0,   trail: true };
     }
   },
-  rig(a) { return baseRig(a); },
+  /* Tall, thin in the limb and enormous in the pauldron, with a lit visor and thrust behind it.
+     Nothing about this shape would survive gravity without the engine, which is the point. */
+  rig(a) {
+    const r = baseRig(a);
+    return { ...r, height: r.height * 1.08, limb: r.limb * 0.92, breadth: r.breadth * 1.1,
+      thrusters: true, plating: 1, shield: false, crest: 0, visor: true };
+  },
 };
 
 export const ERAS: EraSkin[] = [STONE, INDUSTRIAL, MOBILE_SUIT];

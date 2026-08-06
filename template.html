@@ -710,32 +710,32 @@ html,body{height:100%;overflow:hidden}
       for (const q of curFrame.squads) {
         const c = centre(q.hex);
         squads.push({ key: String(q.uid), x: c.x, y: c.y, side: q.side, role: q.role,
-          n: q.n, nMax: q.nMax, charging: !!q.charging });
+          era: (U[q.id] || {}).era, n: q.n, nMax: q.nMax, charging: !!q.charging });
       }
     } else {
       enemy.forEach((e, i) => {
         const h = enemyHex[i]; if (h == null || h < 0) return;
         const c = centre(h), u = U[e.id];
-        squads.push({ key: 'e' + i, x: c.x, y: c.y, side: 'e', role: u.role, n: u.n, nMax: u.n, alpha: 0.85 });
+        squads.push({ key: 'e' + i, x: c.x, y: c.y, side: 'e', role: u.role, era: u.era, n: u.n, nMax: u.n, alpha: 0.85 });
       });
       for (const s of st.army) {
         if (s.hex == null || s.hex < 0) continue;
         const u = spec(st, s.id);
         const held = drag && drag.uid === s.uid;
         const p = held ? { x: drag.x, y: drag.y } : centre(s.hex);
-        squads.push({ key: 'p' + s.uid, x: p.x, y: p.y, side: 'p', role: u.role,
+        squads.push({ key: 'p' + s.uid, x: p.x, y: p.y, side: 'p', role: u.role, era: u.era,
           n: u.n, nMax: u.n, selected: sel === s.uid });
       }
       if (buyDrag && buyDrag.onBoard) {
         const u = spec(st, buyDrag.id), p = { x: buyDrag.x, y: buyDrag.y };
-        squads.push({ key: 'buy', x: p.x, y: p.y, side: 'p', role: u.role, n: u.n, nMax: u.n, alpha: 0.9 });
+        squads.push({ key: 'buy', x: p.x, y: p.y, side: 'p', role: u.role, era: u.era, n: u.n, nMax: u.n, alpha: 0.9 });
       }
     }
     for (const f of fx) {
       if (f.boom) { const c = centre(f.at); booms.push({ x: c.x, y: c.y, born: f.born }); continue; }
       const a = centre(f.from), b = centre(f.to);
       shots.push({ from: a, to: b, side: f.side, splash: f.splash, melee: f.melee,
-        indirect: f.indirect, killed: f.killed, crits: f.crits, role: f.role,
+        indirect: f.indirect, killed: f.killed, crits: f.crits, role: f.role, era: f.era,
         uid: f.uid, tuid: f.tuid, born: f.born });
     }
     return { w: BW, h: BH, dpr: DPR, R, camera: cam, squads, shots, booms, fighting: phase === 'battle' };
@@ -1186,7 +1186,7 @@ html,body{height:100%;overflow:hidden}
       for (const e of f.ev) {
         if (e.from != null) fx.push({ from: e.from, to: e.to, side: e.side, splash: e.splash,
           melee: e.melee, indirect: e.indirect, killed: e.killed, crits: e.crits, role: e.role,
-          uid: e.uid, tuid: e.tuid, born: now });
+          era: e.era, uid: e.uid, tuid: e.tuid, born: now });
         if (e.at != null) fx.push({ boom: true, at: e.at, born: now });
       }
     }

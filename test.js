@@ -232,8 +232,12 @@ console.log('\n--- charging ---');
      cheaper — and the charge bonus correspondingly smaller, because speed is buying fewer saved
      volleys rather than the difference between catching them and never catching them at all.
      The edge is real but small, so it needs the seeds to see it: at 40 it sat inside the noise. */
+  /* Measured at a contested count, not at equal spend. Artillery now costs three times a Lancer,
+     so equal credits buys eight of them and they win 96% standing still — there is no headroom
+     left in which to see whether charging helped. Five is where the fight is actually in doubt,
+     and that is where a stance is worth having an opinion about. */
   const siegeLine = ['siege', 'siege', 'missile'].map(i => A.spec(st, i));
-  const h1 = run('lancers', 'hold', siegeLine), c1 = run('lancers', 'charge', siegeLine);
+  const h1 = run('lancers', 'hold', siegeLine, 5), c1 = run('lancers', 'charge', siegeLine, 5);
   ok(c1 > h1 + 0.06, 'charging closes on an artillery line that would otherwise shell you',
     Math.round(h1 * 100) + '% -> ' + Math.round(c1 * 100) + '%');
 

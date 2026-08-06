@@ -14,28 +14,28 @@ const UNITS = [
   { id: 'pods',   name: 'SCRAP PODS',   role: 'swarm', era: 1, slots: 1, cost: 140, n: 8, hp: 70,  dmg: 6,  minR: 1, maxR: 3, br: [1,2,3],
     speed: 1.01, ap: 0, save: 0, splash: 0, acc: 1,
     note: 'Barely armed and barely armoured. They exist to be in the way.' },
-  { id: 'line',   name: 'LINE SUITS',   role: 'line', era: 1, slots: 1,  cost: 230, n: 6, hp: 105, dmg: 10, minR: 1, maxR: 5, br: [2,4,5],
+  { id: 'line',   name: 'LINE SUITS',   role: 'line', era: 1, slots: 1,  cost: 235, n: 6, hp: 105, dmg: 10, minR: 1, maxR: 5, br: [2,4,5],
     speed: 0.79, ap: 1, save: 6, splash: 0, acc: 0,
     note: 'The mass-produced answer to everything and the best answer to nothing.' },
-  { id: 'heavy',  name: 'HEAVY SUITS',  role: 'line', era: 2, slots: 2,  cost: 450, n: 4, hp: 273, dmg: 24, minR: 1, maxR: 5, br: [2,3,5],
+  { id: 'heavy',  name: 'HEAVY SUITS',  role: 'line', era: 2, slots: 2,  cost: 430, n: 4, hp: 273, dmg: 24, minR: 1, maxR: 5, br: [2,3,5],
     speed: 0.57, ap: 2, save: 5, splash: 0, acc: 0,
     note: 'Slower, thicker, and it takes real armour-piercing to move them.' },
-  { id: 'lancers',name: 'LANCERS',      role: 'fast', era: 1, slots: 2,  cost: 485, n: 3, hp: 222, dmg: 58, minR: 1, maxR: 1, br: [1,1,1],
+  { id: 'lancers',name: 'LANCERS',      role: 'fast', era: 1, slots: 2,  cost: 430, n: 3, hp: 222, dmg: 58, minR: 1, maxR: 1, br: [1,1,1],
     speed: 2.04, ap: 3, save: 6, splash: 0, acc: -1,
     note: 'Closes fast and ignores armour. Cannot shoot anything it has not reached.' },
-  { id: 'skirm',  name: 'SKIRMISHERS',  role: 'fast', era: 2, slots: 2,  cost: 445, n: 3, hp: 199, dmg: 44, minR: 1, maxR: 4, br: [2,3,4],
+  { id: 'skirm',  name: 'SKIRMISHERS',  role: 'fast', era: 2, slots: 2,  cost: 430, n: 3, hp: 199, dmg: 44, minR: 1, maxR: 4, br: [2,3,4],
     speed: 1.39, ap: 1, save: 6, splash: 0, acc: 0,
     note: 'Fast enough to choose its range. Hits hardest where nobody is looking.' },
-  { id: 'siege',  name: 'SIEGE WALKERS',role: 'siege', era: 2, slots: 3, cost: 880, n: 2, hp: 295, dmg: 71, minR: 3, maxR: 9, br: [5,7,9],
+  { id: 'siege',  name: 'SIEGE WALKERS',role: 'siege', era: 2, slots: 3, cost: 1295, n: 2, hp: 295, dmg: 71, minR: 3, maxR: 9, br: [5,7,9],
     speed: 0.32, ap: 1, save: 6, splash: 2, acc: 1, emplaced: true,
     note: 'Emplaced: it holds the hex you put it on. Reaches the whole field and splashes two, and cannot fire inside three hexes — so where you set it down is the whole decision.' },
-  { id: 'missile',name: 'MISSILE TRACK',role: 'siege', era: 3, slots: 2, cost: 660, n: 3, hp: 144, dmg: 40, minR: 2, maxR: 7, br: [4,6,7],
+  { id: 'missile',name: 'MISSILE TRACK',role: 'siege', era: 3, slots: 2, cost: 945, n: 3, hp: 144, dmg: 40, minR: 2, maxR: 7, br: [4,6,7],
     speed: 0.65, ap: 0, save: 0, splash: 3, acc: 1, indirect: true, emplaced: true,
     note: 'Emplaced, and fires indirect — no line of sight needed, so terrain never blocks it. Splashes three. Swarm food becomes swarm graveyard, if nothing reaches it.' },
-  { id: 'colossus',name:'COLOSSUS',     role: 'heavy', era: 3, slots: 3, cost: 740, n: 1, hp: 1750,dmg: 93, minR: 1, maxR: 6, br: [2,4,6],
+  { id: 'colossus',name:'COLOSSUS',     role: 'heavy', era: 3, slots: 3, cost: 830, n: 1, hp: 1750,dmg: 93, minR: 1, maxR: 6, br: [2,4,6],
     speed: 0.48, ap: 2, save: 4, splash: 0, acc: 0,
     note: 'One machine worth a company. Everything small that shoots it dies; anything with AP does not.' },
-  { id: 'ace',    name: 'ACE FRAME',    role: 'ace', era: 3, slots: 3,   cost: 900, n: 1, hp: 905, dmg: 156,minR: 1, maxR: 6, br: [3,5,6],
+  { id: 'ace',    name: 'ACE FRAME',    role: 'ace', era: 3, slots: 3,   cost: 990, n: 1, hp: 905, dmg: 156,minR: 1, maxR: 6, br: [3,5,6],
     speed: 1.37, ap: 2, save: 4, splash: 0, acc: 0,
     note: 'A single pilot who is simply better. Beats anything at its price and folds to a crowd.' },
 ];
@@ -533,7 +533,11 @@ function resolveRound(state, result) {
     }
     /* The regime rebuilds on the same terms — it pays for its dead too, or writes them off.
        Charging only the player made a loss unrecoverable. */
-    state.eCredits += Math.round((420 + (state.round - 1) * 150) * ((state.mods && state.mods.enemyIncome) || 1));   // round has already advanced
+    /* The regime's slope is the dial that decides the shape of the war, not the headline win rate:
+       the opening is deliberately gentle for a person playing their first battle, so the only way
+       to make round nine a real fight is to make the regime's income climb faster than yours. */
+    const em = state.mods || {};
+    state.eCredits += Math.round(((em.enemyBase || 420) + (state.round - 1) * (em.enemySlope || 150)) * (em.enemyIncome || 1));   // round has already advanced
     const eLost = (result.enemyLost || []).map(l => l.id);
     for (const id of eLost.slice().sort((a, b) => U[a].cost - U[b].cost)) {
       const price = Math.round(U[id].cost * REBUILD_RATE);

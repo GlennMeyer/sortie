@@ -167,6 +167,20 @@ function drawFigure(ctx: CanvasRenderingContext2D, skin: EraSkin, arch: Archetyp
   plate(ctx, s.shoulder!, s.elbowL!, unit * 0.32, unit * 0.26, dark);
   plate(ctx, s.elbowL!, s.handL!, unit * 0.26, unit * 0.20, dark);
 
+  const arm = spec.plating;                    // 0 a body with a weapon, 1 a walking tank
+
+  /* The off-hand shield. Drawn before the near-side limbs so the body overlaps it, which is what
+     makes it read as carried rather than as a plate stuck to the front of the figure. */
+  if (spec.shield) {
+    /* Sized from the figure's own height, not from `unit`. `unit` carries breadth and limb bulk,
+       so a heavy frame grew a shield taller than itself and the machine vanished behind a plank. */
+    const fh = spec.height * px;
+    const sw = fh * 0.26, sh = fh * 0.44;
+    box(ctx, s.handL!.x - unit * 0.2, s.handL!.y - unit * 0.4, sw, sh, p.lean * 0.5,
+      shade(metal, 0.62), edge);
+    box(ctx, s.handL!.x - unit * 0.2, s.handL!.y - unit * 0.4, sw * 0.42, sh * 0.5, p.lean * 0.5, tint);
+  }
+
   if (spec.thrusters) {
     const bx = s.shoulder!.x - Math.cos(p.lean) * unit * 0.9;
     const by = s.shoulder!.y + Math.sin(p.lean) * unit * 0.9 + unit * 0.5;
@@ -177,24 +191,33 @@ function drawFigure(ctx: CanvasRenderingContext2D, skin: EraSkin, arch: Archetyp
   plate(ctx, s.hip!, s.kneeR!, unit * 0.52, unit * 0.40, metal, edge);
   plate(ctx, s.kneeR!, s.footR!, unit * 0.38, unit * 0.28, metal, edge);
   box(ctx, s.footR!.x + unit * 0.14, s.footR!.y, unit * 0.80, unit * 0.32, 0, shade(metal, 0.75), edge);
-  box(ctx, s.kneeR!.x, s.kneeR!.y, unit * 0.44, unit * 0.34, 0, tint);      // knee guard
+  if (arm > 0.4) box(ctx, s.kneeR!.x, s.kneeR!.y, unit * 0.44 * arm, unit * 0.34 * arm, 0, tint);   // knee guard
 
   // waist and chest as separate blocks, chest wider at the shoulders
   const waist = { x: (s.hip!.x * 2 + s.shoulder!.x) / 3, y: (s.hip!.y * 2 + s.shoulder!.y) / 3 };
-  plate(ctx, s.hip!, waist, unit * 0.62, unit * 0.70, shade(metal, 0.7), edge);
-  plate(ctx, waist, s.shoulder!, unit * 0.78, unit * 1.02, metal, edge);
-  // a vent block on the chest, not a stripe
-  box(ctx, (waist.x + s.shoulder!.x) / 2, (waist.y + s.shoulder!.y) / 2,
+  plate(ctx, s.hip!, waist, unit * (0.42 + 0.20 * arm), unit * (0.48 + 0.22 * arm), shade(metal, 0.7), edge);
+  plate(ctx, waist, s.shoulder!, unit * (0.52 + 0.26 * arm), unit * (0.62 + 0.40 * arm), metal, edge);
+  // a vent block on the chest, not a stripe — and only on something that has vents
+  if (arm > 0.5) box(ctx, (waist.x + s.shoulder!.x) / 2, (waist.y + s.shoulder!.y) / 2,
     unit * 0.62, unit * 0.46, p.lean, shade(metal, 0.62), edge);
 
-  // pauldrons — the widest thing on the machine, and where the colour lives
-  box(ctx, s.shoulder!.x + unit * 0.30, s.shoulder!.y, unit * 0.86, unit * 0.62, p.lean, tint, edge);
-  box(ctx, s.shoulder!.x - unit * 0.42, s.shoulder!.y, unit * 0.70, unit * 0.54, p.lean, shade(metal, 0.6), edge);
+  /* Pauldrons: the widest thing on a mobile suit and where its colour lives. A levy has none —
+     the shoulder is a shoulder — so the two ages read differently from the outline alone. */
+  box(ctx, s.shoulder!.x + unit * 0.30, s.shoulder!.y,
+    unit * (0.34 + 0.52 * arm), unit * (0.30 + 0.32 * arm), p.lean, tint, edge);
+  box(ctx, s.shoulder!.x - unit * 0.42, s.shoulder!.y,
+    unit * (0.30 + 0.40 * arm), unit * (0.26 + 0.28 * arm), p.lean, shade(metal, 0.6), edge);
 
   // head: a small angular block with a lit visor
   const hr = Math.max(2.2, spec.head * spec.height * px * 0.62);
+  if (spec.crest > 0) {
+    // a crest reads as a helmet at any size, and nothing after gunpowder has one
+    box(ctx, s.head!.x - Math.sin(p.lean) * hr * 1.1, s.head!.y - Math.cos(p.lean) * hr * 1.1,
+      hr * 0.5, hr * 1.6 * spec.crest, p.lean, tint, edge);
+  }
   box(ctx, s.head!.x, s.head!.y, hr * 1.5, hr * 1.7, p.lean, shade(metal, 0.85), edge);
-  box(ctx, s.head!.x + hr * 0.34, s.head!.y - hr * 0.12, hr * 0.80, hr * 0.32, p.lean, tint);
+  if (spec.visor) box(ctx, s.head!.x + hr * 0.34, s.head!.y - hr * 0.12, hr * 0.80, hr * 0.32, p.lean, tint);
+  else box(ctx, s.head!.x + hr * 0.30, s.head!.y - hr * 0.10, hr * 0.62, hr * 0.26, p.lean, shade(metal, 0.42));
 
   // weapon arm over the top
   plate(ctx, s.shoulder!, s.elbowR!, unit * 0.40, unit * 0.32, metal, edge);
