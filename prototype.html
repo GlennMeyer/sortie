@@ -1215,7 +1215,7 @@ function resolveRound(state, result) {
        the opening is deliberately gentle for a person playing their first battle, so the only way
        to make round nine a real fight is to make the regime's income climb faster than yours. */
     const em = state.mods || {};
-    state.eCredits += Math.round(((em.enemyBase || 420) + (state.round - 1) * (em.enemySlope || 150)) * (em.enemyIncome || 1));   // round has already advanced
+    state.eCredits += Math.round(((em.enemyBase || 465) + (state.round - 1) * (em.enemySlope || 158)) * (em.enemyIncome || 1));   // round has already advanced
     const eLost = (result.enemyLost || []).map(l => l.id);
     for (const id of eLost.slice().sort((a, b) => U[a].cost - U[b].cost)) {
       const price = Math.round(U[id].cost * REBUILD_RATE);

@@ -568,6 +568,46 @@ The weapon look already came from the era skin, so this fell out for free: an er
 something that arcs, an era-2 Line Suit fires a slug that flashes, an era-3 Missile Track puts a
 beam over the ridge. Same beats, ten thousand years apart.
 
+## The regime's wallet, and what it cannot buy
+
+The regime's income is a line: `465 + 158 per round`, against your `470 + 150`. It opens slightly
+behind you and climbs slightly faster. Both ends are dials (`enemyBase`, `enemySlope`) because both
+ends do different jobs — and the reason to say that out loud is that one of them used to be a lie.
+`enemySlope` was a mod `econ.js` passed and `army.js` never read, so every slope sweep that tool
+ever ran measured nothing at all.
+
+**Tune the level on `health.js`, not `econ.js`.** They disagreed by twenty points on what a credit
+is worth to the regime, and the disagreement is structural rather than noise: `econ.js` buys at
+random from what it can afford, `health.js` counter-picks the regime's roles, and counter-picking
+compounds whatever you hand the other side. A change that cost the random buyer 20 points cost the
+competent one 40. `econ.js` is still the right tool for the *shape* of a war; it is the wrong tool
+for how hard one is.
+
+The curve under a competent buyer, 150 wars:
+
+```
+regime 465+158/rd   wars 59%   r1 75  r2 75  r3 77  r4 77  r5 71  r6 49  r7 39  r8 21  r9 9  r10 5
+```
+
+**Money cannot reach the early war.** Rounds one to four sit at 72–79% at every regime income from
+420 to 520 — the regime is constrained early by what the era ladder lets it field, not by credits,
+so paying it more changes nothing until it has something to spend on. If those rounds should be a
+real fight, the lever is its roster or its slot pacing, not its wallet.
+
+**A low late-round number is not on its own a bug.** A war averages 8.4 rounds, so reaching round
+nine mostly means you are already losing, and `r9 9%` is the win rate of a losing position rather
+than of an ordinary endgame. Any tuning pass that reads the raw tail as a design failure is reading
+a conditioning artifact.
+
+That is *not* a retraction of "the war that could not be won" above. What made that one a real bug
+was never the absolute number — it was the **gap between two policies** on the same curve: 58% and
+0% at round ten depending only on whether the player knew to spend on ranks. A tail that is low for
+everybody is the shape of a war being decided; a tail that is low only for the player who was never
+taught something is an interface failure. Always compare two policies before concluding either.
+
+`late idle` is 83 credits. The unwinnable late war that used to leave 3,600 credits unspent is
+gone under a measurement that was not the one that found it.
+
 ## Known problems
 
 - **Battles themselves are decisive, even when the war is not.** 78% end with the loser under 10%
