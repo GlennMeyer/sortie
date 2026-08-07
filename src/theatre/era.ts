@@ -110,8 +110,8 @@ const STONE: EraSkin = {
      the outline of a man, which is exactly what it should be ten thousand years before a cockpit. */
   rig(a) {
     const r = baseRig(a);
-    return { ...r, height: r.height * 0.62, thrusters: false, limb: r.limb * 0.78,
-      breadth: r.breadth * 0.85, plating: 0.22, shield: a !== 'artillery' && a !== 'heavy', crest: 0.9, visor: false };
+    return { ...r, height: r.height * 0.64, thrusters: false, limb: r.limb * 0.92,
+      breadth: r.breadth * 0.92, plating: 0.40, shield: a !== 'artillery' && a !== 'heavy', crest: 0.8, visor: false };
   },
 };
 

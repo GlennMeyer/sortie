@@ -45,8 +45,12 @@ export const POSES = {
 export type PoseName = keyof typeof POSES;
 export const POSE_NAMES = Object.keys(POSES) as PoseName[];
 
-const CELL = 96;                 // px per frame — generous, these get scaled down on stage
-const GROUND_Y = CELL - 8;       // where the feet land inside a cell
+/* 128, not 96. The board scales figures by `unit / cellSize`, so a bigger cell costs nothing on
+   screen — it only buys sampling headroom for the zoom, which previously ran out at about x2.5 and
+   went soft exactly when you leaned in to look. The whole sheet is 2816x2048, about 23MB on the
+   GPU, which is the most it is worth spending before a phone starts caring. */
+const CELL = 128;                // px per frame — generous, these get scaled down on stage
+const GROUND_Y = CELL - 11;      // where the feet land inside a cell
 
 interface Joint { x: number; y: number }
 
@@ -97,6 +101,40 @@ function skeleton(spec: RigSpec, p: Pose): Record<string, Joint> {
    and the outline has corners. Accent colour goes on pauldrons and the visor; a stripe down the
    chest just reads as a heat map. */
 
+/* LIGHT.
+ *
+ * The single thing that separated these figures from looking like cut paper was that every panel
+ * was one flat colour. A limb drawn as a flat quad is a flat quad at any resolution; a limb with
+ * light running down one side of it is a cylinder. So every plate is now filled with a gradient
+ * across its own axis rather than along the light direction — light catches the near edge, the far
+ * edge falls into shadow, and the shape reads as round without a single extra polygon.
+ *
+ * One light, from up and to the left, consistent across every figure and every era. Consistency is
+ * what makes the shading read as lighting rather than as decoration. */
+const LIGHT = { x: -0.55, y: -0.83 };
+
+/** Lighten/darken a hex colour and return rgb(). k > 1 lightens. */
+const shade = (hex: string, k: number) => {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (v: number) => Math.max(0, Math.min(255, Math.round(v * k)));
+  return `rgb(${f((n >> 16) & 255)},${f((n >> 8) & 255)},${f(n & 255)})`;
+};
+
+/* A plate is lit ACROSS its length, so a limb turns into a cylinder rather than a ribbon. The
+   gradient runs along the limb's own normal, biased by how much that normal faces the light. */
+function limbFill(ctx: CanvasRenderingContext2D, a: Joint, b: Joint, nx: number, ny: number,
+                  w: number, base: string): CanvasGradient {
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  const face = nx * LIGHT.x + ny * LIGHT.y;          // -1 far side, +1 lit side
+  const g = ctx.createLinearGradient(mx - nx * w, my - ny * w, mx + nx * w, my + ny * w);
+  const lo = 0.58 + face * 0.08, hi = 1.16 + face * 0.10;
+  g.addColorStop(0, shade(base, lo));
+  g.addColorStop(0.45, shade(base, 0.95 + face * 0.07));
+  g.addColorStop(0.80, shade(base, hi));
+  g.addColorStop(1, shade(base, 0.74 + face * 0.08));   // a dark lip at the silhouette edge
+  return g;
+}
+
 function plate(ctx: CanvasRenderingContext2D, a: Joint, b: Joint, wa: number, wb: number,
                fill: string, edge?: string) {
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -108,8 +146,25 @@ function plate(ctx: CanvasRenderingContext2D, a: Joint, b: Joint, wa: number, wb
   ctx.lineTo(b.x - nx * wb, b.y - ny * wb);
   ctx.lineTo(a.x - nx * wa, a.y - ny * wa);
   ctx.closePath();
-  ctx.fillStyle = fill; ctx.fill();
+  ctx.fillStyle = fill.charAt(0) === '#' ? limbFill(ctx, a, b, nx, ny, Math.max(wa, wb), fill) : fill;
+  ctx.fill();
   if (edge) { ctx.strokeStyle = edge; ctx.lineWidth = 1; ctx.stroke(); }
+  /* A rim light on the lit edge — and it has to stay a RIM. Scaling its width with the plate put a
+     bright slab down the middle of every torso, which reads as a blown highlight rather than as a
+     hard edge. It is capped in absolute pixels: a highlight is a property of the boundary, not of
+     how big the thing is. */
+  if (fill.charAt(0) === '#') {
+    const s = nx * LIGHT.x + ny * LIGHT.y > 0 ? 1 : -1;
+    const inset = 0.82;
+    ctx.beginPath();
+    ctx.moveTo(a.x + nx * wa * s * inset, a.y + ny * wa * s * inset);
+    ctx.lineTo(b.x + nx * wb * s * inset, b.y + ny * wb * s * inset);
+    ctx.strokeStyle = shade(fill, 1.55);
+    ctx.lineWidth = Math.min(2.2, Math.max(0.7, Math.min(wa, wb) * 0.30));
+    ctx.globalAlpha = 0.42;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
 }
 
 function box(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number,
@@ -117,16 +172,20 @@ function box(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number, h
   ctx.save();
   ctx.translate(cx, cy); ctx.rotate(rot);
   ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h);
-  ctx.fillStyle = fill; ctx.fill();
+  if (fill.charAt(0) === '#') {
+    // lit from the same direction as everything else, in the box's own rotated frame
+    const lx = LIGHT.x * Math.cos(-rot) - LIGHT.y * Math.sin(-rot);
+    const ly = LIGHT.x * Math.sin(-rot) + LIGHT.y * Math.cos(-rot);
+    const g = ctx.createLinearGradient(lx * w * 0.5, ly * h * 0.5, -lx * w * 0.5, -ly * h * 0.5);
+    g.addColorStop(0, shade(fill, 1.20));
+    g.addColorStop(0.55, shade(fill, 0.98));
+    g.addColorStop(1, shade(fill, 0.66));
+    ctx.fillStyle = g;
+  } else ctx.fillStyle = fill;
+  ctx.fill();
   if (edge) { ctx.strokeStyle = edge; ctx.lineWidth = 1; ctx.stroke(); }
   ctx.restore();
 }
-
-const shade = (hex: string, k: number) => {
-  const n = parseInt(hex.slice(1), 16);
-  const f = (v: number) => Math.max(0, Math.min(255, Math.round(v * k)));
-  return `rgb(${f((n >> 16) & 255)},${f((n >> 8) & 255)},${f(n & 255)})`;
-};
 
 /** The weapon in the right hand, drawn along the forearm. Returns the muzzle or blade tip. */
 function drawWeapon(ctx: CanvasRenderingContext2D, elbow: Joint, hand: Joint,
@@ -175,10 +234,15 @@ function drawFigure(ctx: CanvasRenderingContext2D, skin: EraSkin, arch: Archetyp
     /* Sized from the figure's own height, not from `unit`. `unit` carries breadth and limb bulk,
        so a heavy frame grew a shield taller than itself and the machine vanished behind a plank. */
     const fh = spec.height * px;
-    const sw = fh * 0.26, sh = fh * 0.44;
-    box(ctx, s.handL!.x - unit * 0.2, s.handL!.y - unit * 0.4, sw, sh, p.lean * 0.5,
-      shade(metal, 0.62), edge);
-    box(ctx, s.handL!.x - unit * 0.2, s.handL!.y - unit * 0.4, sw * 0.42, sh * 0.5, p.lean * 0.5, tint);
+    const sw = fh * 0.23, sh = fh * 0.40;
+    const cx2 = s.handL!.x - unit * 0.2, cy2 = s.handL!.y - unit * 0.4;
+    /* Dark board, small bright boss. Filling half the face with the team accent turned the shield
+       into a banner — a bright slab wider than the machine carrying it, which is what made these
+       read as stick men holding flags rather than as soldiers behind cover. The accent belongs on
+       the boss, where it is a detail the eye finds rather than the thing it sees first. */
+    box(ctx, cx2, cy2, sw, sh, p.lean * 0.5, shade(metal, 0.46), edge);
+    box(ctx, cx2, cy2, sw * 0.72, sh * 0.80, p.lean * 0.5, shade(metal, 0.60));
+    box(ctx, cx2, cy2, sw * 0.30, sh * 0.17, p.lean * 0.5, tint);
   }
 
   if (spec.thrusters) {

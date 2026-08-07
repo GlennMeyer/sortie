@@ -627,6 +627,38 @@ The general point: **marginal value and roster reach ask different questions.** 
 priced right", the other is "does anybody ever field it", and they can disagree. When they do, the
 reach number is the one describing the game a person actually plays. Run both.
 
+## Light on the machines
+
+The figures were flat. Every panel was one solid colour with a darker outline, and that is what made
+them read as cut paper — a flat quad is a flat quad at any resolution, so no amount of extra detail
+was going to fix it. Three changes, in order of how much they mattered:
+
+**One light, from up and to the left, consistent across every figure and era.** Consistency is what
+makes shading read as lighting rather than as decoration.
+
+**Plates are lit across their own axis, not along the light direction.** A limb filled with a
+gradient running perpendicular to its length becomes a cylinder; the same limb filled flat stays a
+ribbon. This is the whole trick, and it costs one gradient per panel.
+
+**A rim light on the lit edge — capped in absolute pixels.** The first version scaled rim width
+with the plate, which put a bright slab down the middle of every torso and read as a blown
+highlight. A highlight is a property of a boundary, not of how big the thing is.
+
+Cells went from 96px to 128px at the same time. The board scales figures by `unit / cellSize`, so a
+bigger cell costs nothing on screen — it only buys sampling headroom, which previously ran out
+around x2.5 zoom and went soft exactly when you leaned in to look. The sheet is 2816x2048, about
+23MB on the GPU, which is roughly the ceiling before a phone starts caring.
+
+**The era-one shield had to be rescued twice.** Filling half its face with the team accent turned it
+into a banner — a bright slab wider than the machine carrying it — which is precisely the "stick men
+with flags" failure the rig redraw was supposed to end. Dark board, small bright boss: the accent
+belongs where the eye finds it, not where the eye lands first. Era-one plating also went 0.22 to
+0.40, because a levy that thin was a stick carrying a board rather than a soldier behind cover.
+
+**Still flat: the ground.** Terrain is two greys of 2D canvas hexes, and the machines now clearly
+outclass the world they stand on. That is the next visual ceiling, and it is a bigger one than
+anything left on the figures.
+
 ## Noise, made in code
 
 Same constraint as the machines: no audio file ever arrives, so every sound is synthesised from
