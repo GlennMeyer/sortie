@@ -659,6 +659,32 @@ belongs where the eye finds it, not where the eye lands first. Era-one plating a
 outclass the world they stand on. That is the next visual ceiling, and it is a bigger one than
 anything left on the figures.
 
+## Machines, not figures with armour on
+
+Lighting made these look lit. It did not make them look like mobile suits. What does that is
+hardware, and specifically five things, in rough order of how much each one buys:
+
+| | Why |
+|---|---|
+| **the head** | a fin and *two eyes*. A single visor slit reads as a helmet; a pair of eyes reads as a face, and a face is the difference between a machine and a lump with a stripe on it. Eight pixels. |
+| **skirt armour** | plates flaring off the waist. The widest part of the lower body, and the reason a mech reads as top-heavy rather than as a person in plate. |
+| **the backpack** | with sabre hilts standing above the shoulders. The cheapest silhouette break available. |
+| **pauldrons** | flared, lipped, much wider than the shoulder under them. |
+| **the boots** | blocks with a toe and an accent, not the wedge a person stands on. |
+
+**Colour is blocked into four roles, not metal-plus-accent.** `Livery` gives every age a `body`,
+`plate`, `accent` and `trim` per side — because "a silhouette in a team colour" is exactly what
+makes a figure read as a game token. Yours is a white frame with a deep chest group and a hot
+accent; the regime's is factory grey with crimson. The renderer's team tint, which used to do all
+of the side identification, is now a whisper: a multiply strong enough to identify a side is also
+strong enough to collapse four colours back into one.
+
+**Bulk has to be capped against height.** Every panel is sized from `unit`, which carries breadth
+and limb bulk — but a torso's *height* does not, so the widest frames grew pauldrons and skirts past
+the body they hang on and a Colossus became a 33px-tall, 64px-wide slab. Anything that sticks out
+sideways is now capped at a fraction of the figure's own height. The roster's width-to-height ratio
+was also pulled from 0.13-0.24 into 0.13-0.18: bulk should read as bulk, never as a pile.
+
 ## Noise, made in code
 
 Same constraint as the machines: no audio file ever arrives, so every sound is synthesised from

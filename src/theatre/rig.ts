@@ -207,86 +207,159 @@ function drawWeapon(ctx: CanvasRenderingContext2D, elbow: Joint, hand: Joint,
   return tip;
 }
 
+/* A machine, not a figure with armour on.
+ *
+ * The lighting pass made these look lit; it did not make them look like mobile suits. What does
+ * that is hardware, and specifically these five things, in rough order of how much each one buys:
+ *
+ *   the head        a fin and two eyes. Nothing says "mobile suit" faster, and it is eight pixels.
+ *   skirt armour    plates flaring off the waist. The widest part of the lower body, and the
+ *                   reason a mech reads as top-heavy rather than as a person in plate.
+ *   the backpack    with sabre hilts standing above the shoulders, breaking the silhouette.
+ *   pauldrons       flared, with a raised outer lip, and much wider than a shoulder.
+ *   the boots       blocks with a toe, not the little wedges a person stands on.
+ *
+ * Colour is blocked into four roles rather than metal-plus-accent — body, plate, accent, trim —
+ * because "a silhouette in a team colour" is exactly what makes a figure read as a game token.
+ */
 function drawFigure(ctx: CanvasRenderingContext2D, skin: EraSkin, arch: Archetype, p: Pose,
-                    tint: string, weapon: 'gun' | 'edge' | 'none'): Joint {
+                    side: 'p' | 'e', weapon: 'gun' | 'edge' | 'none'): Joint {
   const spec = skin.rig(arch);
   const s = skeleton(spec, p);
   const px = CELL * 0.62 / spec.height;
   /* plate() and box() take half-widths, so every panel drawn from `unit` comes out twice this
      wide. Sized so a shoulder is about a quarter of the figure's height — armour, not a barrel. */
   const unit = spec.breadth * spec.height * px * spec.limb * 0.55;
-  const metal = skin.palette.metal;
-  const dark = shade(metal, 0.52);
-  const edge = shade(metal, 0.34);
-
-  // far side limbs, darkened so the near side reads in front
-  plate(ctx, s.hip!, s.kneeL!, unit * 0.42, unit * 0.34, dark);
-  plate(ctx, s.kneeL!, s.footL!, unit * 0.32, unit * 0.24, dark);
-  box(ctx, s.footL!.x + unit * 0.12, s.footL!.y, unit * 0.66, unit * 0.28, 0, dark);
-  plate(ctx, s.shoulder!, s.elbowL!, unit * 0.32, unit * 0.26, dark);
-  plate(ctx, s.elbowL!, s.handL!, unit * 0.26, unit * 0.20, dark);
-
+  /* Panels are sized from `unit`, which carries bulk — but a torso's HEIGHT does not, so on the
+     widest frames the pauldrons and skirt grew past the body they hang on and the machine became a
+     slab. Everything that sticks out sideways is capped against the figure's own height, so bulk
+     reads as bulk and never as a pile. */
+  const fh = spec.height * px;
+  const wide = (v: number) => Math.min(v, fh * 0.20);
+  const L = skin.livery(side);
+  const body = L.body, plateC = L.plate, accent = L.accent, trim = L.trim;
+  const dark = shade(body, 0.46);
+  const edge = shade(plateC, 0.42);
   const arm = spec.plating;                    // 0 a body with a weapon, 1 a walking tank
+  const lean = p.lean;
+  const cos = Math.cos(lean), sin = Math.sin(lean);
 
-  /* The off-hand shield. Drawn before the near-side limbs so the body overlaps it, which is what
-     makes it read as carried rather than as a plate stuck to the front of the figure. */
+  /* ---------- behind everything ---------- */
+
+  /* Backpack and sabre hilts. Two hard verticals rising past the shoulders is the cheapest
+     silhouette break available and it is what stops a mech reading as a torso with arms. */
+  if (spec.thrusters) {
+    const bx = s.shoulder!.x - cos * unit * 0.85, by = s.shoulder!.y + sin * unit * 0.85 + unit * 0.55;
+    box(ctx, bx, by, unit * 1.35, unit * 1.7, lean, plateC, edge);
+    box(ctx, bx, by + unit * 0.75, unit * 1.05, unit * 0.4, lean, shade(plateC, 0.7));
+    for (const d of [-0.55, 0.55]) {
+      const hx = bx + cos * 0 + d * unit * 0.9, hy = by - unit * 1.4;
+      box(ctx, hx, hy, unit * 0.26, unit * 1.5, lean + d * 0.16, shade(body, 0.8), edge);
+      box(ctx, hx, hy - unit * 0.75, unit * 0.30, unit * 0.30, lean + d * 0.16, accent);
+    }
+  }
+
+  // far-side limbs, darkened so the near side reads in front
+  plate(ctx, s.hip!, s.kneeL!, unit * 0.44, unit * 0.34, dark);
+  plate(ctx, s.kneeL!, s.footL!, unit * 0.34, unit * 0.26, dark);
+  box(ctx, s.footL!.x + unit * 0.16, s.footL!.y, unit * 0.78, unit * 0.32, 0, dark);
+  plate(ctx, s.shoulder!, s.elbowL!, unit * 0.34, unit * 0.28, dark);
+  plate(ctx, s.elbowL!, s.handL!, unit * 0.28, unit * 0.22, dark);
+
+  /* The off-hand shield, for ages that carry one. Drawn before the near-side limbs so the body
+     overlaps it, which is what makes it read as carried rather than bolted on. */
   if (spec.shield) {
-    /* Sized from the figure's own height, not from `unit`. `unit` carries breadth and limb bulk,
-       so a heavy frame grew a shield taller than itself and the machine vanished behind a plank. */
     const fh = spec.height * px;
     const sw = fh * 0.23, sh = fh * 0.40;
     const cx2 = s.handL!.x - unit * 0.2, cy2 = s.handL!.y - unit * 0.4;
-    /* Dark board, small bright boss. Filling half the face with the team accent turned the shield
-       into a banner — a bright slab wider than the machine carrying it, which is what made these
-       read as stick men holding flags rather than as soldiers behind cover. The accent belongs on
-       the boss, where it is a detail the eye finds rather than the thing it sees first. */
-    box(ctx, cx2, cy2, sw, sh, p.lean * 0.5, shade(metal, 0.46), edge);
-    box(ctx, cx2, cy2, sw * 0.72, sh * 0.80, p.lean * 0.5, shade(metal, 0.60));
-    box(ctx, cx2, cy2, sw * 0.30, sh * 0.17, p.lean * 0.5, tint);
+    box(ctx, cx2, cy2, sw, sh, lean * 0.5, shade(plateC, 0.9), edge);
+    box(ctx, cx2, cy2, sw * 0.72, sh * 0.80, lean * 0.5, shade(body, 0.72));
+    box(ctx, cx2, cy2, sw * 0.30, sh * 0.17, lean * 0.5, accent);
   }
 
-  if (spec.thrusters) {
-    const bx = s.shoulder!.x - Math.cos(p.lean) * unit * 0.9;
-    const by = s.shoulder!.y + Math.sin(p.lean) * unit * 0.9 + unit * 0.5;
-    box(ctx, bx, by, unit * 0.75, unit * 1.5, p.lean, shade(metal, 0.62), edge);
+  /* ---------- legs ---------- */
+
+  plate(ctx, s.hip!, s.kneeR!, unit * 0.54, unit * 0.42, body, edge);
+  plate(ctx, s.kneeR!, s.footR!, unit * 0.40, unit * 0.30, body, edge);
+  // knee guard: a real shell on anything armoured, and where the accent lands on the leg
+  if (arm > 0.35) {
+    box(ctx, s.kneeR!.x, s.kneeR!.y, unit * 0.62 * arm, unit * 0.52 * arm, lean, plateC, edge);
+    box(ctx, s.kneeR!.x, s.kneeR!.y, unit * 0.30 * arm, unit * 0.24 * arm, lean, accent);
   }
+  /* Boots. A mech stands on blocks with a toe, not on the wedge a person stands on — and the
+     accent on the foot is straight off every mobile suit ever drawn. */
+  const bw = unit * (0.86 + 0.30 * arm), bh = unit * (0.34 + 0.14 * arm);
+  box(ctx, s.footR!.x + unit * 0.16, s.footR!.y - bh * 0.25, bw, bh, 0, body, edge);
+  box(ctx, s.footR!.x + unit * 0.40, s.footR!.y + bh * 0.18, bw * 0.52, bh * 0.62, 0, accent, edge);
 
-  // near leg
-  plate(ctx, s.hip!, s.kneeR!, unit * 0.52, unit * 0.40, metal, edge);
-  plate(ctx, s.kneeR!, s.footR!, unit * 0.38, unit * 0.28, metal, edge);
-  box(ctx, s.footR!.x + unit * 0.14, s.footR!.y, unit * 0.80, unit * 0.32, 0, shade(metal, 0.75), edge);
-  if (arm > 0.4) box(ctx, s.kneeR!.x, s.kneeR!.y, unit * 0.44 * arm, unit * 0.34 * arm, 0, tint);   // knee guard
+  /* ---------- waist, skirt, chest ---------- */
 
-  // waist and chest as separate blocks, chest wider at the shoulders
   const waist = { x: (s.hip!.x * 2 + s.shoulder!.x) / 3, y: (s.hip!.y * 2 + s.shoulder!.y) / 3 };
-  plate(ctx, s.hip!, waist, unit * (0.42 + 0.20 * arm), unit * (0.48 + 0.22 * arm), shade(metal, 0.7), edge);
-  plate(ctx, waist, s.shoulder!, unit * (0.52 + 0.26 * arm), unit * (0.62 + 0.40 * arm), metal, edge);
-  // a vent block on the chest, not a stripe — and only on something that has vents
-  if (arm > 0.5) box(ctx, (waist.x + s.shoulder!.x) / 2, (waist.y + s.shoulder!.y) / 2,
-    unit * 0.62, unit * 0.46, p.lean, shade(metal, 0.62), edge);
+  // a narrow waist, so the chest and skirt both read as wider than it
+  plate(ctx, s.hip!, waist, unit * (0.34 + 0.10 * arm), unit * (0.38 + 0.12 * arm), shade(plateC, 1.1), edge);
 
-  /* Pauldrons: the widest thing on a mobile suit and where its colour lives. A levy has none —
-     the shoulder is a shoulder — so the two ages read differently from the outline alone. */
-  box(ctx, s.shoulder!.x + unit * 0.30, s.shoulder!.y,
-    unit * (0.34 + 0.52 * arm), unit * (0.30 + 0.32 * arm), p.lean, tint, edge);
-  box(ctx, s.shoulder!.x - unit * 0.42, s.shoulder!.y,
-    unit * (0.30 + 0.40 * arm), unit * (0.26 + 0.28 * arm), p.lean, shade(metal, 0.6), edge);
-
-  // head: a small angular block with a lit visor
-  const hr = Math.max(2.2, spec.head * spec.height * px * 0.62);
-  if (spec.crest > 0) {
-    // a crest reads as a helmet at any size, and nothing after gunpowder has one
-    box(ctx, s.head!.x - Math.sin(p.lean) * hr * 1.1, s.head!.y - Math.cos(p.lean) * hr * 1.1,
-      hr * 0.5, hr * 1.6 * spec.crest, p.lean, tint, edge);
+  /* Skirt armour: a front plate and two flaring side plates hanging off the waist. This is the
+     single biggest change to the lower silhouette — without it a mech is a person in armour. */
+  if (arm > 0.45) {
+    const sy = s.hip!.y + unit * 0.30;
+    box(ctx, s.hip!.x + sin * unit * 0.1, sy, wide(unit * 0.78), unit * 0.92, lean, plateC, edge);
+    box(ctx, s.hip!.x + wide(unit * 0.82), sy - unit * 0.05, wide(unit * 0.62), unit * 1.02, lean + 0.22, plateC, edge);
+    box(ctx, s.hip!.x - wide(unit * 0.82), sy - unit * 0.05, wide(unit * 0.54), unit * 0.94, lean - 0.22, shade(plateC, 0.82), edge);
+    box(ctx, s.hip!.x + sin * unit * 0.1, sy + unit * 0.30, unit * 0.30, unit * 0.20, lean, trim);
   }
-  box(ctx, s.head!.x, s.head!.y, hr * 1.5, hr * 1.7, p.lean, shade(metal, 0.85), edge);
-  if (spec.visor) box(ctx, s.head!.x + hr * 0.34, s.head!.y - hr * 0.12, hr * 0.80, hr * 0.32, p.lean, tint);
-  else box(ctx, s.head!.x + hr * 0.30, s.head!.y - hr * 0.10, hr * 0.62, hr * 0.26, p.lean, shade(metal, 0.42));
 
-  // weapon arm over the top
-  plate(ctx, s.shoulder!, s.elbowR!, unit * 0.40, unit * 0.32, metal, edge);
-  plate(ctx, s.elbowR!, s.handR!, unit * 0.32, unit * 0.26, metal, edge);
-  return drawWeapon(ctx, s.elbowR!, s.handR!, weapon, spec.height * px * 0.28, metal, tint);
+  // chest: the dark group, with a bright intake block and vent slots
+  plate(ctx, waist, s.shoulder!, wide(unit * (0.54 + 0.26 * arm)), wide(unit * (0.66 + 0.42 * arm)), plateC, edge);
+  if (arm > 0.5) {
+    const cx3 = (waist.x + s.shoulder!.x) / 2, cy3 = (waist.y + s.shoulder!.y) / 2;
+    box(ctx, cx3 + sin * unit * 0.12, cy3, unit * 0.86, unit * 0.60, lean, shade(body, 0.92), edge);
+    for (const d of [-0.34, 0.34])
+      box(ctx, cx3 + d * unit * 0.62 * cos, cy3 + d * unit * 0.1, unit * 0.26, unit * 0.42, lean, accent);
+    box(ctx, cx3, cy3 - unit * 0.42, unit * 0.5, unit * 0.16, lean, trim);
+  }
+
+  /* Pauldrons: flared, lipped, and much wider than the shoulder underneath. On a mobile suit these
+     are the widest thing on the machine and most of what you recognise at distance. */
+  const pw = wide(unit * (0.40 + 0.66 * arm)), ph = unit * (0.34 + 0.42 * arm);
+  const sox = wide(unit * 0.42);
+  box(ctx, s.shoulder!.x + sox, s.shoulder!.y - unit * 0.06, pw, ph, lean - 0.14, plateC, edge);
+  box(ctx, s.shoulder!.x + sox * 1.45, s.shoulder!.y + unit * 0.02, pw * 0.44, ph * 0.86, lean - 0.14, shade(body, 0.86), edge);
+  if (arm > 0.5) box(ctx, s.shoulder!.x + sox, s.shoulder!.y - ph * 0.52, pw * 0.68, unit * 0.16, lean - 0.14, trim);
+  box(ctx, s.shoulder!.x - sox * 1.24, s.shoulder!.y - unit * 0.04, pw * 0.82, ph * 0.9, lean + 0.14, shade(plateC, 0.78), edge);
+
+  /* ---------- head ---------- */
+
+  const hr = Math.max(2.4, spec.head * spec.height * px * 0.66);
+  // helm, then jaw, then the fin — drawn in that order so the fin sits proud of everything
+  box(ctx, s.head!.x, s.head!.y, hr * 1.55, hr * 1.55, lean, shade(body, 1.02), edge);
+  box(ctx, s.head!.x + sin * hr * 0.5, s.head!.y + cos * hr * 0.52, hr * 1.2, hr * 0.5, lean, shade(plateC, 1.15), edge);
+  if (spec.visor) {
+    /* Two eyes and a mouth vent. A single visor slit reads as a helmet; a PAIR of eyes reads as a
+       face, and a face is the difference between a machine and a lump with a stripe on it. */
+    for (const d of [-0.42, 0.42])
+      box(ctx, s.head!.x + d * hr * 0.62 * cos + sin * hr * 0.12,
+          s.head!.y + d * hr * 0.62 * sin - cos * hr * 0.12, hr * 0.34, hr * 0.26, lean, accent);
+    box(ctx, s.head!.x + sin * hr * 0.46, s.head!.y + cos * hr * 0.44, hr * 0.66, hr * 0.16, lean, trim);
+    // the fin: a centre blade with two swept vanes
+    box(ctx, s.head!.x - sin * hr * 1.05, s.head!.y - cos * hr * 1.05, hr * 0.24, hr * 0.9, lean, trim, edge);
+    for (const d of [-1, 1])
+      box(ctx, s.head!.x - sin * hr * 0.78 + d * hr * 0.5 * cos,
+          s.head!.y - cos * hr * 0.78 + d * hr * 0.5 * sin, hr * 0.62, hr * 0.2, lean + d * 0.55, trim, edge);
+  } else if (spec.crest > 0) {
+    box(ctx, s.head!.x - sin * hr * 1.1, s.head!.y - cos * hr * 1.1,
+      hr * 0.5, hr * 1.6 * spec.crest, lean, accent, edge);
+    box(ctx, s.head!.x + sin * hr * 0.32, s.head!.y - cos * hr * 0.1, hr * 0.66, hr * 0.24, lean, shade(plateC, 0.5));
+  } else {
+    box(ctx, s.head!.x + sin * hr * 0.3, s.head!.y - cos * hr * 0.1, hr * 0.7, hr * 0.26, lean, shade(plateC, 0.5));
+  }
+
+  /* ---------- weapon arm, over the top ---------- */
+
+  plate(ctx, s.shoulder!, s.elbowR!, unit * 0.42, unit * 0.34, body, edge);
+  plate(ctx, s.elbowR!, s.handR!, unit * 0.34, unit * 0.28, body, edge);
+  // a blocky fist, because a mech's hand is a machine part
+  box(ctx, s.handR!.x, s.handR!.y, unit * 0.44, unit * 0.40, lean, shade(plateC, 1.05), edge);
+  return drawWeapon(ctx, s.elbowR!, s.handR!, weapon, spec.height * px * 0.30, body, accent);
 }
 
 export interface Atlas {
@@ -337,8 +410,7 @@ export function buildAtlas(skins: EraSkin[]): Atlas {
           ctx.save();
           ctx.translate(x, y);
           ctx.beginPath(); ctx.rect(0, 0, CELL, CELL); ctx.clip();
-          const tip = drawFigure(ctx, skin, arch, POSES[pose],
-            side === 'p' ? skin.palette.player : skin.palette.foe, CARRIES[arch]);
+          const tip = drawFigure(ctx, skin, arch, POSES[pose], side, CARRIES[arch]);
           ctx.restore();
           if (side === 'p') muzzles.set(key(skin.id, arch, pose), tip);
           cells.set(key(skin.id, arch, pose, side), { x, y, w: CELL, h: CELL });

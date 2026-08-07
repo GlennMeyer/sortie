@@ -87,15 +87,15 @@ const WEAPON: Record<string, 'sidearm' | 'rifle' | 'cannon' | 'lobbed' | 'blade'
   siege: 'lobbed', heavy: 'cannon', ace: 'blade',
 };
 
-/* Whose machine this is has to survive being thirty pixels tall.
- *
- * The rig puts era accent on pauldrons and the visor, which is right at theatre scale and useless
- * here — at board scale that is four pixels and both armies read as the same grey. So the whole
- * figure is tinted toward its side. Warm for yours, cold iron-red for the regime's: different in
- * value as well as hue, because hue alone fails the moment two squads overlap. */
+/* Whose machine this is used to be carried entirely by tinting the whole figure, because the rig
+ * put era accent on pauldrons and a visor and that was four invisible pixels at board scale.
+ * The rig now paints a full livery per side — a white frame with a deep chest group for yours, a
+ * factory grey with a crimson one for the regime's — so the tint's job is over. It stays only as a
+ * whisper of warm and cool, because a multiply strong enough to identify a side is also strong
+ * enough to collapse four colours back into one. */
 const TEAM: Record<'p' | 'e', [number, number, number]> = {
-  p: [1.12, 0.90, 0.68],
-  e: [1.00, 0.60, 0.56],
+  p: [1.04, 1.01, 0.97],
+  e: [1.00, 0.95, 0.94],
 };
 
 /* How long each reaction reads for, in seconds. Short: at four ticks a second during fast

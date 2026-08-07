@@ -52,6 +52,24 @@ export interface RigSpec {
   visor: boolean;
 }
 
+/* A machine's paint, per side.
+ *
+ * One metal colour plus one accent is what makes a figure read as a game token: a silhouette in a
+ * team colour. Real mobile suits are COLOUR BLOCKED — a light body, a dark chest and shoulder
+ * group, a hot accent on vents and feet, and a small bright trim on the fin and intakes. Four
+ * roles is the minimum that reads as a machine somebody designed rather than a shape somebody
+ * tinted, and it is what lets the two sides differ by livery instead of by hue rotation. */
+export interface Livery {
+  /** Limbs and the bulk of the frame. The lightest thing on the machine. */
+  body: string;
+  /** Chest, pauldrons, skirt — the dark group that gives the silhouette its weight. */
+  plate: string;
+  /** Vents, feet, eyes. The hot colour, used sparingly. */
+  accent: string;
+  /** Fin, intakes, edging. Small, bright, metallic. */
+  trim: string;
+}
+
 export interface Palette {
   sky: [string, string];
   haze: string;
@@ -68,18 +86,24 @@ export interface EraSkin {
   /** Shown when the theatre opens, so you know what age you are watching. */
   blurb: string;
   palette: Palette;
+  /** How this age paints a machine, per side. */
+  livery(side: 'p' | 'e'): Livery;
   look(w: WeaponClass): WeaponLook;
   rig(a: Archetype): RigSpec;
 }
 
 const baseRig = (a: Archetype): RigSpec => {
+  /* Every panel's width comes from breadth x limb, so those two multiply and a Colossus was ending
+     up 1.9x wider *in proportion to its own height* than a Line Suit — pauldrons, skirt and chest
+     all overlapping into a wall of boxes with no silhouette left. Bulk should read as bulk, not as
+     a pile. Held to roughly 0.13-0.18 of height across the roster. */
   const b = { plating: 1, shield: false, crest: 0, visor: true };
   switch (a) {
-    case 'grunt':     return { ...b, height: 1.8, breadth: 0.26, head: 0.13, thrusters: false, limb: 0.9 };
-    case 'brawler':   return { ...b, height: 2.0, breadth: 0.30, head: 0.13, thrusters: true,  limb: 1.0 };
-    case 'heavy':     return { ...b, height: 2.6, breadth: 0.42, head: 0.11, thrusters: false, limb: 1.5 };
-    case 'artillery': return { ...b, height: 2.1, breadth: 0.38, head: 0.10, thrusters: false, limb: 1.2 };
-    case 'ace':       return { ...b, height: 2.1, breadth: 0.28, head: 0.12, thrusters: true,  limb: 0.95 };
+    case 'grunt':     return { ...b, height: 1.8, breadth: 0.28, head: 0.13, thrusters: false, limb: 0.90 };
+    case 'brawler':   return { ...b, height: 2.0, breadth: 0.30, head: 0.13, thrusters: true,  limb: 1.00 };
+    case 'heavy':     return { ...b, height: 2.6, breadth: 0.36, head: 0.11, thrusters: false, limb: 1.25 };
+    case 'artillery': return { ...b, height: 2.1, breadth: 0.30, head: 0.10, thrusters: false, limb: 1.15 };
+    case 'ace':       return { ...b, height: 2.1, breadth: 0.30, head: 0.12, thrusters: true,  limb: 0.95 };
   }
 };
 
@@ -108,6 +132,11 @@ const STONE: EraSkin = {
   },
   /* A body carrying a shield and a shaft. Short, thin, crested, and wearing almost nothing —
      the outline of a man, which is exactly what it should be ten thousand years before a cockpit. */
+  livery(side) {
+    return side === 'p'
+      ? { body: '#C6B594', plate: '#7A5A3C', accent: '#C8A15E', trim: '#E7D6A8' }
+      : { body: '#94806A', plate: '#4A3428', accent: '#8E4B3A', trim: '#C09A6E' };
+  },
   rig(a) {
     const r = baseRig(a);
     return { ...r, height: r.height * 0.64, thrusters: false, limb: r.limb * 0.92,
@@ -138,6 +167,11 @@ const INDUSTRIAL: EraSkin = {
   },
   /* Plate over everything and a sealed helm with no light behind it. Broad in the shoulder and
      short in the leg — the age when armour got heavier faster than the legs carrying it. */
+  livery(side) {
+    return side === 'p'
+      ? { body: '#AFB8C2', plate: '#4E5A67', accent: '#C7752F', trim: '#D8B25E' }
+      : { body: '#7A736C', plate: '#39322E', accent: '#9E3A32', trim: '#A98A5E' };
+  },
   rig(a) {
     const r = baseRig(a);
     return { ...r, height: r.height * 0.84, breadth: r.breadth * 1.22, limb: r.limb * 1.15,
@@ -168,9 +202,16 @@ const MOBILE_SUIT: EraSkin = {
   },
   /* Tall, thin in the limb and enormous in the pauldron, with a lit visor and thrust behind it.
      Nothing about this shape would survive gravity without the engine, which is the point. */
+  /* White frame, deep chest group, hot accent, gold trim — yours reads as a hero machine and the
+     regime's as the thing built in a factory to kill it. */
+  livery(side) {
+    return side === 'p'
+      ? { body: '#DCE4EC', plate: '#2B4A7C', accent: '#FF6A1F', trim: '#FFC24B' }
+      : { body: '#77787E', plate: '#33262C', accent: '#FF4438', trim: '#C8913A' };
+  },
   rig(a) {
     const r = baseRig(a);
-    return { ...r, height: r.height * 1.08, limb: r.limb * 0.92, breadth: r.breadth * 1.1,
+    return { ...r, height: r.height * 1.02, limb: r.limb * 0.94, breadth: r.breadth * 1.16,
       thrusters: true, plating: 1, shield: false, crest: 0, visor: true };
   },
 };
